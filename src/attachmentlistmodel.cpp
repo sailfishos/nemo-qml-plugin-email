@@ -151,6 +151,22 @@ void AttachmentListModel::onAttachmentUrlChanged(const QString &attachmentLocati
     }
 }
 
+static bool findPartFromAttachment(const QMailMessagePart &part, const QString &attachmentLocation, QMailMessagePart &found)
+{
+    if (part.multipartType() == QMailMessagePart::MultipartNone) {
+        if (attachmentLocation == part.location().toString(true)) {
+            found = part;
+            return true;
+        }
+    } else {
+        for (uint i = 0; i < part.partCount(); i++) {
+            if (findPartFromAttachment(part.partAt(i), attachmentLocation, found))
+                return true;
+        }
+    }
+    return false;
+}
+
 QString AttachmentListModel::attachmentUrl(const QMailMessage message, const QString &attachmentLocation)
 {
     QMailAccountId accountId = message.parentAccountId();
@@ -159,8 +175,9 @@ QString AttachmentListModel::attachmentUrl(const QMailMessage message, const QSt
             + QString::number(accountId.toULongLong()) +  "/" + attachmentLocation;
 
     for (uint i = 0; i < message.partCount(); i++) {
-        QMailMessagePart sourcePart = message.partAt(i);
-        if (attachmentLocation == sourcePart.location().toString(true)) {
+        QMailMessagePart part = message.partAt(i);
+        QMailMessagePart sourcePart;
+        if (findPartFromAttachment(part, attachmentLocation, sourcePart)) {
             QString attachmentPath = attachmentDownloadFolder + "/" + sourcePart.displayName();
             QFile f(attachmentPath);
             if (f.exists()) {
