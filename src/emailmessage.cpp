@@ -17,6 +17,7 @@
 #include "emailmessage.h"
 #include "logging_p.h"
 #include <qmailnamespace.h>
+#include <qmailcrypto.h>
 #include <qmaildisconnected.h>
 #include <QTextDocument>
 #include <QTemporaryFile>
@@ -57,6 +58,7 @@ EmailMessage::EmailMessage(QObject *parent)
     , m_downloadActionId(0)
     , m_htmlBodyConstructed(false)
     , m_calendarStatus(Unknown)
+    , m_signatureStatus(NoDigitalSignature)
 {
     setPriority(NormalPriority);
 }
@@ -137,6 +139,20 @@ void EmailMessage::onMessagePartDownloaded(const QMailMessageId &messageId, cons
                 }
                 emit calendarInvitationStatusChanged();
                 return;
+            }
+        }
+        // Check if this is for signature check.
+        if (m_msg.status() & QMailMessageMetaData::HasSignature) {
+            const QMailMessagePartContainer *crypto = QMailCryptographicServiceFactory::findSignedContainer(&m_msg);
+            if (crypto) {
+                bool available = true, newPart = false;
+                for (uint i = 0; i < crypto->partCount() && available; i++) {
+                    const QMailMessagePart &part = crypto->partAt(i);
+                    available = part.contentAvailable();
+                    newPart = newPart || (part.location().toString(true) == partLocation);
+                }
+                if (available && newPart)
+                    verify();
             }
         }
     }
@@ -517,6 +533,11 @@ EmailMessage::ContentType EmailMessage::contentType() const
         }
     }
     return EmailMessage::HTML;
+}
+
+EmailMessage::SignatureStatus EmailMessage::signatureStatus() const
+{
+    return m_signatureStatus;
 }
 
 QDateTime EmailMessage::date() const
@@ -1056,6 +1077,9 @@ void EmailMessage::emitMessageReloadedSignals()
     emit storedMessageChanged();
     emit toChanged();
     emit quotedBodyChanged();
+
+    // Update cryptography status.
+    verify();
 }
 
 void EmailMessage::processAttachments()
@@ -1238,4 +1262,55 @@ QString EmailMessage::readReceiptRequestEmail() const
     }
     const QMailMessageHeaderField &header = m_msg.headerField(READ_RECEIPT_HEADER_ID);
     return header.isNull() ? QString() : header.content();
+}
+
+void EmailMessage::verify()
+{
+    if (m_msg.status() & QMailMessageMetaData::HasSignature) {
+        /* Check that parts exist, or download them. */
+        QMailCryptographicServiceInterface *engine;
+        const QMailMessagePartContainer *crypto = QMailCryptographicServiceFactory::findSignedContainer(&m_msg, &engine);
+        if (crypto) {
+            bool available = true;
+            for (uint i = 0; i < crypto->partCount(); i++) {
+                const QMailMessagePart &part = crypto->partAt(i);
+                if (!part.contentAvailable()) {
+                    requestMessagePartDownload(&part);
+                    available = false;
+                }
+            }
+            if (available) {
+                switch (engine->verifySignature(*crypto).summary) {
+                case QMailCryptoFwd::SignatureValid:
+                    m_signatureStatus = EmailMessage::SignedValid;
+                    break;
+                case QMailCryptoFwd::SignatureExpired:
+                case QMailCryptoFwd::KeyExpired:
+                case QMailCryptoFwd::CertificateRevoked:
+                    m_signatureStatus = EmailMessage::SignedExpired;
+                    break;
+                case QMailCryptoFwd::BadSignature:
+                    m_signatureStatus = EmailMessage::SignedInvalid;
+                    break;
+                case QMailCryptoFwd::MissingKey:
+                    m_signatureStatus = EmailMessage::SignedMissing;
+                    break;
+                case QMailCryptoFwd::MissingSignature:
+                    m_signatureStatus = EmailMessage::NoDigitalSignature;
+                    break;
+                default:
+                    m_signatureStatus = EmailMessage::SignedUnchecked;
+                    break;
+                }
+            } else {
+                m_signatureStatus = EmailMessage::SignedUnchecked;
+            }
+        } else {
+            qCWarning(lcEmail) << Q_FUNC_INFO <<  "The message does not contain cryptographic data";
+            m_signatureStatus = EmailMessage::NoDigitalSignature;
+        }
+    } else {
+        m_signatureStatus = EmailMessage::NoDigitalSignature;
+    }
+    emit signatureStatusChanged();
 }

@@ -14,6 +14,7 @@
 
 #include <qmailaccount.h>
 #include <qmailstore.h>
+#include <qmailcryptofwd.h>
 
 class Q_DECL_EXPORT EmailMessage : public QObject
 {
@@ -22,6 +23,8 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_ENUMS(ContentType)
     Q_ENUMS(ResponseType)
     Q_ENUMS(AttachedDataStatus)
+    Q_ENUMS(SignatureStatus)
+
     Q_PROPERTY(int accountId READ accountId NOTIFY accountIdChanged)
     Q_PROPERTY(QString accountAddress READ accountAddress NOTIFY accountAddressChanged)
     Q_PROPERTY(int folderId READ folderId NOTIFY folderIdChanged)
@@ -35,6 +38,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(bool calendarInvitationSupportsEmailResponses READ calendarInvitationSupportsEmailResponses NOTIFY calendarInvitationSupportsEmailResponsesChanged)
     Q_PROPERTY(QStringList cc READ cc WRITE setCc NOTIFY ccChanged)
     Q_PROPERTY(ContentType contentType READ contentType NOTIFY storedMessageChanged FINAL)
+    Q_PROPERTY(SignatureStatus signatureStatus READ signatureStatus NOTIFY signatureStatusChanged FINAL)
     Q_PROPERTY(QDateTime date READ date NOTIFY storedMessageChanged)
     Q_PROPERTY(QString from READ from WRITE setFrom NOTIFY fromChanged)
     Q_PROPERTY(QString fromAddress READ fromAddress NOTIFY fromChanged)
@@ -85,6 +89,15 @@ public:
         Saved
     };
 
+    enum SignatureStatus {
+        NoDigitalSignature,
+        SignedUnchecked,
+        SignedValid,
+        SignedInvalid,
+        SignedExpired,
+        SignedMissing
+    };
+
     Q_INVOKABLE void cancelMessageDownload();
     Q_INVOKABLE void downloadMessage();
     Q_INVOKABLE void getCalendarInvitation();
@@ -105,6 +118,7 @@ public:
     bool calendarInvitationSupportsEmailResponses() const;
     QStringList cc() const;
     ContentType contentType() const;
+    SignatureStatus signatureStatus() const;
     QDateTime date() const;
     QString from() const;
     QString fromAddress() const;
@@ -157,6 +171,7 @@ signals:
     void calendarInvitationBodyChanged();
     bool calendarInvitationSupportsEmailResponsesChanged();
     void ccChanged();
+    void signatureStatusChanged();
     void dateChanged();
     void fromChanged();
     void htmlBodyChanged();
@@ -205,6 +220,7 @@ private:
     void saveTempCalendarInvitation(const QMailMessagePart &calendarPart);
     void updateReadReceiptHeader();
     QString readReceiptRequestEmail() const;
+    void verify();
 
     QMailAccount m_account;
     QStringList m_attachments;
@@ -221,6 +237,7 @@ private:
     bool m_htmlBodyConstructed;
     QString m_calendarInvitationUrl;
     AttachedDataStatus m_calendarStatus;
+    SignatureStatus m_signatureStatus;
 };
 
 #endif
