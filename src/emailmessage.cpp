@@ -262,6 +262,12 @@ void EmailMessage::send()
     }
 
     buildMessage();
+    if (!m_keySign.isEmpty()) {
+        QMailCryptoFwd::SignatureResult res;
+        res = m_msg.sign("libgpgme.so", QStringList(m_keySign));
+        if (res != QMailCryptoFwd::SignatureValid)
+            qCWarning(lcGeneral) << "Error: cannot sign message, SignatureResult: " << res;
+    }
 
     bool stored = false;
 
@@ -622,6 +628,11 @@ QString EmailMessage::inReplyTo() const
     return m_msg.inReplyTo();
 }
 
+QString EmailMessage::keySign() const
+{
+    return m_keySign;
+}
+
 int EmailMessage::messageId() const
 {
     return m_id.toULongLong();
@@ -816,6 +827,15 @@ void EmailMessage::setInReplyTo(const QString &messageId)
     } else {
         qCWarning(lcEmail) << Q_FUNC_INFO << "Can't set a empty messageId as 'InReplyTo' header.";
     }
+}
+
+void EmailMessage::setKeySign(const QString &fingerPrint)
+{
+    if (fingerPrint == m_keySign)
+        return;
+
+    m_keySign = fingerPrint;
+    emit keySignChanged();
 }
 
 void EmailMessage::setMessageId(int messageId)

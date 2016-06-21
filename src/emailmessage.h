@@ -45,6 +45,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(QString fromDisplayName READ fromDisplayName NOTIFY fromChanged)
     Q_PROPERTY(QString htmlBody READ htmlBody NOTIFY htmlBodyChanged FINAL)
     Q_PROPERTY(QString inReplyTo READ inReplyTo WRITE setInReplyTo NOTIFY inReplyToChanged)
+    Q_PROPERTY(QString keySign READ keySign WRITE setKeySign NOTIFY keySignChanged)
     Q_PROPERTY(int messageId READ messageId WRITE setMessageId NOTIFY messageIdChanged)
     Q_PROPERTY(bool multipleRecipients READ multipleRecipients NOTIFY multipleRecipientsChanged)
     Q_PROPERTY(int numberOfAttachments READ numberOfAttachments NOTIFY attachmentsChanged)
@@ -125,6 +126,7 @@ public:
     QString fromDisplayName() const;
     QString htmlBody();
     QString inReplyTo() const;
+    QString keySign() const;
     int messageId() const;
     bool multipleRecipients() const;
     int numberOfAttachments() const;
@@ -144,6 +146,7 @@ public:
     void setCc(const QStringList &ccList);
     void setFrom(const QString &sender);
     void setInReplyTo(const QString &messageId);
+    void setKeySign(const QString &fingerPrint);
     void setMessageId(int messageId);
     void setOriginalMessageId(int messageId);
     void setPriority(Priority priority);
@@ -176,6 +179,7 @@ signals:
     void fromChanged();
     void htmlBodyChanged();
     void inReplyToChanged();
+    void keySignChanged();
     void messageIdChanged();
     void messageDownloaded();
     void messageDownloadFailed();
@@ -226,6 +230,7 @@ private:
     QStringList m_attachments;
     QString m_bodyText;
     QString m_htmlText;
+    QString m_keySign;
     QMailMessageId m_id;
     QMailMessageId m_originalMessageId;
     QMailMessageId m_idToRemove;
