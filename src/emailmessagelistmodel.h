@@ -113,6 +113,8 @@ public:
     EmailMessageListModel::Sort sortBy() const;
     bool unreadMailsSelected() const;
 
+    Q_INVOKABLE void notifyDateChanged();
+
 Q_SIGNALS:
     void canFetchMoreChanged();
     void countChanged();
