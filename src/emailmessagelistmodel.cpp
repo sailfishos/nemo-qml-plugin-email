@@ -266,9 +266,16 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const 
         return messageMetaData.preview().simplified();
     }
     else if (role == MessageTimeSectionRole) {
-        const int daysDiff = QDate::currentDate().toJulianDay()
-                - (messageMetaData.date().toLocalTime()).date().toJulianDay();
+        static QDate lastDate(QDate::currentDate());
 
+        // The value of this property depends on the current date; if that changes, we need to notify the update
+        QDate now(QDate::currentDate());
+        if (now != lastDate) {
+            lastDate = now;
+            QMetaObject::invokeMethod(const_cast<EmailMessageListModel *>(this), "notifyDateChanged");
+        }
+
+        const int daysDiff = now.toJulianDay() - (messageMetaData.date().toLocalTime()).date().toJulianDay();
         if (daysDiff < 7) {
             return (messageMetaData.date().toLocalTime()).date();
         }
@@ -484,6 +491,11 @@ EmailMessageListModel::Sort EmailMessageListModel::sortBy() const
 bool EmailMessageListModel::unreadMailsSelected() const
 {
     return !m_selectedUnreadIdx.isEmpty();
+}
+
+void EmailMessageListModel::notifyDateChanged()
+{
+    dataChanged(index(0), index(rowCount() - 1), QVector<int>() << MessageTimeSectionRole);
 }
 
 void EmailMessageListModel::sortBySender(int order)
