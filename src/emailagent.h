@@ -9,6 +9,7 @@
 #ifndef EMAILAGENT_H
 #define EMAILAGENT_H
 
+#include <QSharedPointer>
 #include <QProcess>
 #include <QTimer>
 #include <QNetworkConfigurationManager>
