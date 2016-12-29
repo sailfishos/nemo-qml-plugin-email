@@ -489,9 +489,8 @@ void EmailAgent::onMessageServerProcessError(QProcess::ProcessError error)
 {
     m_synchronizing = false;
     emit synchronizingChanged(EmailAgent::Error);
-    QString errorMsg(QString("Could not start messageserver process, unable to communicate with the remove servers.\nQProcess exit with error: (%1)")
-                     .arg(static_cast<int>(error)));
-    qFatal(errorMsg.toLatin1());
+    qFatal("Could not start messageserver process, unable to communicate with the remove servers.\nQProcess exit with error: (%i)",
+           static_cast<int>(error));
 }
 
 void EmailAgent::onOnlineStateChanged(bool isOnline)
