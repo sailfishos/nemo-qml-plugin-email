@@ -602,8 +602,6 @@ void EmailMessage::setBcc(const QStringList &bccList)
         m_msg.setBcc(QMailAddress::fromStringList(bccList));
         emit bccChanged();
         emit multipleRecipientsChanged();
-    } else {
-        qCWarning(lcGeneral) << Q_FUNC_INFO << "Can't set 'Bcc' addresses from a empty list";
     }
 }
 
@@ -621,8 +619,6 @@ void EmailMessage::setCc(const QStringList &ccList)
         m_msg.setCc(QMailAddress::fromStringList(ccList));
         emit ccChanged();
         emit multipleRecipientsChanged();
-    } else {
-        qCWarning(lcGeneral) << Q_FUNC_INFO << "Can't set 'Cc' addresses from a empty list";
     }
 }
 
@@ -777,8 +773,6 @@ void EmailMessage::setTo(const QStringList &toList)
     if (toList.size() || to().size()) {
         m_msg.setTo(QMailAddress::fromStringList(toList));
         emit toChanged();
-    } else {
-        qCWarning(lcGeneral) << Q_FUNC_INFO << "Can't set 'To' addresses from a empty list";
     }
 }
 
