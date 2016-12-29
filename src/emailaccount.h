@@ -14,7 +14,8 @@
 #include <qmailserviceconfiguration.h>
 #include <qmailserviceaction.h>
 
-class Q_DECL_EXPORT EmailAccount : public QObject {
+class Q_DECL_EXPORT EmailAccount : public QObject
+{
     Q_OBJECT
     Q_ENUMS(Error)
     Q_ENUMS(ServerType)

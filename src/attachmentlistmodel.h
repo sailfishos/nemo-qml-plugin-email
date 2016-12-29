@@ -17,13 +17,12 @@
 class Q_DECL_EXPORT AttachmentListModel : public QAbstractListModel
 {
     Q_OBJECT
+    Q_PROPERTY(int count READ count NOTIFY countChanged)
+    Q_PROPERTY(int messageId READ messageId WRITE setMessageId NOTIFY messageIdChanged FINAL)
 
 public:
     explicit AttachmentListModel(QObject *parent = 0);
     ~AttachmentListModel();
-
-    Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(int messageId READ messageId WRITE setMessageId NOTIFY messageIdChanged FINAL)
 
     enum Role {
         ContentLocation = Qt::UserRole + 1,

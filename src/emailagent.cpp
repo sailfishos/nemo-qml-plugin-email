@@ -594,8 +594,7 @@ void EmailAgent::cancelSync()
 
 void EmailAgent::createFolder(const QString &name, int mailAccountId, int parentFolderId)
 {
-
-    if(!name.isEmpty()) {
+    if (!name.isEmpty()) {
         qCDebug(lcDebug) << "Error: Can't create a folder with empty name";
     }
 
@@ -1153,7 +1152,7 @@ void EmailAgent::executeCurrent()
 
 QSharedPointer<EmailAction> EmailAgent::getNext()
 {
-    if(m_actionQueue.isEmpty())
+    if (m_actionQueue.isEmpty())
         return QSharedPointer<EmailAction>();
 
     QSharedPointer<EmailAction> firstAction = m_actionQueue.first();

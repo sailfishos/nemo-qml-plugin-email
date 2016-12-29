@@ -49,10 +49,10 @@ QMailAccountId EmailAction::accountId() const
 
 bool EmailAction::operator==(const EmailAction &action) const
 {
-    if(action._description.isEmpty() || _description.isEmpty()) {
+    if (action._description.isEmpty() || _description.isEmpty()) {
         return false;
     }
-    if(action._description == _description) {
+    if (action._description == _description) {
         return true;
     }
     else {

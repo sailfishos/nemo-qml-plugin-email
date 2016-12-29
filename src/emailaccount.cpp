@@ -161,6 +161,7 @@ bool EmailAccount::remove()
     }
     return result;
 }
+
 // Timeout in seconds
 void EmailAccount::test(int timeout)
 {

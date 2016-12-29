@@ -511,8 +511,7 @@ EmailMessage::Priority EmailMessage::priority() const
         return HighPriority;
     } else if (m_msg.status() & QMailMessage::LowPriority) {
         return LowPriority;
-    }
-    else {
+    } else {
         return NormalPriority;
     }
 }
@@ -562,11 +561,7 @@ QStringList EmailMessage::recipientsDisplayName() const
 
 bool EmailMessage::read() const
 {
-    if (m_msg.status() & QMailMessage::Read) {
-        return true;
-    } else {
-        return false;
-    }
+    return (m_msg.status() & QMailMessage::Read);
 }
 
 QString EmailMessage::replyTo() const

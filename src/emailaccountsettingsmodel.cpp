@@ -375,10 +375,9 @@ void EmailAccountSettingsModel::setConfirmDeleteMail(bool val)
 
 void EmailAccountSettingsModel::saveChanges()
 {
-    int i;
     QMailStore *mailstore = QMailStore::instance();
 
-    for (i = 0; i < mAccounts.size(); i++) {
+    for (int i = 0; i < mAccounts.size(); i++) {
         //set update interval and signature globally
         mAccounts[i].setSignature(mSignature);
         mAccounts[i].setStatus(QMailAccount::AppendSignature, !mSignature.isEmpty());

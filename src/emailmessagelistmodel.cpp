@@ -26,7 +26,7 @@ namespace {
 
 Q_GLOBAL_STATIC(ML10N::MLocale, m_locale)
 
-QString firstChar(const QString& str)
+QString firstChar(const QString &str)
 {
     QString group = m_locale()->indexBucket(str);
     return group.isNull() ? QString::fromLatin1("#") : group;
@@ -353,7 +353,7 @@ int EmailMessageListModel::count() const
 
 void EmailMessageListModel::setSearch(const QString &search)
 {
-    if(search.isEmpty()) {
+    if (search.isEmpty()) {
         m_searchKey = QMailMessageKey::nonMatchingKey();
         setKey(m_searchKey);
         m_search = search;
@@ -413,7 +413,7 @@ void EmailMessageListModel::setFolderKey(int id, QMailMessageKey messageKey)
     QMailMessageKey accountKey = QMailMessageKey::parentAccountId(m_mailAccountIds);
     QMailMessageKey folderKey = accountKey & QMailMessageKey::parentFolderId(m_currentFolderId);
     QMailMessageListModel::setKey(folderKey & messageKey);
-    m_key=key();
+    m_key = key();
     QMailMessageListModel::setSortKey(m_sortKey);
 
     if (combinedInbox())
@@ -819,7 +819,7 @@ void EmailMessageListModel::markAsUnReadSelectedMessagesIds()
 
 void EmailMessageListModel::markAllMessagesAsRead()
 {
-    if(rowCount()) {
+    if (rowCount()) {
         QMailAccountIdList accountIdList;
         QMailMessageIdList msgIds;
         quint64 status(QMailMessage::Read);
@@ -874,7 +874,7 @@ bool EmailMessageListModel::combinedInbox() const
 
 void EmailMessageListModel::setCombinedInbox(bool c)
 {
-    if(c == m_combinedInbox) {
+    if (c == m_combinedInbox) {
         return;
     }
 
@@ -937,7 +937,7 @@ bool EmailMessageListModel::filterUnread() const
 
 void EmailMessageListModel::setFilterUnread(bool u)
 {
-    if(u == m_filterUnread) {
+    if (u == m_filterUnread) {
         return;
     }
 
