@@ -489,9 +489,8 @@ void EmailAgent::onMessageServerProcessError(QProcess::ProcessError error)
 {
     m_synchronizing = false;
     emit synchronizingChanged(EmailAgent::Error);
-    QString errorMsg(QString("Could not start messageserver process, unable to communicate with the remove servers.\nQProcess exit with error: (%1)")
-                     .arg(static_cast<int>(error)));
-    qFatal(errorMsg.toLatin1());
+    qFatal("Could not start messageserver process, unable to communicate with the remove servers.\nQProcess exit with error: (%i)",
+           static_cast<int>(error));
 }
 
 void EmailAgent::onOnlineStateChanged(bool isOnline)
@@ -594,8 +593,7 @@ void EmailAgent::cancelSync()
 
 void EmailAgent::createFolder(const QString &name, int mailAccountId, int parentFolderId)
 {
-
-    if(!name.isEmpty()) {
+    if (!name.isEmpty()) {
         qCDebug(lcDebug) << "Error: Can't create a folder with empty name";
     }
 
@@ -1153,7 +1151,7 @@ void EmailAgent::executeCurrent()
 
 QSharedPointer<EmailAction> EmailAgent::getNext()
 {
-    if(m_actionQueue.isEmpty())
+    if (m_actionQueue.isEmpty())
         return QSharedPointer<EmailAction>();
 
     QSharedPointer<EmailAction> firstAction = m_actionQueue.first();

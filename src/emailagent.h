@@ -32,14 +32,14 @@ class Q_DECL_EXPORT EmailAgent : public QObject
     Q_ENUMS(AttachmentStatus)
     Q_ENUMS(SyncErrors)
     Q_ENUMS(SearchStatus)
+    Q_PROPERTY(bool synchronizing READ synchronizing NOTIFY synchronizingChanged)
+    Q_PROPERTY(int currentSynchronizingAccountId READ currentSynchronizingAccountId NOTIFY currentSynchronizingAccountIdChanged)
+
 public:
     static EmailAgent *instance();
 
     explicit EmailAgent(QObject *parent = 0);
     ~EmailAgent();
-
-    Q_PROPERTY(bool synchronizing READ synchronizing NOTIFY synchronizingChanged)
-    Q_PROPERTY(int currentSynchronizingAccountId READ currentSynchronizingAccountId NOTIFY currentSynchronizingAccountIdChanged)
 
     enum Status {
         Synchronizing = 0,

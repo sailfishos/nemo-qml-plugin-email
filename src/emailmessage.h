@@ -21,11 +21,6 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_ENUMS(ContentType)
     Q_ENUMS(ResponseType)
     Q_ENUMS(AttachedDataStatus)
-
-public:
-    explicit EmailMessage(QObject *parent = 0);
-    ~EmailMessage ();
-
     Q_PROPERTY(int accountId READ accountId NOTIFY accountIdChanged)
     Q_PROPERTY(QString accountAddress READ accountAddress NOTIFY accountAddressChanged)
     Q_PROPERTY(int folderId READ folderId NOTIFY folderIdChanged)
@@ -59,6 +54,10 @@ public:
     Q_PROPERTY(QString subject READ subject WRITE setSubject NOTIFY subjectChanged)
     Q_PROPERTY(QStringList to READ to WRITE setTo NOTIFY toChanged)
 
+public:
+    explicit EmailMessage(QObject *parent = 0);
+    ~EmailMessage();
+
     enum Priority { LowPriority, NormalPriority, HighPriority };
     enum ContentType { Plain, HTML };
 
@@ -81,7 +80,6 @@ public:
         FailedToSave,
         Saved
     };
-
 
     Q_INVOKABLE void cancelMessageDownload();
     Q_INVOKABLE void downloadMessage();

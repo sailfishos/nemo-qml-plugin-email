@@ -16,10 +16,6 @@
 class Q_DECL_EXPORT EmailFolder : public QObject
 {
     Q_OBJECT
-public:
-    explicit EmailFolder(QObject *parent = 0);
-     ~EmailFolder();
-
     Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName NOTIFY displayNameChanged)
     Q_PROPERTY(int folderId READ folderId WRITE setFolderId NOTIFY folderIdChanged)
     Q_PROPERTY(int parentAccountId READ parentAccountId NOTIFY folderIdChanged)
@@ -28,6 +24,10 @@ public:
     Q_PROPERTY(int serverCount READ serverCount NOTIFY folderIdChanged)
     Q_PROPERTY(int serverUndiscoveredCount READ serverUndiscoveredCount NOTIFY folderIdChanged)
     Q_PROPERTY(int serverUnreadCount READ serverUnreadCount NOTIFY folderIdChanged)
+
+public:
+    explicit EmailFolder(QObject *parent = 0);
+     ~EmailFolder();
 
     QString displayName() const;
     int folderId() const;
