@@ -51,6 +51,12 @@ make %{?_smp_mflags}
 rm -rf %{buildroot}
 %qmake5_install
 
+# org.nemomobile.email legacy import
+mkdir -p %{buildroot}%{_libdir}/qt5/qml/org/nemomobile/email/
+ln -sf %{_libdir}/qt5/qml/Nemo/Email/libnemoemail.so %{buildroot}%{_libdir}/qt5/qml/org/nemomobile/email/
+sed 's/Nemo.Email/org.nemomobile.email/' < src/plugin/qmldir > %{buildroot}%{_libdir}/qt5/qml/org/nemomobile/email/qmldir
+
+
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
@@ -58,10 +64,16 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %{_libdir}/libnemoemail-qt5.so.*
-%{_libdir}/qt5/qml/org/nemomobile/email/libnemoemail.so
-%{_libdir}/qt5/qml/org/nemomobile/email/qmldir
+%dir %{_libdir}/qt5/qml/Nemo/Email
+%{_libdir}/qt5/qml/Nemo/Email/libnemoemail.so
+%{_libdir}/qt5/qml/Nemo/Email/qmldir
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/domainSettings.conf
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/serviceSettings.conf
+
+# org.nemomobile.email legacy import
+%dir %{_libdir}/qt5/qml/org/nemomobile/email
+%{_libdir}/qt5/qml/org/nemomobile/email/libnemoemail.so
+%{_libdir}/qt5/qml/org/nemomobile/email/qmldir
 
 %files devel
 %defattr(-,root,root,-)

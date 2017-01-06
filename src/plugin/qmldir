@@ -1,2 +1,2 @@
-module org.nemomobile.email
+module Nemo.Email
 plugin nemoemail
