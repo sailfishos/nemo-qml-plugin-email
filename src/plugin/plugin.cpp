@@ -47,7 +47,7 @@
 class Q_DECL_EXPORT NemoEmailPlugin : public QQmlExtensionPlugin
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.nemomobile.email")
+    Q_PLUGIN_METADATA(IID "Nemo.Email")
 
 public:
     NemoEmailPlugin(){}
@@ -56,7 +56,7 @@ public:
 
     void initializeEngine(QQmlEngine *engine, const char *uri)
     {
-        Q_ASSERT(uri == QLatin1String("org.nemomobile.email"));
+        Q_ASSERT(uri == QLatin1String("Nemo.Email") || uri == QLatin1String("org.nemomobile.email"));
         Q_UNUSED(engine)
         Q_UNUSED(uri)
         QLoggingCategory::setFilterRules(QStringLiteral("org.nemomobile.email.debug=false"));
@@ -64,7 +64,7 @@ public:
 
     void registerTypes(const char *uri)
     {
-        Q_ASSERT(uri == QLatin1String("org.nemomobile.email"));
+        Q_ASSERT(uri == QLatin1String("Nemo.Email") || uri == QLatin1String("org.nemomobile.email"));
 
         qmlRegisterType<FolderListModel>(uri, 0, 1, "FolderListModel");
         qmlRegisterType<EmailAccountListModel>(uri, 0, 1, "EmailAccountListModel");

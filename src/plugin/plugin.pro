@@ -1,6 +1,6 @@
 TEMPLATE = lib
 TARGET = nemoemail
-PLUGIN_IMPORT_PATH = org/nemomobile/email
+PLUGIN_IMPORT_PATH = Nemo/Email
 QT -= gui
 CONFIG += qt plugin hide_symbols link_pkgconfig
 
