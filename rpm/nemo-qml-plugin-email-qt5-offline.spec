@@ -41,28 +41,20 @@ Requires:   %{name} = %{version}-%{release}
 %prep
 %setup -q -n %{name}-%{version}
 
-# >> setup
-# << setup
-
 %build
-# >> build pre
-# << build pre
 echo "DEFINES+=OFFLINE" > .qmake.conf
 %qmake5 DEFINES+=OFFLINE
 
 make %{?_smp_mflags}
 
-# >> build post
-# << build post
-
 %install
 rm -rf %{buildroot}
-# >> install pre
-# << install pre
 %qmake5_install
+# org.nemomobile.email legacy import
+mkdir -p %{buildroot}%{_libdir}/qt5/qml/org/nemomobile/email/
+ln -sf %{_libdir}/qt5/qml/Nemo/Email/libnemoemail.so %{buildroot}%{_libdir}/qt5/qml/org/nemomobile/email/
+sed 's/Nemo.Email/org.nemomobile.email/' < src/plugin/qmldir > %{buildroot}%{_libdir}/qt5/qml/org/nemomobile/email/qmldir
 
-# >> install post
-# << install post
 
 %post -p /sbin/ldconfig
 
@@ -71,12 +63,17 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %{_libdir}/libnemoemail-qt5.so.*
-%{_libdir}/qt5/qml/org/nemomobile/email/libnemoemail.so
-%{_libdir}/qt5/qml/org/nemomobile/email/qmldir
+%dir %{_libdir}/qt5/qml/Nemo/Email
+%{_libdir}/qt5/qml/Nemo/Email/libnemoemail.so
+%{_libdir}/qt5/qml/Nemo/Email/qmldir
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/domainSettings.conf
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/serviceSettings.conf
-# >> files
-# << files
+
+
+# org.nemomobile.email legacy import
+%dir %{_libdir}/qt5/qml/org/nemomobile/email
+%{_libdir}/qt5/qml/org/nemomobile/email/libnemoemail.so
+%{_libdir}/qt5/qml/org/nemomobile/email/qmldir
 
 %files devel
 %defattr(-,root,root,-)
@@ -84,11 +81,7 @@ rm -rf %{buildroot}
 %{_libdir}/libnemoemail-qt5.prl
 %{_includedir}/nemoemail-qt5/*.h
 %{_libdir}/pkgconfig/nemoemail-qt5.pc
-# >> files devel
-# << files devel
 
 %files tests
 %defattr(-,root,root,-)
 /opt/tests/nemo-qml-plugins/email/*
-# >> files tests
-# << files tests
