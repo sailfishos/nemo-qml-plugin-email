@@ -18,7 +18,8 @@ SOURCES += \
     $$PWD/emailaction.cpp \
     $$PWD/emailfolder.cpp \
     $$PWD/attachmentlistmodel.cpp \
-    $$PWD/logging.cpp
+    $$PWD/logging.cpp \
+    $$PWD/emailcryptoworker.cpp
 
 # could make more of these private?
 PUBLIC_HEADERS += \
@@ -31,6 +32,7 @@ PUBLIC_HEADERS += \
 PRIVATE_HEADERS += \
     $$PWD/attachmentlistmodel.h \
     $$PWD/emailaccountlistmodel.h \
+    $$PWD/emailcryptoworker.h \
     $$PWD/emailfolder.h \
     $$PWD/emailmessagelistmodel.h \
     $$PWD/folderaccessor.h \

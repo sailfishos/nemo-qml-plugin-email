@@ -16,6 +16,9 @@
 #include <qmailstore.h>
 #include <qmailcryptofwd.h>
 
+#include "emailagent.h"
+
+class EmailCryptoWorker;
 class Q_DECL_EXPORT EmailMessage : public QObject
 {
     Q_OBJECT
@@ -45,7 +48,8 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(QString fromDisplayName READ fromDisplayName NOTIFY fromChanged)
     Q_PROPERTY(QString htmlBody READ htmlBody NOTIFY htmlBodyChanged FINAL)
     Q_PROPERTY(QString inReplyTo READ inReplyTo WRITE setInReplyTo NOTIFY inReplyToChanged)
-    Q_PROPERTY(QString keySign READ keySign WRITE setKeySign NOTIFY keySignChanged)
+    Q_PROPERTY(QString signingType READ signingType WRITE setSigningType NOTIFY signingTypeChanged)
+    Q_PROPERTY(QStringList signingKeys READ signingKeys WRITE setSigningKeys NOTIFY signingKeysChanged)
     Q_PROPERTY(int messageId READ messageId WRITE setMessageId NOTIFY messageIdChanged)
     Q_PROPERTY(bool multipleRecipients READ multipleRecipients NOTIFY multipleRecipientsChanged)
     Q_PROPERTY(int numberOfAttachments READ numberOfAttachments NOTIFY attachmentsChanged)
@@ -105,6 +109,7 @@ public:
     Q_INVOKABLE void send();
     Q_INVOKABLE bool sendReadReceipt(const QString &subjectPrefix, const QString &readReceiptBodyText);
     Q_INVOKABLE void saveDraft();
+    Q_INVOKABLE SignatureStatus getSignatureStatusForKey(const QString &fpr) const;
 
     int accountId() const;
     QString accountAddress() const;
@@ -126,7 +131,8 @@ public:
     QString fromDisplayName() const;
     QString htmlBody();
     QString inReplyTo() const;
-    QString keySign() const;
+    QString signingType() const;
+    QStringList signingKeys() const;
     int messageId() const;
     bool multipleRecipients() const;
     int numberOfAttachments() const;
@@ -146,7 +152,8 @@ public:
     void setCc(const QStringList &ccList);
     void setFrom(const QString &sender);
     void setInReplyTo(const QString &messageId);
-    void setKeySign(const QString &fingerPrint);
+    void setSigningType(const QString &cryptoType);
+    void setSigningKeys(const QStringList &fingerPrints);
     void setMessageId(int messageId);
     void setOriginalMessageId(int messageId);
     void setPriority(Priority priority);
@@ -161,6 +168,7 @@ public:
     QStringList to();
 
 signals:
+    void sendEnqueued(bool success);
     void sendCompleted(bool success);
 
     void accountIdChanged();
@@ -179,7 +187,8 @@ signals:
     void fromChanged();
     void htmlBodyChanged();
     void inReplyToChanged();
-    void keySignChanged();
+    void signingTypeChanged();
+    void signingKeysChanged();
     void messageIdChanged();
     void messageDownloaded();
     void messageDownloadFailed();
@@ -203,12 +212,16 @@ private slots:
     void onMessagesDownloaded(const QMailMessageIdList &ids, bool success);
     void onMessagePartDownloaded(const QMailMessageId &messageId, const QString &partLocation, bool success);
     void onInlinePartDownloaded(const QMailMessageId &messageId, const QString &partLocation, bool success);
+    void onAttachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status);
+    void onSignCompleted(QMailCryptoFwd::SignatureResult result);
+    void onVerifyCompleted(QMailCryptoFwd::VerificationResult result);
     void onSendCompleted(bool success);
 
 private:
     friend class tst_EmailMessage;
 
     void buildMessage();
+    void sendBuiltMessage();
     void emitSignals();
     void emitMessageReloadedSignals();
     void processAttachments();
@@ -224,13 +237,15 @@ private:
     void saveTempCalendarInvitation(const QMailMessagePart &calendarPart);
     void updateReadReceiptHeader();
     QString readReceiptRequestEmail() const;
-    void verify();
+    void verifySignature();
+    void setSignatureStatus(SignatureStatus status);
 
     QMailAccount m_account;
     QStringList m_attachments;
     QString m_bodyText;
     QString m_htmlText;
-    QString m_keySign;
+    QString m_signingType;
+    QStringList m_signingKeys;
     QMailMessageId m_id;
     QMailMessageId m_originalMessageId;
     QMailMessageId m_idToRemove;
@@ -242,7 +257,9 @@ private:
     bool m_htmlBodyConstructed;
     QString m_calendarInvitationUrl;
     AttachedDataStatus m_calendarStatus;
+    EmailCryptoWorker *m_cryptoWorker;
     SignatureStatus m_signatureStatus;
+    QMailCryptoFwd::VerificationResult m_cryptoResult;
 };
 
 #endif

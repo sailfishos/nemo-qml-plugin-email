@@ -13,9 +13,9 @@
 #include <qmailaccount.h>
 #include <qmailstore.h>
 
-#include "emailagent.h"
 #include "emailmessage.h"
 #include "logging_p.h"
+#include "emailcryptoworker.h"
 #include <qmailnamespace.h>
 #include <qmailcrypto.h>
 #include <qmaildisconnected.h>
@@ -58,6 +58,7 @@ EmailMessage::EmailMessage(QObject *parent)
     , m_downloadActionId(0)
     , m_htmlBodyConstructed(false)
     , m_calendarStatus(Unknown)
+    , m_cryptoWorker(0)
     , m_signatureStatus(NoDigitalSignature)
 {
     setPriority(NormalPriority);
@@ -139,20 +140,6 @@ void EmailMessage::onMessagePartDownloaded(const QMailMessageId &messageId, cons
                 }
                 emit calendarInvitationStatusChanged();
                 return;
-            }
-        }
-        // Check if this is for signature check.
-        if (m_msg.status() & QMailMessageMetaData::HasSignature) {
-            const QMailMessagePartContainer *crypto = QMailCryptographicServiceFactory::findSignedContainer(&m_msg);
-            if (crypto) {
-                bool available = true, newPart = false;
-                for (uint i = 0; i < crypto->partCount() && available; i++) {
-                    const QMailMessagePart &part = crypto->partAt(i);
-                    available = part.contentAvailable();
-                    newPart = newPart || (part.location().toString(true) == partLocation);
-                }
-                if (available && newPart)
-                    verify();
             }
         }
     }
@@ -262,13 +249,23 @@ void EmailMessage::send()
     }
 
     buildMessage();
-    if (!m_keySign.isEmpty()) {
-        QMailCryptoFwd::SignatureResult res;
-        res = m_msg.sign("libgpgme.so", QStringList(m_keySign));
-        if (res != QMailCryptoFwd::SignatureValid)
-            qCWarning(lcGeneral) << "Error: cannot sign message, SignatureResult: " << res;
-    }
 
+    // We may delay sending after asynchronous actions
+    // have been done, otherwise, we send immediately.
+    if (!m_signingKeys.isEmpty() && !m_signingType.isEmpty()) {
+        if (!m_cryptoWorker) {
+            m_cryptoWorker = new EmailCryptoWorker(this);
+            connect(m_cryptoWorker, &EmailCryptoWorker::signCompleted,
+                    this, &EmailMessage::onSignCompleted);
+        }
+        m_cryptoWorker->sign(m_msg, m_signingType, m_signingKeys);
+    } else {
+        sendBuiltMessage();
+    }
+}
+
+void EmailMessage::sendBuiltMessage()
+{
     bool stored = false;
 
     // Message present only on the local device until we externalise or send it
@@ -288,6 +285,22 @@ void EmailMessage::send()
         emitSignals();
     } else {
        qCWarning(lcEmail) << "Error: queuing message, stored:" << stored;
+    }
+
+    emit sendEnqueued(stored);
+}
+
+void EmailMessage::onSignCompleted(QMailCryptoFwd::SignatureResult result)
+{
+    if (result != QMailCryptoFwd::SignatureValid) {
+        qCWarning(lcEmail) << "Error: cannot sign message, SignatureResult: " << result;
+        setSignatureStatus(EmailMessage::SignedInvalid);
+
+        emit sendEnqueued(false);
+    } else {
+        setSignatureStatus(EmailMessage::SignedValid);
+
+        sendBuiltMessage();
     }
 }
 
@@ -628,9 +641,14 @@ QString EmailMessage::inReplyTo() const
     return m_msg.inReplyTo();
 }
 
-QString EmailMessage::keySign() const
+QString EmailMessage::signingType() const
 {
-    return m_keySign;
+    return m_signingType;
+}
+
+QStringList EmailMessage::signingKeys() const
+{
+    return m_signingKeys;
 }
 
 int EmailMessage::messageId() const
@@ -829,13 +847,22 @@ void EmailMessage::setInReplyTo(const QString &messageId)
     }
 }
 
-void EmailMessage::setKeySign(const QString &fingerPrint)
+void EmailMessage::setSigningType(const QString &cryptoType)
 {
-    if (fingerPrint == m_keySign)
+    if (cryptoType == m_signingType)
         return;
 
-    m_keySign = fingerPrint;
-    emit keySignChanged();
+    m_signingType = cryptoType;
+    emit signingTypeChanged();
+}
+
+void EmailMessage::setSigningKeys(const QStringList &fingerPrints)
+{
+    if (fingerPrints == m_signingKeys)
+        return;
+
+    m_signingKeys = fingerPrints;
+    emit signingKeysChanged();
 }
 
 void EmailMessage::setMessageId(int messageId)
@@ -974,6 +1001,14 @@ void EmailMessage::setTo(const QStringList &toList)
     }
 }
 
+void EmailMessage::setSignatureStatus(SignatureStatus status)
+{
+    if (status != m_signatureStatus) {
+        m_signatureStatus = status;
+        emit signatureStatusChanged();
+    }
+}
+
 int EmailMessage::size()
 {
     return m_msg.size();
@@ -1098,8 +1133,17 @@ void EmailMessage::emitMessageReloadedSignals()
     emit toChanged();
     emit quotedBodyChanged();
 
-    // Update cryptography status.
-    verify();
+    // Update and emit cryptography status.
+    verifySignature();
+    // Add an attachment listener to update signature checking
+    // automatically when parts become available after user action.
+    if (m_msg.status() & QMailMessage::HasSignature) {
+        connect(EmailAgent::instance(), SIGNAL(attachmentDownloadStatusChanged(const QString &, EmailAgent::AttachmentStatus)),
+                this, SLOT(onAttachmentDownloadStatusChanged(const QString &, EmailAgent::AttachmentStatus)));
+    } else {
+        disconnect(EmailAgent::instance(), SIGNAL(attachmentDownloadStatusChanged(const QString &, EmailAgent::AttachmentStatus)),
+                   this, SLOT(onAttachmentDownloadStatusChanged(const QString &, EmailAgent::AttachmentStatus)));
+    }
 }
 
 void EmailMessage::processAttachments()
@@ -1284,53 +1328,79 @@ QString EmailMessage::readReceiptRequestEmail() const
     return header.isNull() ? QString() : header.content();
 }
 
-void EmailMessage::verify()
+void EmailMessage::onAttachmentDownloadStatusChanged(const QString &attachmentLocation,
+                                                     EmailAgent::AttachmentStatus status)
+{
+    Q_UNUSED(attachmentLocation);
+
+    if (status != EmailAgent::Downloaded)
+        return;
+
+    if (m_signatureStatus != EmailMessage::SignedUnchecked)
+        return;
+
+    // Reload the message to get the missing bits that have been downloaded.
+    m_msg = QMailMessage(m_id);
+    verifySignature();
+}
+
+static EmailMessage::SignatureStatus toSignatureStatus(QMailCryptoFwd::SignatureResult result)
+{
+    switch (result) {
+    case QMailCryptoFwd::SignatureValid:
+        return EmailMessage::SignedValid;
+    case QMailCryptoFwd::SignatureExpired:
+    case QMailCryptoFwd::KeyExpired:
+    case QMailCryptoFwd::CertificateRevoked:
+        return EmailMessage::SignedExpired;
+    case QMailCryptoFwd::BadSignature:
+        return EmailMessage::SignedInvalid;
+    case QMailCryptoFwd::MissingKey:
+        return EmailMessage::SignedMissing;
+    case QMailCryptoFwd::MissingSignature:
+        return EmailMessage::NoDigitalSignature;
+    default:
+        return EmailMessage::SignedUnchecked;
+    }
+}
+
+void EmailMessage::onVerifyCompleted(QMailCryptoFwd::VerificationResult result)
+{
+    EmailMessage::SignatureStatus signatureStatus = toSignatureStatus(result.summary);
+
+    m_cryptoResult = result;
+    
+    if (signatureStatus == m_signatureStatus)
+        return;
+    setSignatureStatus(signatureStatus);
+
+    m_signingKeys.clear();
+    for (int i = 0; i < result.keyResults.length(); i++)
+        m_signingKeys.append(result.keyResults.at(i).key);
+    emit signingKeysChanged();
+}
+
+EmailMessage::SignatureStatus EmailMessage::getSignatureStatusForKey(const QString &fpr) const
+{
+    foreach (const QMailCryptoFwd::KeyResult &result, m_cryptoResult.keyResults) {
+        if (result.key == fpr)
+            return toSignatureStatus(result.status);
+    }
+    return EmailMessage::SignedMissing;
+}
+
+void EmailMessage::verifySignature()
 {
     if (m_msg.status() & QMailMessageMetaData::HasSignature) {
-        /* Check that parts exist, or download them. */
-        QMailCryptographicServiceInterface *engine;
-        const QMailMessagePartContainer *crypto = QMailCryptographicServiceFactory::findSignedContainer(&m_msg, &engine);
-        if (crypto) {
-            bool available = true;
-            for (uint i = 0; i < crypto->partCount(); i++) {
-                const QMailMessagePart &part = crypto->partAt(i);
-                if (!part.contentAvailable()) {
-                    requestMessagePartDownload(&part);
-                    available = false;
-                }
-            }
-            if (available) {
-                switch (engine->verifySignature(*crypto).summary) {
-                case QMailCryptoFwd::SignatureValid:
-                    m_signatureStatus = EmailMessage::SignedValid;
-                    break;
-                case QMailCryptoFwd::SignatureExpired:
-                case QMailCryptoFwd::KeyExpired:
-                case QMailCryptoFwd::CertificateRevoked:
-                    m_signatureStatus = EmailMessage::SignedExpired;
-                    break;
-                case QMailCryptoFwd::BadSignature:
-                    m_signatureStatus = EmailMessage::SignedInvalid;
-                    break;
-                case QMailCryptoFwd::MissingKey:
-                    m_signatureStatus = EmailMessage::SignedMissing;
-                    break;
-                case QMailCryptoFwd::MissingSignature:
-                    m_signatureStatus = EmailMessage::NoDigitalSignature;
-                    break;
-                default:
-                    m_signatureStatus = EmailMessage::SignedUnchecked;
-                    break;
-                }
-            } else {
-                m_signatureStatus = EmailMessage::SignedUnchecked;
-            }
-        } else {
-            qCWarning(lcEmail) << Q_FUNC_INFO <<  "The message does not contain cryptographic data";
-            m_signatureStatus = EmailMessage::NoDigitalSignature;
+        setSignatureStatus(EmailMessage::SignedUnchecked);
+
+        if (!m_cryptoWorker) {
+            m_cryptoWorker = new EmailCryptoWorker(this);
+            connect(m_cryptoWorker, &EmailCryptoWorker::verifyCompleted,
+                    this, &EmailMessage::onVerifyCompleted);
         }
+        m_cryptoWorker->verify(m_msg);
     } else {
-        m_signatureStatus = EmailMessage::NoDigitalSignature;
+        setSignatureStatus(EmailMessage::NoDigitalSignature);
     }
-    emit signatureStatusChanged();
 }
