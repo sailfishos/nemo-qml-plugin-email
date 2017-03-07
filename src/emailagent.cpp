@@ -934,9 +934,10 @@ void EmailAgent::processSendingQueue(int accountId)
 void EmailAgent::synchronize(int accountId, uint minimum)
 {
     QMailAccountId acctId(accountId);
-
-    if (!acctId.isValid())
+    if (!acctId.isValid()) {
+        qCWarning(lcEmail) << "Cannot synchronize, invalid account id:" << accountId;
         return;
+    }
 
     bool messagesToSend = hasMessagesInOutbox(acctId);
     if (messagesToSend) {
@@ -953,6 +954,10 @@ void EmailAgent::synchronize(int accountId, uint minimum)
 void EmailAgent::synchronizeInbox(int accountId, uint minimum)
 {
     QMailAccountId acctId(accountId);
+    if (!acctId.isValid()) {
+        qCWarning(lcEmail) << "Cannot synchronize, invalid account id:" << accountId;
+        return;
+    }
 
     QMailAccount account(acctId);
     QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
