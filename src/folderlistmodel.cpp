@@ -436,6 +436,21 @@ bool FolderListModel::isStandardFolder(const QMailFolderId &id) const
             || folderType == SentFolder || folderType == TrashFolder || folderType == OutboxFolder;
 }
 
+bool FolderListModel::isAncestorFolder(const QMailFolderId &id, const QMailFolderId &ancestor) const
+{
+    QMailFolderId current = id;
+    while (current.isValid()) {
+        if (current == ancestor)
+            return true;
+
+        QMailFolder folder(current);
+        if (folder.status() & QMailFolder::NonMail)
+            return false;
+        current = folder.parentFolderId();
+    }
+    return false;
+}
+
 void FolderListModel::createAndAddFolderItem(const QModelIndex &idx, const QMailFolderId &mailFolderId,
                                                                FolderStandardType mailFolderType,
                                                                const QMailMessageKey &folderMessageKey)
@@ -488,23 +503,24 @@ void FolderListModel::addFolderAndChildren(const QMailFolderId &folderId, QMailM
                                           QList<QMailFolderId> &originalList)
 {
     int i = originalList.indexOf(folderId);
-    if (i != -1) {
-        FolderStandardType folderType = folderTypeFromId(originalList[i]);
-        createAndAddFolderItem(QModelIndex(), originalList[i], folderType, messageKey);
-        originalList.removeAt(i);
-        int j = i;
-        while (j < originalList.size() && QMailFolder(originalList[j]).parentFolderId() == folderId) {
-            // Do not add any standard folder that might be a child
-            if (isStandardFolder(originalList[j])) {
-                j++;
-            } else {
-                FolderStandardType folderType = folderTypeFromId(originalList[j]);
-                if (folderType != TrashFolder) {
-                    messageKey &= QMailMessageKey::status(QMailMessage::Trash, QMailDataComparator::Excludes);
-                }
-                createAndAddFolderItem(QModelIndex(), originalList[j], folderType, messageKey);
-                originalList.removeAt(j);
+    if (i == -1)
+        return;
+
+    FolderStandardType folderType = folderTypeFromId(originalList[i]);
+    createAndAddFolderItem(QModelIndex(), originalList[i], folderType, messageKey);
+    originalList.removeAt(i);
+    int j = i;
+    while (j < originalList.size() && isAncestorFolder(originalList[j], folderId)) {
+        // Do not add any standard folder that might be a child
+        if (isStandardFolder(originalList[j])) {
+            j++;
+        } else {
+            FolderStandardType folderType = folderTypeFromId(originalList[j]);
+            if (folderType != TrashFolder) {
+                messageKey &= QMailMessageKey::status(QMailMessage::Trash, QMailDataComparator::Excludes);
             }
+            createAndAddFolderItem(QModelIndex(), originalList[j], folderType, messageKey);
+            originalList.removeAt(j);
         }
     }
 }
