@@ -106,6 +106,7 @@ private:
     static bool lessThan(const QMailFolderId &idA, const QMailFolderId &idB);
     FolderStandardType folderTypeFromId(const QMailFolderId &id) const;
     bool isStandardFolder(const QMailFolderId &id) const;
+    bool isAncestorFolder(const QMailFolderId &id, const QMailFolderId &ancestor) const;
     void createAndAddFolderItem(const QModelIndex &idx, const QMailFolderId &mailFolderId,
                                  FolderStandardType mailFolderType, const QMailMessageKey &folderMessageKey);
     QString localFolderName(const FolderStandardType folderType) const;

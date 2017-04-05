@@ -1,7 +1,8 @@
 TEMPLATE = subdirs
 SUBDIRS = \
     tst_emailfolder \
-    tst_emailmessage
+    tst_emailmessage \
+    tst_folderlistmodel
     
 
 tests_xml.target = tests.xml
