@@ -153,7 +153,6 @@ signals:
 private slots:
     void activityChanged(QMailServiceAction::Activity activity);
     void onIpcConnectionEstablished();
-    void onMessageServerProcessError(QProcess::ProcessError error);
     void onOnlineStateChanged(bool isOnline);
     void onStandardFoldersCreated(const QMailAccountId &accountId);
     void progressChanged(uint value, uint total);
