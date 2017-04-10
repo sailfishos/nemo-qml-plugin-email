@@ -9,6 +9,10 @@
 
 
 #include <QTimer>
+#include <QDBusInterface>
+#include <QDBusObjectPath>
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
 #include <QDir>
 #include <QUrl>
 #include <QFile>
@@ -223,15 +227,32 @@ void EmailAgent::initMailServer()
         return;
     }
     QMail::fileUnlock(id);
-    qCDebug(lcGeneral) << Q_FUNC_INFO << "Starting messageserver service...";
-    m_messageServerProcess = new QProcess(this);
-    connect(m_messageServerProcess, SIGNAL(error(QProcess::ProcessError)),
-            this, SLOT(onMessageServerProcessError(QProcess::ProcessError)));
+
+    QDBusConnection sessionBus = QDBusConnection::sessionBus();
+    QDBusInterface systemd(QStringLiteral("org.freedesktop.systemd1"),
+                           QStringLiteral("/org/freedesktop/systemd1"),
+                           QStringLiteral("org.freedesktop.systemd1.Manager"),
+                           sessionBus);
+
     // We ignore the dependencies here because we want messageserver to start even if there are
     // no accounts in the system (e.g if this plugin is initiated to test account credentials during creation)
-    m_messageServerProcess->startDetached("systemctl", QStringList() << "--user" << "--ignore-dependencies"
-                                          << "start" << "messageserver5");
-    return;
+    QDBusPendingCall startUnit = systemd.asyncCall(QStringLiteral("StartUnit"),
+                                                          QStringLiteral("messageserver5.service"),
+                                                          QStringLiteral("ignore-dependencies"));
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(startUnit, this);
+    QObject::connect(watcher, &QDBusPendingCallWatcher::finished,
+                     this, [this](QDBusPendingCallWatcher *watcher) {
+        if (watcher && watcher->isFinished()) {
+            QDBusPendingReply<QDBusObjectPath> reply = *watcher;
+            if (reply.isError()) {
+                QDBusError error = reply.error();
+                qCWarning(lcGeneral) << "EmailAgent::initMailServer failed to start messageserver:" << error.name() << error.message() << error.type();
+                m_synchronizing = false;
+                emit synchronizingChanged(EmailAgent::Error);
+            }
+        }
+        watcher->deleteLater();
+    });
 }
 
 bool EmailAgent::ipcConnected()
@@ -483,14 +504,6 @@ void EmailAgent::onIpcConnectionEstablished()
         }
         emit ipcConnectionEstablished();
     }
-}
-
-void EmailAgent::onMessageServerProcessError(QProcess::ProcessError error)
-{
-    m_synchronizing = false;
-    emit synchronizingChanged(EmailAgent::Error);
-    qFatal("Could not start messageserver process, unable to communicate with the remove servers.\nQProcess exit with error: (%i)",
-           static_cast<int>(error));
 }
 
 void EmailAgent::onOnlineStateChanged(bool isOnline)
