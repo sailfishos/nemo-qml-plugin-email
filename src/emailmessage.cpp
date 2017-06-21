@@ -363,7 +363,8 @@ QString EmailMessage::body()
         return m_bodyText;
     }
 }
-QString EmailMessage::calendarInvitationUrl()
+
+QString EmailMessage::calendarInvitationUrl() const
 {
     return m_calendarInvitationUrl;
 }
@@ -777,17 +778,17 @@ void EmailMessage::setTo(const QStringList &toList)
     }
 }
 
-int EmailMessage::size()
+int EmailMessage::size() const
 {
     return m_msg.size();
 }
 
-QString EmailMessage::subject()
+QString EmailMessage::subject() const
 {
     return m_msg.subject();
 }
 
-QStringList EmailMessage::to()
+QStringList EmailMessage::to() const
 {
     return QMailAddress::toStringList(m_msg.to());
 }

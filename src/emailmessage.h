@@ -93,10 +93,8 @@ public:
     int accountId() const;
     QString accountAddress() const;
     int folderId() const;
-    QStringList attachments();
     QStringList bcc() const;
-    QString body();
-    QString calendarInvitationUrl();
+    QString calendarInvitationUrl() const;
     bool hasCalendarInvitation() const;
     AttachedDataStatus calendarInvitationStatus() const;
     QStringList cc() const;
@@ -105,7 +103,6 @@ public:
     QString from() const;
     QString fromAddress() const;
     QString fromDisplayName() const;
-    QString htmlBody();
     QString inReplyTo() const;
     int messageId() const;
     bool multipleRecipients() const;
@@ -113,12 +110,21 @@ public:
     int originalMessageId() const;
     QString preview() const;
     Priority priority() const;
-    QString quotedBody();
     QStringList recipients() const;
     QStringList recipientsDisplayName() const;
     bool read() const;
     QString replyTo() const;
     ResponseType responseType() const;
+    int size() const;
+    QString subject() const;
+    QStringList to() const;
+    QStringList headerFieldIds() const;
+
+    QStringList attachments();
+    QString body();
+    QString htmlBody();
+    QString quotedBody();
+
     void setAttachments(const QStringList &uris);
     void setBcc(const QStringList &bccList);
     void setBody(const QString &body);
@@ -133,10 +139,6 @@ public:
     void setResponseType(ResponseType responseType);
     void setSubject(const QString &subject);
     void setTo(const QStringList &toList);
-    int size();
-    QString subject();
-    QStringList to();
-    QStringList headerFieldIds() const;
 
 signals:
     void sendCompleted(bool success);
