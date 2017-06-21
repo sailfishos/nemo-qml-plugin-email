@@ -708,6 +708,7 @@ void EmailMessage::setPriority(EmailMessage::Priority priority)
         break;
     }
     emit priorityChanged();
+    emit headerFieldIdsChanged();
 }
 
 void EmailMessage::setRead(bool read) {
@@ -789,6 +790,22 @@ QString EmailMessage::subject()
 QStringList EmailMessage::to()
 {
     return QMailAddress::toStringList(m_msg.to());
+}
+
+QStringList EmailMessage::headerFieldIds() const
+{
+    QStringList retn;
+    const QList<QMailMessageHeaderField> headers = m_msg.headerFields();
+    for (QList<QMailMessageHeaderField>::const_iterator it = headers.constBegin();
+            it != headers.constEnd(); it++) {
+        retn.append(QString::fromUtf8(it->id()));
+    }
+    return retn;
+}
+
+QString EmailMessage::headerFieldText(const QString &headerFieldId) const
+{
+    return m_msg.headerFieldText(headerFieldId);
 }
 
 // ############## Private API #########################
@@ -959,6 +976,7 @@ void EmailMessage::updateReferences(QMailMessage &message, const QMailMessage &o
         // TODO: Truncate references if they're too long
         message.setHeaderField("References", references);
     }
+    emit headerFieldIdsChanged();
 }
 
 QString EmailMessage::imageMimeType(const QMailMessageContentType &contentType, const QString &fileName)

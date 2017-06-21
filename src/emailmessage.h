@@ -53,6 +53,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(int size READ size NOTIFY storedMessageChanged)
     Q_PROPERTY(QString subject READ subject WRITE setSubject NOTIFY subjectChanged)
     Q_PROPERTY(QStringList to READ to WRITE setTo NOTIFY toChanged)
+    Q_PROPERTY(QStringList headerFieldIds READ headerFieldIds NOTIFY headerFieldIdsChanged)
 
 public:
     explicit EmailMessage(QObject *parent = 0);
@@ -86,6 +87,8 @@ public:
     Q_INVOKABLE void getCalendarInvitation();
     Q_INVOKABLE void send();
     Q_INVOKABLE void saveDraft();
+
+    Q_INVOKABLE QString headerFieldText(const QString &headerFieldId) const;
 
     int accountId() const;
     QString accountAddress() const;
@@ -133,6 +136,7 @@ public:
     int size();
     QString subject();
     QStringList to();
+    QStringList headerFieldIds() const;
 
 signals:
     void sendCompleted(bool success);
@@ -167,6 +171,7 @@ signals:
     void bodyChanged();
     void quotedBodyChanged();
     void inlinePartsDownloaded();
+    void headerFieldIdsChanged();
 
 private slots:
     void onMessagesDownloaded(const QMailMessageIdList &ids, bool success);
