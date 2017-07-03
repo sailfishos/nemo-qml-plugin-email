@@ -391,7 +391,11 @@ EmailMessage::ContentType EmailMessage::contentType() const
 {
     // Treat only "text/plain" and invalid message as Plain and others as HTML.
     if (m_id.isValid()) {
-        if (m_msg.findHtmlContainer()) {
+        if (m_msg.findHtmlContainer()
+            || (m_msg.multipartType() == QMailMessagePartContainer::MultipartNone
+                && m_msg.contentDisposition().type() == QMailMessageContentDisposition::Inline
+                && m_msg.contentType().type().toLower() == "image"
+                && supportedImageTypes.contains(m_msg.contentType().subType().toLower()))) {
             return EmailMessage::HTML;
         } else {
             return EmailMessage::Plain;
@@ -454,6 +458,23 @@ QString EmailMessage::htmlBody()
                 }
                 return QString();
             }
+        } else if (contentType() == EmailMessage::HTML) {
+            // Case with an in-line image.
+            // Create a fake HTML body to display the content inline.
+            if (m_msg.contentAvailable()) {
+                QString bodyData;
+                if (m_msg.body().transferEncoding() == QMailMessageBody::Base64) {
+                    bodyData = QString::fromLatin1(m_msg.body().data(QMailMessageBody::Encoded));
+                } else {
+                    bodyData = QString::fromLatin1(m_msg.body().data(QMailMessageBody::Decoded).toBase64());
+                }
+                m_htmlText = QString::fromLocal8Bit("<html><body><img src=\"data:%1;base64,%2\" nemo-inline-image-loading=\"no\" /></body></html>").arg(m_msg.contentDisposition().filename(), bodyData);
+                m_htmlBodyConstructed = true;
+                return m_htmlText;
+            } else {
+                requestMessageDownload();
+            }
+            return QString();
         } else {
             return body();
         }
