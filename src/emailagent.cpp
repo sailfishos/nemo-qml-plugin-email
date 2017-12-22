@@ -28,8 +28,8 @@
 #include "emailagent.h"
 #include "emailaction.h"
 
-Q_LOGGING_CATEGORY(lcGeneral, "org.nemomobile.email.general")
-Q_LOGGING_CATEGORY(lcDebug, "org.nemomobile.email.debug")
+Q_LOGGING_CATEGORY(lcGeneral, "org.nemomobile.email.general", QtWarningMsg)
+Q_LOGGING_CATEGORY(lcDebug, "org.nemomobile.email.debug", QtWarningMsg)
 
 namespace {
 
@@ -1053,7 +1053,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
         return action->id();
     }
     else {
-        qCWarning(lcGeneral) << "This request already exists in the queue: " << action->description();
+        qCDebug(lcGeneral) << "This request already exists in the queue: " << action->description();
         qCDebug(lcDebug) << "Number of actions in the queue: " << m_actionQueue.size();
         return actionInQueueId(action);
     }
@@ -1107,7 +1107,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
     if (!foundAction) {
          return action->id();
     } else {
-        qCWarning(lcGeneral) << "This request already exists in the queue: " << action->description();
+        qCDebug(lcGeneral) << "This request already exists in the queue: " << action->description();
         qCDebug(lcDebug) << "Number of actions in the queue: " << m_actionQueue.size();
         return actionInQueueId(action);
     }
