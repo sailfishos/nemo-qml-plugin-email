@@ -1,7 +1,7 @@
 TEMPLATE = lib
 QT += network dbus
 Qt -= gui
-CONFIG += link_pkgconfig qt hide_symbols create_pc create_prl
+CONFIG += link_pkgconfig qt hide_symbols create_pc create_prl c++11
 TARGET = nemoemail-qt5
 PKGCONFIG += qmfmessageserver5 qmfclient5 mlocale5
 
@@ -15,6 +15,7 @@ SOURCES += \
     $$PWD/emailaccount.cpp \
     $$PWD/emailaction.cpp \
     $$PWD/emailfolder.cpp \
+    $$PWD/downloads.cpp \
     $$PWD/attachmentlistmodel.cpp
 
 HEADERS += \
@@ -27,6 +28,7 @@ HEADERS += \
     $$PWD/emailaccount.h \
     $$PWD/emailaction.h \
     $$PWD/emailfolder.h \
+    $$PWD/downloads.h \
     $$PWD/attachmentlistmodel.h
 
 MOC_DIR = $$PWD/../.moc

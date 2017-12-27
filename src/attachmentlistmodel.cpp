@@ -10,7 +10,6 @@
 #include <QVector>
 #include <QDir>
 #include <QFile>
-#include <QStandardPaths>
 
 #include "attachmentlistmodel.h"
 #include "emailagent.h"
@@ -122,7 +121,16 @@ void AttachmentListModel::onAttachmentDownloadStatusChanged(const QString &attac
     for (Attachment *attachment : m_attachmentsList) {
         if (attachment->location == attachmentLocation) {
             attachment->status = status;
-            emit dataChanged(attachment->index, attachment->index, QVector<int>() << StatusInfo);
+
+            QVector<int> updateRoles;
+            updateRoles << StatusInfo;
+            if (status == EmailAgent::NotDownloaded) {
+                attachment->url.clear();
+                attachment->progressInfo = 0;
+                updateRoles << Url << ProgressInfo;
+            }
+
+            emit dataChanged(attachment->index, attachment->index, updateRoles);
             return;
         }
     }
@@ -168,10 +176,10 @@ static bool findPartFromAttachment(const QMailMessagePart &part, const QString &
     return false;
 }
 
-QString AttachmentListModel::attachmentUrl(const QMailMessage &message, const QString &attachmentLocation)
+QString AttachmentListModel::attachmentUrl(const QMailMessage &message, const QString &attachmentLocation) const
 {
-    QString attachmentDownloadFolder = downloadFolder(message, attachmentLocation);
-
+    // Temporary attachments must be saved in a account specific folder to enable easy cleaning of them
+    QString attachmentDownloadFolder = Downloads::folder(message, attachmentLocation);
     for (uint i = 0; i < message.partCount(); i++) {
         QMailMessagePart part = message.partAt(i);
         QMailMessagePart sourcePart;
@@ -247,18 +255,22 @@ void AttachmentListModel::resetModel()
         for (const QMailMessagePart::Location &location :  m_message.findAttachmentLocations()) {
             Attachment *item = new Attachment;
             item->location = location.toString(true);
-            QString dlFolder = downloadFolder(m_message, item->location);
+            QString dlFolder = Downloads::folder(m_message, item->location);
             QDir::root().mkpath(dlFolder);
             m_attachmentFileWatcher->addPath(dlFolder);
             item->part = m_message.partAt(location);
             item->status = EmailAgent::instance()->attachmentDownloadStatus(item->location);
             // if attachment is in the queue for download we will get a url update later
+
+            EmailAgent::instance()->addAttachmentToDownloads(item->location, m_messageId);
+
             if (item->status == EmailAgent::NotDownloaded) {
                 item->url = attachmentUrl(m_message, item->location);
                 // Update status and progress if attachment exists
                 if (!item->url.isEmpty() || item->part.hasBody()) {
                     item->status = EmailAgent::Downloaded;
                     item->progressInfo = 100;
+                    EmailAgent::instance()->updateAttachmenDownloadStatus(item->location, EmailAgent::Downloaded);
                 } else {
                     item->progressInfo = 0;
                 }
@@ -273,13 +285,4 @@ void AttachmentListModel::resetModel()
     }
     endResetModel();
     emit countChanged();
-}
-
-QString AttachmentListModel::downloadFolder(const QMailMessage &message, const QString &attachmentLocation) const
-{
-    QMailAccountId accountId = message.parentAccountId();
-    // Attachments must be saved in a account specific folder to enable easy cleaning of them
-    return QStandardPaths::writableLocation(QStandardPaths::DownloadLocation) + "/mail_attachments/"
-            + QString::number(accountId.toULongLong()) +  "/" + attachmentLocation;
-
 }

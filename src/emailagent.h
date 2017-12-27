@@ -11,7 +11,6 @@
 
 #include <QSharedPointer>
 #include <QProcess>
-#include <QTimer>
 #include <QNetworkConfigurationManager>
 #include <QNetworkSession>
 #include <QtCore/qloggingcategory.h>
@@ -21,6 +20,7 @@
 #include <qmailserviceaction.h>
 
 #include "emailaction.h"
+#include "downloads.h"
 
 Q_DECLARE_LOGGING_CATEGORY(lcGeneral)
 Q_DECLARE_LOGGING_CATEGORY(lcDebug)
@@ -48,12 +48,12 @@ public:
     };
 
     enum AttachmentStatus {
-        NotDownloaded = 0,
-        Queued,
-        Downloaded,
-        Downloading,
-        Failed,
-        FailedToSave
+        NotDownloaded = Downloads::NotDownloaded,
+        Queued = Downloads::Queued,
+        Downloaded = Downloads::Downloaded,
+        Downloading = Downloads::Downloading,
+        Failed = Downloads::Failed,
+        FailedToSave = Downloads::FailedToSave
     };
 
     enum SyncErrors {
@@ -100,6 +100,9 @@ public:
     void setupAccountFlags();
     int standardFolderId(int accountId, QMailFolder::StandardFolder folder) const;
     void syncAccounts(const QMailAccountIdList &accountIdList, const bool syncOnlyInbox = true, const uint minimum = 20);
+
+    void addAttachmentToDownloads(const QString &attachmentLocation, const QMailMessageId &messageId);
+    void updateAttachmenDownloadStatus(const QString &attachmentLocation, AttachmentStatus status);
 
     Q_INVOKABLE void accountsSync(const bool syncOnlyInbox = false, const uint minimum = 20);
     Q_INVOKABLE void cancelSync();
@@ -186,9 +189,8 @@ private:
 
     QList<QSharedPointer<EmailAction> > m_actionQueue;
     QSharedPointer<EmailAction> m_currentAction;
-    struct AttachmentInfo { AttachmentStatus status; int progress;};
-    // Holds a list of the attachments currently dowloading or queued for download
-    QHash<QString, AttachmentInfo> m_attachmentDownloadQueue;
+
+    Downloads m_attachmentDownloads;
 
     bool actionInQueue(QSharedPointer<EmailAction> action) const;
     quint64 actionInQueueId(QSharedPointer<EmailAction> action) const;
@@ -201,8 +203,6 @@ private:
     void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode);
     void removeAction(quint64 actionId);
     bool saveAttachmentToDownloads(const QMailMessageId &messageId, const QString &attachmentLocation);
-    void updateAttachmentDowloadStatus(const QString &attachmentLocation, AttachmentStatus status);
-    void updateAttachmentDowloadProgress(const QString &attachmentLocation, int progress);
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);
 };
 

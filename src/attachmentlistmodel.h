@@ -41,7 +41,7 @@ public:
     QVariant data(const QModelIndex &index, int role) const;
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
     QModelIndex indexFromLocation(const QString &location);
-    QString attachmentUrl(const QMailMessage &message, const QString &attachmentLocation);
+    QString attachmentUrl(const QMailMessage &message, const QString &attachmentLocation) const;
 
     Q_INVOKABLE QString displayName(int idx);
     Q_INVOKABLE bool downloadStatus(int idx);
@@ -81,7 +81,5 @@ private:
     QFileSystemWatcher *m_attachmentFileWatcher;
 
     void resetModel();
-    QString downloadFolder(const QMailMessage &message, const QString &attachmentLocation) const;
-
 };
 #endif // EMAILATTACHMENTLISTMODEL_H
