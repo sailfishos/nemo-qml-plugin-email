@@ -278,8 +278,7 @@ int EmailAccount::accountId() const
 {
     if (mAccount->id().isValid()) {
         return mAccount->id().toULongLong();
-    }
-    else {
+    } else {
         return -1;
     }
 }
@@ -290,8 +289,7 @@ void EmailAccount::setAccountId(const int accId)
     if (accountId.isValid()) {
         mAccount = new QMailAccount(accountId);
         mAccountConfig = new QMailAccountConfiguration(mAccount->id());
-    }
-    else {
+    } else {
         qCWarning(lcGeneral) << "Invalid account id " << accountId.toULongLong();
     }
 }

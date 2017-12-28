@@ -19,8 +19,7 @@ QString idListToString(const QList<T> &ids)
         interatorPos++;
         if (interatorPos == idsCount) {
             idsList += QString("%1").arg(id.toULongLong());
-        }
-        else {
+        } else {
             idsList += QString("%1,").arg(id.toULongLong());
         }
     }
@@ -52,21 +51,12 @@ bool EmailAction::operator==(const EmailAction &action) const
     if (action._description.isEmpty() || _description.isEmpty()) {
         return false;
     }
-    if (action._description == _description) {
-        return true;
-    }
-    else {
-        return false;
-    }
+    return (action._description == _description);
 }
 
 bool EmailAction::operator!=(const EmailAction &action) const
 {
-    if (action._description != _description) {
-        return true;
-    } else {
-        return false;
-    }
+    return (action._description != _description);
 }
 
 QString EmailAction::description() const
@@ -283,8 +273,7 @@ OnlineCreateFolder::OnlineCreateFolder(QMailStorageAction* storageAction, const 
     QString pId;
     if (_parentId.isValid()) {
         pId = _parentId.toULongLong();
-    }
-    else {
+    } else {
         pId = "NULL";
     }
     _description = QString("create-folder:name=%1;account-id=%2;parent-id=%3").arg(_accountId.toULongLong())
@@ -365,7 +354,7 @@ OnlineMoveMessages::~OnlineMoveMessages()
 
 void OnlineMoveMessages::execute()
 {
-    _storageAction->onlineMoveMessages(_ids,_destinationId);
+    _storageAction->onlineMoveMessages(_ids, _destinationId);
 }
 
 QMailServiceAction* OnlineMoveMessages::serviceAction() const
@@ -420,8 +409,7 @@ RetrieveFolderList::RetrieveFolderList(QMailRetrievalAction* retrievalAction, co
     QString fId;
     if (_folderId.isValid()) {
         fId = _folderId.toULongLong();
-    }
-    else {
+    } else {
         fId = "NULL";
     }
     _description = QString("retrieve-folder-list:account-id=%1;folder-id=%2")
