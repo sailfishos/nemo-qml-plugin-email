@@ -183,11 +183,6 @@ QString AttachmentListModel::attachmentUrl(const QMailMessage message, const QSt
             if (f.exists()) {
                 return attachmentPath;
             } else {
-                // we have the part downloaded locally but not in a file type yet
-                if (sourcePart.hasBody()) {
-                    QString path = sourcePart.writeBodyTo(attachmentDownloadFolder);
-                    return path;
-                }
                 return QString();
             }
         }
