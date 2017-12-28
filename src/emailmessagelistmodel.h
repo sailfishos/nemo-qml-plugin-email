@@ -134,7 +134,7 @@ Q_SIGNALS:
 signals:
     void messageDownloadCompleted();
 
-public slots:
+public:
     Q_INVOKABLE void setFolderKey(int id, QMailMessageKey messageKey = QMailMessageKey());
     Q_INVOKABLE void setAccountKey(int id, bool defaultInbox = true);
     Q_INVOKABLE void sortBySender(int order = 0);
@@ -182,9 +182,8 @@ public slots:
     Q_INVOKABLE void markAsUnReadSelectedMessagesIds();
     Q_INVOKABLE void markAllMessagesAsRead();
 
-    void foldersAdded(const QMailFolderIdList &folderIds);
-
 private slots:
+    void foldersAdded(const QMailFolderIdList &folderIds);
     void downloadActivityChanged(QMailServiceAction::Activity);
     void messagesAdded(const QMailMessageIdList &ids);
     void messagesRemoved(const QMailMessageIdList &ids);
