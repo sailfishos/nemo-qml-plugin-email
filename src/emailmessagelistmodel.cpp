@@ -182,10 +182,7 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const 
         QMailMessage message(msgId);
         return QMailAddress::toStringList(message.bcc());
     } else if (role == MessageSelectModeRole) {
-        int selected = 0;
-        if (m_selectedMsgIds.contains(index.row()))
-            selected = 1;
-        return (selected);
+        return (m_selectedMsgIds.contains(index.row()));
     }
 
     QMailMessageMetaData messageMetaData(msgId);
@@ -232,10 +229,7 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const 
         }
         return recipients;
     } else if (role == MessageReadStatusRole) {
-        if (messageMetaData.status() & QMailMessage::Read)
-            return 1; // 1 for read
-        else
-            return 0; // 0 for unread
+        return (messageMetaData.status() & QMailMessage::Read) != 0;
     } else if (role == MessageSenderDisplayNameRole) {
         if (messageMetaData.from().name().isEmpty()) {
             return messageMetaData.from().address();
@@ -270,23 +264,15 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const 
             return HighPriority;
         } else if (messageMetaData.status() & QMailMessage::LowPriority) {
             return LowPriority;
-        }
-        else {
+        } else {
             return NormalPriority;
         }
     } else if (role == MessageAccountIdRole) {
         return messageMetaData.parentAccountId().toULongLong();
     } else if (role == MessageHasAttachmentsRole) {
-        if (messageMetaData.status() & QMailMessageMetaData::HasAttachments)
-            return 1;
-        else
-            return 0;
+        return (messageMetaData.status() & QMailMessageMetaData::HasAttachments) != 0;
     } else if (role == MessageHasCalendarInvitationRole) {
-        if (messageMetaData.status() & QMailMessageMetaData::CalendarInvitation) {
-            return 1;
-        } else {
-            return 0;
-        }
+        return (messageMetaData.status() & QMailMessageMetaData::CalendarInvitation) != 0;
     } else if (role == MessageSizeSectionRole) {
         const uint size(messageMetaData.size());
 
