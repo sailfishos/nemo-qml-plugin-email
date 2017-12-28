@@ -108,7 +108,7 @@ public:
     Q_INVOKABLE void deleteMessage(int messageId);
     Q_INVOKABLE void deleteMessages(const QMailMessageIdList &ids);
     Q_INVOKABLE void expungeMessages(const QMailMessageIdList &ids);
-    Q_INVOKABLE void downloadAttachment(int messageId, const QString &attachmentLocation);
+    Q_INVOKABLE bool downloadAttachment(int messageId, const QString &attachmentLocation);
     Q_INVOKABLE void exportUpdates(int accountId);
     Q_INVOKABLE void getMoreMessages(int folderId, uint minimum = 20);
     Q_INVOKABLE QString signatureForAccount(int accountId);
@@ -200,7 +200,7 @@ private:
     quint64 newAction();
     void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode);
     void removeAction(quint64 actionId);
-    void saveAttachmentToDownloads(const QMailMessageId messageId, const QString &attachmentLocation);
+    bool saveAttachmentToDownloads(const QMailMessageId messageId, const QString &attachmentLocation);
     void updateAttachmentDowloadStatus(const QString &attachmentLocation, AttachmentStatus status);
     void updateAttachmentDowloadProgress(const QString &attachmentLocation, int progress);
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);

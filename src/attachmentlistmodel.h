@@ -11,6 +11,7 @@
 #define EMAILATTACHMENTLISTMODEL_H
 
 #include <QAbstractListModel>
+#include <QFileSystemWatcher>
 #include <qmailmessage.h>
 #include "emailagent.h"
 
@@ -77,8 +78,10 @@ private:
     };
 
     QList<Attachment*> m_attachmentsList;
+    QFileSystemWatcher *m_attachmentFileWatcher;
 
     void resetModel();
+    QString downloadFolder(const QMailMessage &message, const QString &attachmentLocation) const;
 
 };
 #endif // EMAILATTACHMENTLISTMODEL_H
