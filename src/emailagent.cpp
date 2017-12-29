@@ -342,7 +342,7 @@ void EmailAgent::setMessagesReadState(const QMailMessageIdList &ids, bool state)
     Q_ASSERT(!ids.empty());
     QMailAccountIdList accountIdList;
     // Messages can be from several accounts
-    foreach (const QMailMessageId &id, ids) {
+    for (const QMailMessageId &id : ids) {
        QMailAccountId accountId = accountForMessageId(id);
        if (!accountIdList.contains(accountId)) {
            accountIdList.append(accountId);
@@ -564,7 +564,7 @@ void EmailAgent::accountsSync(const bool syncOnlyInbox, const uint minimum)
         emit synchronizingChanged(EmailAgent::Error);
         return;
     } else {
-        foreach (QMailAccountId accountId, m_enabledAccounts) {
+        for (const QMailAccountId &accountId : m_enabledAccounts) {
             if (syncOnlyInbox) {
                 synchronizeInbox(accountId.toULongLong(), minimum);
             }
@@ -649,7 +649,7 @@ void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
 
     QMap<QMailAccountId, QMailMessageIdList> accountMap;
     // Messages can be from several accounts
-    foreach (const QMailMessageId &id, ids) {
+    for (const QMailMessageId &id : ids) {
        QMailAccountId accountId = accountForMessageId(id);
        if (accountMap.contains(accountId)) {
            QMailMessageIdList idList = accountMap.value(accountId);
@@ -716,7 +716,7 @@ void EmailAgent::expungeMessages(const QMailMessageIdList &ids)
 
     QMailAccountIdList accountList;
     // Messages can be from several accounts
-    foreach (const QMailMessageId &id, ids) {
+    for (const QMailMessageId &id : ids) {
         QMailAccountId accountId = accountForMessageId(id);
         if (!accountList.contains(accountId)) {
             accountList.append(accountId);
@@ -960,7 +960,7 @@ void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, const boo
         emit synchronizingChanged(EmailAgent::Error);
         return;
     } else {
-        foreach (QMailAccountId accountId, accountIdList) {
+        for (const QMailAccountId &accountId : accountIdList) {
             if (syncOnlyInbox) {
                 synchronizeInbox(accountId.toULongLong(), minimum);
             } else {
@@ -986,7 +986,7 @@ bool EmailAgent::actionInQueue(QSharedPointer<EmailAction> action) const
 
 quint64 EmailAgent::actionInQueueId(QSharedPointer<EmailAction> action) const
 {
-    foreach (const QSharedPointer<EmailAction> &a, m_actionQueue) {
+    for (const QSharedPointer<EmailAction> &a : m_actionQueue) {
         if (*(a.data()) == *(action.data())) {
             return a.data()->id();
         }

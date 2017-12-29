@@ -205,7 +205,7 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const 
 
         QMailMessage message(msgId);
         QStringList attachments;
-        foreach (const QMailMessagePart::Location &location, message.findAttachmentLocations()) {
+        for (const QMailMessagePart::Location &location : message.findAttachmentLocations()) {
             const QMailMessagePart &attachmentPart = message.partAt(location);
             attachments << attachmentPart.displayName();
         }
@@ -213,14 +213,14 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const 
     } else if (role == MessageRecipientsRole) {
         QStringList recipients;
         QList<QMailAddress> addresses = messageMetaData.recipients();
-        foreach (const QMailAddress &address, addresses) {
+        for (const QMailAddress &address : addresses) {
             recipients << address.address();
         }
         return recipients;
     } else if (role == MessageRecipientsDisplayNameRole) {
         QStringList recipients;
         QList<QMailAddress> addresses = messageMetaData.recipients();
-        foreach (const QMailAddress &address, addresses) {
+        for (const QMailAddress &address : addresses) {
             if (address.name().isEmpty()) {
                 recipients << address.address();
             } else {
@@ -420,7 +420,7 @@ void EmailMessageListModel::setAccountKey(int id, bool defaultInbox)
 void EmailMessageListModel::foldersAdded(const QMailFolderIdList &folderIds)
 {
     QMailFolderId folderId;
-    foreach (const QMailFolderId &mailFolderId, folderIds) {
+    for (const QMailFolderId &mailFolderId : folderIds) {
         QMailFolder folder(mailFolderId);
         if (m_mailAccountIds.contains(folder.parentAccountId())) {
             QMailAccount account(folder.parentAccountId());
@@ -793,7 +793,7 @@ void EmailMessageListModel::markAllMessagesAsRead()
         if (msgIds.size()) {
             QMailStore::instance()->updateMessagesMetaData(QMailMessageKey::id(msgIds), status, true);
         }
-        foreach (const QMailAccountId &accId,  accountIdList) {
+        for (const QMailAccountId &accId : accountIdList) {
             EmailAgent::instance()->exportUpdates(QMailAccountIdList() << accId);
         }
     }
@@ -838,7 +838,7 @@ void EmailMessageListModel::setCombinedInbox(bool c)
 
     if (c) {
         QMailFolderIdList folderIds;
-        foreach (const QMailAccountId &accountId, m_mailAccountIds) {
+        for (const QMailAccountId &accountId : m_mailAccountIds) {
             QMailAccount account(accountId);
             QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
             if (foldId.isValid())

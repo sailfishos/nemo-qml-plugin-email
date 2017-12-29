@@ -15,7 +15,7 @@ QString idListToString(const QList<T> &ids)
     QString idsList;
     int idsCount = ids.count();
     int interatorPos = 0;
-    foreach(const typename QList<T>::value_type &id, ids) {
+    for (const typename QList<T>::value_type &id : ids) {
         interatorPos++;
         if (interatorPos == idsCount) {
             idsList += QString("%1").arg(id.toULongLong());

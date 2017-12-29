@@ -150,7 +150,7 @@ void FolderListModel::onFoldersChanged(const QMailFolderIdList &ids)
 {
     // Don't reload the model if folders are not from current account or a local folder,
     // folders list can be long in some cases.
-    foreach (QMailFolderId folderId, ids) {
+    for (const QMailFolderId &folderId : ids) {
         QMailFolder folder(folderId);
         if (folderId == QMailFolder::LocalStorageFolderId || folder.parentAccountId() == m_accountId) {
             resetModel();
@@ -282,7 +282,7 @@ int FolderListModel::folderServerCount(int folderId)
 int FolderListModel::indexFromFolderId(int folderId)
 {
     QMailFolderId mailFolderId(folderId);
-    foreach (const FolderItem *item, m_folderList) {
+    for (const FolderItem *item : m_folderList) {
         if (item->folderId == mailFolderId) {
             return item->index.row();
         }
@@ -320,7 +320,7 @@ void FolderListModel::setAccountKey(int id)
 
 int FolderListModel::standardFolderIndex(FolderStandardType folderType)
 {
-    foreach (const FolderItem *item, m_folderList) {
+    for (const FolderItem *item : m_folderList) {
         if (item->folderType == folderType) {
             return item->index.row();
         }
@@ -473,7 +473,7 @@ QString FolderListModel::localFolderName(const FolderStandardType folderType) co
 
 void FolderListModel::updateCurrentFolderIndex()
 {
-    foreach (const FolderItem *item, m_folderList) {
+    for (const FolderItem *item : m_folderList) {
         if (item->folderId == m_currentFolderId && item->folderType == m_currentFolderType) {
             int index = item->index.row();
             if (index != m_currentFolderIdx) {
@@ -573,7 +573,7 @@ void FolderListModel::resetModel()
                                       ~QMailMessageKey::status(QMailMessage::Trash) &
                                       excludeRemovedKey);
     // Add the remaining folders, they are already ordered
-    foreach (const QMailFolderId& folderId, folders) {
+    for (const QMailFolderId& folderId : folders) {
         FolderStandardType folderType = folderTypeFromId(folderId);
         if (folderType != TrashFolder) {
             messageKey &= QMailMessageKey::status(QMailMessage::Trash, QMailDataComparator::Excludes);

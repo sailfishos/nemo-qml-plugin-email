@@ -88,7 +88,7 @@ void EmailFolder::setFolderId(int folderId)
 
 void EmailFolder::onFoldersUpdated(const QMailFolderIdList &ids)
 {
-    foreach (QMailFolderId folderId, ids) {
+    for (const QMailFolderId &folderId : ids) {
         if (folderId == m_folder.id()) {
             emit displayNameChanged();
             return;

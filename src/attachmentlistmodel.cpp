@@ -109,7 +109,7 @@ QModelIndex AttachmentListModel::index(int row, int column, const QModelIndex &p
 
 QModelIndex AttachmentListModel::indexFromLocation(const QString &location)
 {
-    foreach (const Attachment *item, m_attachmentsList) {
+    for (const Attachment *item : m_attachmentsList) {
         if (item->location == location) {
             return item->index;
         }
@@ -119,10 +119,10 @@ QModelIndex AttachmentListModel::indexFromLocation(const QString &location)
 
 void AttachmentListModel::onAttachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status)
 {
-    for (int i=0; i< m_attachmentsList.size(); i++) {
-        if (m_attachmentsList[i]->location == attachmentLocation) {
-            m_attachmentsList[i]->status = status;
-            emit dataChanged(m_attachmentsList[i]->index, m_attachmentsList[i]->index, QVector<int>() << StatusInfo);
+    for (Attachment *attachment : m_attachmentsList) {
+        if (attachment->location == attachmentLocation) {
+            attachment->status = status;
+            emit dataChanged(attachment->index, attachment->index, QVector<int>() << StatusInfo);
             return;
         }
     }
@@ -130,10 +130,10 @@ void AttachmentListModel::onAttachmentDownloadStatusChanged(const QString &attac
 
 void AttachmentListModel::onAttachmentDownloadProgressChanged(const QString &attachmentLocation, int progress)
 {
-    for (int i=0; i< m_attachmentsList.size(); i++) {
-        if (m_attachmentsList[i]->location == attachmentLocation) {
-            m_attachmentsList[i]->progressInfo = progress;
-            emit dataChanged(m_attachmentsList[i]->index, m_attachmentsList[i]->index, QVector<int>() << ProgressInfo);
+    for (Attachment *attachment : m_attachmentsList) {
+        if (attachment->location == attachmentLocation) {
+            attachment->progressInfo = progress;
+            emit dataChanged(attachment->index, attachment->index, QVector<int>() << ProgressInfo);
             return;
         }
     }
@@ -141,11 +141,11 @@ void AttachmentListModel::onAttachmentDownloadProgressChanged(const QString &att
 
 void AttachmentListModel::onAttachmentUrlChanged(const QString &attachmentLocation, const QString &url)
 {
-    for (int i=0; i< m_attachmentsList.size(); i++) {
-        if (m_attachmentsList[i]->location == attachmentLocation) {
-            if (m_attachmentsList[i]->url != url) {
-                m_attachmentsList[i]->url = url;
-                emit dataChanged(m_attachmentsList[i]->index, m_attachmentsList[i]->index, QVector<int>() << Url);
+    for (Attachment *attachment : m_attachmentsList) {
+        if (attachment->location == attachmentLocation) {
+            if (attachment->url != url) {
+                attachment->url = url;
+                emit dataChanged(attachment->index, attachment->index, QVector<int>() << Url);
                 return;
             }
         }
@@ -244,7 +244,7 @@ void AttachmentListModel::resetModel()
 
     if (m_messageId.isValid()) {
         int i=0;
-        foreach (const QMailMessagePart::Location &location,  m_message.findAttachmentLocations()) {
+        for (const QMailMessagePart::Location &location :  m_message.findAttachmentLocations()) {
             Attachment *item = new Attachment;
             item->location = location.toString(true);
             QString dlFolder = downloadFolder(m_message, item->location);
