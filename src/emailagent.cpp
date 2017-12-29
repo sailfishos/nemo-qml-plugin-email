@@ -577,7 +577,7 @@ void EmailAgent::accountsSync(const bool syncOnlyInbox, const uint minimum)
                 if (messagesToSend) {
                     m_enqueing = false;
                     // Send any message waiting in the outbox
-                    enqueue(new TransmitMessages(m_transmitAction.data(),accountId));
+                    enqueue(new TransmitMessages(m_transmitAction.data(), accountId));
                 }
             }
         }
