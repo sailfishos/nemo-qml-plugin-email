@@ -73,23 +73,18 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const
 
     switch (role) {
     case FolderName:
-    {
         if (item->folderId == QMailFolder::LocalStorageFolderId) {
             return localFolderName(item->folderType);
         } else {
             return folder.displayName();
         }
-    }
     case FolderId:
         return item->folderId.toULongLong();
     case FolderUnreadCount:
-    {
         return item->unreadCount;
-    }
     case FolderServerCount:
         return (folder.serverCount());
     case FolderNestingLevel:
-    {
         // Eliminate any nesting that standard folders might
         // have since these are at top
         if (isStandardFolder(item->folderId)) {
@@ -103,7 +98,6 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const
             }
             return level;
         }
-    }
     case FolderMessageKey:
         return item->messageKey;
     case FolderType:
@@ -241,10 +235,8 @@ int FolderListModel::folderUnreadCount(const QMailFolderId &folderId, FolderStan
     case SentFolder:
         return 0;
     default:
-    {
         qCWarning(lcGeneral) << "Folder type not recognized.";
         return 0;
-    }
     }
 }
 
@@ -302,10 +294,7 @@ int FolderListModel::indexFromFolderId(int folderId)
 bool FolderListModel::isOutgoingFolder(int idx)
 {
     FolderStandardType folderStdType = static_cast<FolderListModel::FolderStandardType>(folderType(idx).toInt());
-    if (folderStdType == SentFolder || folderStdType == DraftsFolder || folderStdType == OutboxFolder) {
-        return true;
-    }
-    return false;
+    return (folderStdType == SentFolder || folderStdType == DraftsFolder || folderStdType == OutboxFolder);
 }
 
 int FolderListModel::numberOfFolders()
@@ -477,10 +466,8 @@ QString FolderListModel::localFolderName(const FolderStandardType folderType) co
     case JunkFolder:
         return "Junk";
     default:
-    {
         qCWarning(lcGeneral) << "Folder type not recognized.";
         return "Local Storage";
-    }
     }
 }
 

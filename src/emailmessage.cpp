@@ -21,7 +21,6 @@
 #include <QStandardPaths>
 #include <QDir>
 
-// Part finder
 namespace {
 
 struct PartFinder {
@@ -38,10 +37,11 @@ struct PartFinder {
         return true;
     }
 };
-}
 
 // Supported image types by webkit
-static const QStringList supportedImageTypes = (QStringList() <<  "jpeg" << "jpg" << "png" << "gif" << "bmp" << "ico" << "webp");
+const QStringList supportedImageTypes = (QStringList() <<  "jpeg" << "jpg" << "png" << "gif" << "bmp" << "ico" << "webp");
+
+}
 
 EmailMessage::EmailMessage(QObject *parent)
     : QObject(parent)
@@ -312,10 +312,9 @@ QStringList EmailMessage::attachments()
                 m_attachments << attachmentPart.displayName();
             }
         }
-        return m_attachments;
-    } else {
-        return m_attachments;
     }
+
+    return m_attachments;
 }
 
 int EmailMessage::accountId() const
@@ -370,11 +369,7 @@ QString EmailMessage::calendarInvitationUrl()
 
 bool EmailMessage::hasCalendarInvitation() const
 {
-    if (m_msg.status() & QMailMessageMetaData::CalendarInvitation) {
-        return true;
-    } else {
-        return false;
-    }
+    return (m_msg.status() & QMailMessageMetaData::CalendarInvitation) != 0;
 }
 
 EmailMessage::AttachedDataStatus EmailMessage::calendarInvitationStatus() const
@@ -406,7 +401,7 @@ EmailMessage::ContentType EmailMessage::contentType() const
 
 QDateTime EmailMessage::date() const
 {
-    return (m_msg.date().toLocalTime());
+    return m_msg.date().toLocalTime();
 }
 
 QString EmailMessage::from() const
@@ -611,7 +606,7 @@ EmailMessage::ResponseType EmailMessage::responseType() const
     }
 }
 
-void EmailMessage::setAttachments (const QStringList &uris)
+void EmailMessage::setAttachments(const QStringList &uris)
 {
     // Signals are only emited when message is constructed
     m_attachments = uris;
@@ -838,9 +833,9 @@ void EmailMessage::buildMessage()
         type.setType("text/html; charset=UTF-8");
     */
     // This should be improved to use QuotedPrintable when appending parts and inline references are implemented
-    if (m_attachments.size() == 0)
+    if (m_attachments.size() == 0) {
         m_msg.setBody(QMailMessageBody::fromData(m_bodyText, type, QMailMessageBody::Base64));
-    else {
+    } else {
         QMailMessagePart body;
         body.setBody(QMailMessageBody::fromData(m_bodyText.toUtf8(), type, QMailMessageBody::Base64));
         m_msg.setMultipartType(QMailMessagePartContainer::MultipartMixed);
@@ -992,7 +987,7 @@ QString EmailMessage::imageMimeType(const QMailMessageContentType &contentType, 
         if (supportedImageTypes.contains(fileType)) {
             return QString("image/%1").arg(fileType);
         } else {
-            qCWarning(lcGeneral) << "Unsuppoted content type: " << contentType.type().toLower() + "/" + contentType.subType().toLower()
+            qCWarning(lcGeneral) << "Unsupported content type: " << contentType.type().toLower() + "/" + contentType.subType().toLower()
                      << " from file: " << fileName;
             return QString();
         }

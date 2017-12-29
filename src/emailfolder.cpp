@@ -16,8 +16,8 @@ EmailFolder::EmailFolder(QObject *parent) :
     QObject(parent)
   , m_folder(QMailFolder())
 {
-    connect(QMailStore::instance(), SIGNAL(foldersUpdated(const QMailFolderIdList &)), this,
-                          SLOT(onFoldersUpdated(const QMailFolderIdList &)));
+    connect(QMailStore::instance(), SIGNAL(foldersUpdated(const QMailFolderIdList &)),
+            this, SLOT(onFoldersUpdated(const QMailFolderIdList &)));
 }
 
 EmailFolder::~EmailFolder()

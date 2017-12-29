@@ -121,8 +121,7 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
     if (role == LastSynchronized) {
         if (account.lastSynchronized().isValid()) {
             return account.lastSynchronized().toLocalTime();
-        }
-        else {
+        } else {
             //Account was never synced, return zero
             return 0;
         }
@@ -130,11 +129,7 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
 
     if (role == StandardFoldersRetrieved) {
         quint64 standardFoldersMask = QMailAccount::statusMask("StandardFoldersRetrieved");
-        if (account.status() & standardFoldersMask) {
-            return true;
-        } else {
-            return false;
-        }
+        return (account.status() & standardFoldersMask) != 0;
     }
 
     if (role == Signature) {
@@ -142,11 +137,7 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
     }
 
     if (role == AppendSignature) {
-        if (account.status() & QMailAccount::AppendSignature) {
-            return true;
-        } else {
-            return false;
-        }
+        return (account.status() & QMailAccount::AppendSignature) != 0;
     }
 
     if (role == IconPath) {
@@ -154,11 +145,7 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
     }
 
     if (role == HasPersistentConnection) {
-        if (account.status() & QMailAccount::HasPersistentConnection) {
-            return true;
-        } else {
-            return false;
-        }
+        return (account.status() & QMailAccount::HasPersistentConnection) != 0;
     }
 
     return QVariant();

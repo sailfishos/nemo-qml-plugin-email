@@ -169,7 +169,7 @@ void EmailAgent::cancelAction(quint64 actionId)
 {
     //cancel running action
     if (m_currentAction && (m_currentAction->id() == actionId)) {
-        if(m_currentAction->serviceAction()->isRunning()) {
+        if (m_currentAction->serviceAction()->isRunning()) {
             m_cancellingSingleAction = true;
             m_currentAction->serviceAction()->cancelOperation();
         } else {
@@ -209,11 +209,8 @@ bool EmailAgent::hasMessagesInOutbox(const QMailAccountId &accountId)
     // Local folders can have messages from several accounts.
     QMailMessageKey outboxFilter(QMailMessageKey::status(QMailMessage::Outbox) & ~QMailMessageKey::status(QMailMessage::Trash));
     QMailMessageKey accountKey(QMailMessageKey::parentAccountId(accountId));
-    if (QMailStore::instance()->countMessages(accountKey & outboxFilter)) {
-        return true;
-    } else {
-        return false;
-    }
+
+    return (QMailStore::instance()->countMessages(accountKey & outboxFilter) > 0);
 }
 
 void EmailAgent::initMailServer()
@@ -528,10 +525,9 @@ void EmailAgent::onStandardFoldersCreated(const QMailAccountId &accountId)
     //TODO: default minimum should be kept
     QMailAccount account(accountId);
     QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
-    if(foldId.isValid()) {
+    if (foldId.isValid()) {
         synchronizeInbox(accountId.toULongLong());
-    }
-    else {
+    } else {
         qCCritical(lcGeneral) << "Error: Inbox not found!!!";
     }
 }
@@ -675,11 +671,11 @@ void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
         QMailMessageKey localOnlyKey(QMailMessageKey::id(ids) & QMailMessageKey::status(QMailMessage::LocalOnly));
         QMailMessageIdList localOnlyIds(QMailStore::instance()->queryMessages(localOnlyKey));
         QMailMessageIdList idsToRemove(ids);
-        if(!localOnlyIds.isEmpty()) {
+        if (!localOnlyIds.isEmpty()) {
             QMailStore::instance()->removeMessages(QMailMessageKey::id(localOnlyIds));
             idsToRemove = (ids.toSet().subtract(localOnlyIds.toSet())).toList();
         }
-        if(!idsToRemove.isEmpty()) {
+        if (!idsToRemove.isEmpty()) {
             m_enqueing = true;
             enqueue(new DeleteMessages(m_storageAction.data(), idsToRemove));
             exptUpdates = true;
@@ -867,11 +863,9 @@ void EmailAgent::moveMessage(int messageId, int destinationId)
 
 void EmailAgent::renameFolder(int folderId, const QString &name)
 {
-    if(!name.isEmpty()) {
+    if (!name.isEmpty()) {
         qCDebug(lcDebug) << "Error: Can't rename a folder to a empty name";
-    }
-
-    else{
+    } else {
         QMailFolderId id(folderId);
         Q_ASSERT(id.isValid());
 
@@ -928,7 +922,7 @@ void EmailAgent::synchronizeInbox(int accountId, const uint minimum)
 
     QMailAccount account(acctId);
     QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
-    if(foldId.isValid()) {
+    if (foldId.isValid()) {
         bool messagesToSend = hasMessagesInOutbox(acctId);
         m_enqueing = true;
         enqueue(new ExportUpdates(m_retrievalAction.data(),acctId));
@@ -942,9 +936,8 @@ void EmailAgent::synchronizeInbox(int accountId, const uint minimum)
             // send any message in the outbox
             enqueue(new TransmitMessages(m_transmitAction.data(), acctId));
         }
-    }
-    //Account was never synced, retrieve list of folders and come back here.
-    else {
+
+    } else { //Account was never synced, retrieve list of folders and come back here.
         connect(this, SIGNAL(standardFoldersCreated(const QMailAccountId &)),
                 this, SLOT(onStandardFoldersCreated(const QMailAccountId &)));
         m_enqueing = true;
@@ -965,8 +958,7 @@ void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, const boo
         foreach (QMailAccountId accountId, accountIdList) {
             if (syncOnlyInbox) {
                 synchronizeInbox(accountId.toULongLong(), minimum);
-            }
-            else {
+            } else {
                 enqueue(new Synchronize(m_retrievalAction.data(), accountId));
             }
         }
@@ -982,11 +974,9 @@ bool EmailAgent::actionInQueue(QSharedPointer<EmailAction> action) const
     if (!m_currentAction.isNull()
         && *(m_currentAction.data()) == *(action.data())) {
         return true;
-    }
-    else {
+    } else {
         return actionInQueueId(action) != quint64(0);
     }
-    return false;
 }
 
 quint64 EmailAgent::actionInQueueId(QSharedPointer<EmailAction> action) const
@@ -1001,10 +991,9 @@ quint64 EmailAgent::actionInQueueId(QSharedPointer<EmailAction> action) const
 
 void EmailAgent::dequeue()
 {
-    if(m_actionQueue.isEmpty()) {
-        qCWarning(lcGeneral) << "Error: can't dequeue a emtpy list";
-    }
-    else {
+    if (m_actionQueue.isEmpty()) {
+        qCWarning(lcGeneral) << "Error: can't dequeue a empty list";
+    } else {
         m_actionQueue.removeFirst();
     }
 }
@@ -1019,7 +1008,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
     if (!foundAction) {
 
         // Check if action neeeds connectivity and if we are not running from a background process
-        if(action->needsNetworkConnection()) {
+        if (action->needsNetworkConnection()) {
             //discard action in this case
             m_synchronizing = false;
             qCDebug(lcGeneral) << "Discarding online action!!";
@@ -1063,7 +1052,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
     bool foundAction = actionInQueue(action);
 
     // Check if action neeeds connectivity and if we are not running from a background process
-    if(action->needsNetworkConnection() && !backgroundProcess() && !isOnline()) {
+    if (action->needsNetworkConnection() && !backgroundProcess() && !isOnline()) {
         if (m_backgroundProcess) {
             qCDebug(lcDebug) << "Network not available to execute background action, exiting...";
             m_synchronizing = false;
