@@ -342,7 +342,7 @@ void EmailAgent::setMessagesReadState(const QMailMessageIdList &ids, bool state)
     Q_ASSERT(!ids.empty());
     QMailAccountIdList accountIdList;
     // Messages can be from several accounts
-    foreach (const QMailMessageId &id, ids) {
+    for (const QMailMessageId &id : ids) {
        QMailAccountId accountId = accountForMessageId(id);
        if (!accountIdList.contains(accountId)) {
            accountIdList.append(accountId);
@@ -564,7 +564,7 @@ void EmailAgent::accountsSync(const bool syncOnlyInbox, const uint minimum)
         emit synchronizingChanged(EmailAgent::Error);
         return;
     } else {
-        foreach (QMailAccountId accountId, m_enabledAccounts) {
+        for (const QMailAccountId &accountId : m_enabledAccounts) {
             if (syncOnlyInbox) {
                 synchronizeInbox(accountId.toULongLong(), minimum);
             }
@@ -577,7 +577,7 @@ void EmailAgent::accountsSync(const bool syncOnlyInbox, const uint minimum)
                 if (messagesToSend) {
                     m_enqueing = false;
                     // Send any message waiting in the outbox
-                    enqueue(new TransmitMessages(m_transmitAction.data(),accountId));
+                    enqueue(new TransmitMessages(m_transmitAction.data(), accountId));
                 }
             }
         }
@@ -649,7 +649,7 @@ void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
 
     QMap<QMailAccountId, QMailMessageIdList> accountMap;
     // Messages can be from several accounts
-    foreach (const QMailMessageId &id, ids) {
+    for (const QMailMessageId &id : ids) {
        QMailAccountId accountId = accountForMessageId(id);
        if (accountMap.contains(accountId)) {
            QMailMessageIdList idList = accountMap.value(accountId);
@@ -716,7 +716,7 @@ void EmailAgent::expungeMessages(const QMailMessageIdList &ids)
 
     QMailAccountIdList accountList;
     // Messages can be from several accounts
-    foreach (const QMailMessageId &id, ids) {
+    for (const QMailMessageId &id : ids) {
         QMailAccountId accountId = accountForMessageId(id);
         if (!accountList.contains(accountId)) {
             accountList.append(accountId);
@@ -727,7 +727,11 @@ void EmailAgent::expungeMessages(const QMailMessageIdList &ids)
     exportUpdates(accountList);
 }
 
-void EmailAgent::downloadAttachment(int messageId, const QString &attachmentLocation)
+/*!
+    \fn EmailAgent::downloadAttachment(int, const QString &)
+    Returns true if attachment is available on the disk after call; otherwise false.
+ */
+bool EmailAgent::downloadAttachment(int messageId, const QString &attachmentLocation)
 {
     m_messageId = QMailMessageId(messageId);
     const QMailMessage message(m_messageId);
@@ -736,7 +740,7 @@ void EmailAgent::downloadAttachment(int messageId, const QString &attachmentLoca
         const QMailMessagePart attachmentPart = message.partAt(location);
         location.setContainingMessageId(m_messageId);
         if (attachmentPart.hasBody()) {
-            saveAttachmentToDownloads(m_messageId, attachmentLocation);
+            return saveAttachmentToDownloads(m_messageId, attachmentLocation);
         } else {
             qCDebug(lcDebug) << "Start Download for: " << attachmentLocation;
             enqueue(new RetrieveMessagePart(m_retrievalAction.data(), location, true));
@@ -744,6 +748,7 @@ void EmailAgent::downloadAttachment(int messageId, const QString &attachmentLoca
     } else {
        qCDebug(lcDebug) << "ERROR: Attachment location not found " << attachmentLocation;
     }
+    return false;
 }
 
 void EmailAgent::exportUpdates(int accountId)
@@ -955,7 +960,7 @@ void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, const boo
         emit synchronizingChanged(EmailAgent::Error);
         return;
     } else {
-        foreach (QMailAccountId accountId, accountIdList) {
+        for (const QMailAccountId &accountId : accountIdList) {
             if (syncOnlyInbox) {
                 synchronizeInbox(accountId.toULongLong(), minimum);
             } else {
@@ -981,7 +986,7 @@ bool EmailAgent::actionInQueue(QSharedPointer<EmailAction> action) const
 
 quint64 EmailAgent::actionInQueueId(QSharedPointer<EmailAction> action) const
 {
-    foreach (const QSharedPointer<EmailAction> &a, m_actionQueue) {
+    for (const QSharedPointer<EmailAction> &a : m_actionQueue) {
         if (*(a.data()) == *(action.data())) {
             return a.data()->id();
         }
@@ -1251,7 +1256,7 @@ void EmailAgent::removeAction(quint64 actionId)
     }
 }
 
-void EmailAgent::saveAttachmentToDownloads(const QMailMessageId messageId, const QString &attachmentLocation)
+bool EmailAgent::saveAttachmentToDownloads(const QMailMessageId &messageId, const QString &attachmentLocation)
 {
     // Message and part structure can be updated during attachment download
     // is safer to reload everything
@@ -1265,15 +1270,16 @@ void EmailAgent::saveAttachmentToDownloads(const QMailMessageId messageId, const
         const QMailMessagePart attachmentPart = message.partAt(location);
         QString attachmentPath = attachmentDownloadFolder + "/" + attachmentPart.displayName();
         QFile attachmentFile(attachmentPath);
-
         if (attachmentFile.exists()) {
-            emit attachmentUrlChanged(attachmentLocation, attachmentDownloadFolder);
+            emit attachmentUrlChanged(attachmentLocation, attachmentPath);
             updateAttachmentDowloadStatus(attachmentLocation, Downloaded);
+            return true;
         } else {
             QString path = attachmentPart.writeBodyTo(attachmentDownloadFolder);
             if (!path.isEmpty()) {
                 emit attachmentUrlChanged(attachmentLocation, path);
                 updateAttachmentDowloadStatus(attachmentLocation, Downloaded);
+                return true;
             } else {
                 qCDebug(lcGeneral) << "ERROR: Failed to save attachment file to location " << attachmentDownloadFolder;
                 updateAttachmentDowloadStatus(attachmentLocation, FailedToSave);
@@ -1282,6 +1288,7 @@ void EmailAgent::saveAttachmentToDownloads(const QMailMessageId messageId, const
     } else {
         qCDebug(lcGeneral) << "ERROR: Can't save attachment, location not found " << attachmentLocation;
     }
+    return false;
 }
 
 void EmailAgent::updateAttachmentDowloadStatus(const QString &attachmentLocation, AttachmentStatus status)

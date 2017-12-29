@@ -44,8 +44,7 @@ void EmailAccountSettingsModel::init()
     mAccountConfigs.clear();
     QMailStore *mailstore = QMailStore::instance();
     QMailAccountIdList idlist = mailstore->queryAccounts(QMailAccountKey::messageType(QMailMessage::Email));
-    QMailAccountId id;
-    foreach (id, idlist) {
+    for (const QMailAccountId &id : idlist) {
         mAccounts.append(mailstore->account(id));
         mAccountConfigs.append(mailstore->accountConfiguration(id));
     }

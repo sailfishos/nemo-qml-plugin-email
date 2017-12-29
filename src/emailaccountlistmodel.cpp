@@ -62,7 +62,7 @@ EmailAccountListModel::~EmailAccountListModel()
 {
 }
 
-int EmailAccountListModel::accountUnreadCount(const QMailAccountId accountId)
+int EmailAccountListModel::accountUnreadCount(const QMailAccountId &accountId)
 {
     QMailFolderKey key = QMailFolderKey::parentAccountId(accountId);
     QMailFolderSortKey sortKey = QMailFolderSortKey::serverCount(Qt::DescendingOrder);

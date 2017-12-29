@@ -61,7 +61,7 @@ EmailMessage::~EmailMessage()
 // ############ Slots ###############
 void EmailMessage::onMessagesDownloaded(const QMailMessageIdList &ids, bool success)
 {
-    foreach (const QMailMessageId id, ids) {
+    for (const QMailMessageId &id : ids) {
         if (id == m_id) {
             disconnect(EmailAgent::instance(), SIGNAL(messagesDownloaded(QMailMessageIdList,bool)),
                     this, SLOT(onMessagesDownloaded(QMailMessageIdList,bool)));
@@ -306,7 +306,7 @@ QStringList EmailMessage::attachments()
             return QStringList();
 
         m_attachments.clear();
-        foreach (const QMailMessagePart::Location &location, m_msg.findAttachmentLocations()) {
+        for (const QMailMessagePart::Location &location : m_msg.findAttachmentLocations()) {
             const QMailMessagePart &attachmentPart = m_msg.partAt(location);
             if (&attachmentPart) {
                 m_attachments << attachmentPart.displayName();
@@ -555,7 +555,7 @@ QStringList EmailMessage::recipients() const
 {
     QStringList recipients;
     QList<QMailAddress> addresses = m_msg.recipients();
-    foreach (const QMailAddress &address, addresses) {
+    for (const QMailAddress &address : addresses) {
         recipients << address.address();
     }
     return recipients;
@@ -565,7 +565,7 @@ QStringList EmailMessage::recipientsDisplayName() const
 {
     QStringList recipients;
     QList<QMailAddress> addresses = m_msg.recipients();
-    foreach (const QMailAddress &address, addresses) {
+    for (const QMailAddress &address : addresses) {
         if (address.name().isEmpty()) {
             recipients << address.address();
         } else {
@@ -645,7 +645,7 @@ void EmailMessage::setFrom(const QString &sender)
                                                                               & QMailAccountKey::status(QMailAccount::Enabled)
                                                                               , QMailAccountSortKey::name());
         // look up the account id for the given sender
-        foreach (QMailAccountId id, accountIds) {
+        for (const QMailAccountId &id : accountIds) {
             QMailAccount account(id);
             QMailAddress from = account.fromAddress();
             if (from.address() == sender || from.toString() == sender || from.name() == sender) {
@@ -918,7 +918,7 @@ void EmailMessage::emitMessageReloadedSignals()
 void EmailMessage::processAttachments()
 {
     QStringList attachments;
-    foreach (QString attachment, m_attachments) {
+    for (QString attachment : m_attachments) {
         // Attaching a file
         if (attachment.startsWith("file://")) {
             attachment.remove(0, 7);
@@ -1032,7 +1032,7 @@ void EmailMessage::removeInlineImagePlaceholder(const QMailMessagePart &inlinePa
 
 void EmailMessage::insertInlineImages(const QList<QMailMessagePart::Location> &inlineParts)
 {
-    foreach(const QMailMessagePart::Location &location, inlineParts) {
+    for (const QMailMessagePart::Location &location : inlineParts) {
         const QMailMessagePart &sourcePart = m_msg.partAt(location);
         if (&sourcePart) {
             if (sourcePart.contentAvailable()) {
