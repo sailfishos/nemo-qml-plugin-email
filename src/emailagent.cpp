@@ -1256,7 +1256,7 @@ void EmailAgent::removeAction(quint64 actionId)
     }
 }
 
-bool EmailAgent::saveAttachmentToDownloads(const QMailMessageId messageId, const QString &attachmentLocation)
+bool EmailAgent::saveAttachmentToDownloads(const QMailMessageId &messageId, const QString &attachmentLocation)
 {
     // Message and part structure can be updated during attachment download
     // is safer to reload everything

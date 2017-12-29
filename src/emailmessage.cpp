@@ -61,7 +61,7 @@ EmailMessage::~EmailMessage()
 // ############ Slots ###############
 void EmailMessage::onMessagesDownloaded(const QMailMessageIdList &ids, bool success)
 {
-    foreach (const QMailMessageId id, ids) {
+    foreach (const QMailMessageId &id, ids) {
         if (id == m_id) {
             disconnect(EmailAgent::instance(), SIGNAL(messagesDownloaded(QMailMessageIdList,bool)),
                     this, SLOT(onMessagesDownloaded(QMailMessageIdList,bool)));

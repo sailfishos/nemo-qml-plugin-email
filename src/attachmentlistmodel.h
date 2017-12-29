@@ -41,7 +41,7 @@ public:
     QVariant data(const QModelIndex &index, int role) const;
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
     QModelIndex indexFromLocation(const QString &location);
-    QString attachmentUrl(const QMailMessage message, const QString &attachmentLocation);
+    QString attachmentUrl(const QMailMessage &message, const QString &attachmentLocation);
 
     Q_INVOKABLE QString displayName(int idx);
     Q_INVOKABLE bool downloadStatus(int idx);

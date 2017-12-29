@@ -92,7 +92,7 @@ private:
     bool m_canTransmitAccounts;
     bool m_hasPersistentConnection;
 
-    int accountUnreadCount(const QMailAccountId accountId);
+    int accountUnreadCount(const QMailAccountId &accountId);
 
 };
 

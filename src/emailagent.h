@@ -200,7 +200,7 @@ private:
     quint64 newAction();
     void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode);
     void removeAction(quint64 actionId);
-    bool saveAttachmentToDownloads(const QMailMessageId messageId, const QString &attachmentLocation);
+    bool saveAttachmentToDownloads(const QMailMessageId &messageId, const QString &attachmentLocation);
     void updateAttachmentDowloadStatus(const QString &attachmentLocation, AttachmentStatus status);
     void updateAttachmentDowloadProgress(const QString &attachmentLocation, int progress);
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);

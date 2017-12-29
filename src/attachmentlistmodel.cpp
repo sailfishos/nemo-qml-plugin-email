@@ -168,7 +168,7 @@ static bool findPartFromAttachment(const QMailMessagePart &part, const QString &
     return false;
 }
 
-QString AttachmentListModel::attachmentUrl(const QMailMessage message, const QString &attachmentLocation)
+QString AttachmentListModel::attachmentUrl(const QMailMessage &message, const QString &attachmentLocation)
 {
     QString attachmentDownloadFolder = downloadFolder(message, attachmentLocation);
 
