@@ -141,7 +141,6 @@ signals:
     void ipcConnectionEstablished();
     void messagesDownloaded(const QMailMessageIdList &messageIds, bool success);
     void messagePartDownloaded(const QMailMessageId &messageId, const QString &partLocation, bool success);
-    void progressUpdated(int percent);
     void sendCompleted(bool success);
     void standardFoldersCreated(const QMailAccountId &accountId);
     void synchronizingChanged(EmailAgent::Status status);
@@ -178,7 +177,6 @@ private:
     QScopedPointer<QMailTransmitAction> const m_transmitAction;
     QScopedPointer<QMailSearchAction> const m_searchAction;
     QMailRetrievalAction *m_attachmentRetrievalAction;
-    QMailMessageId m_messageId;
 
     QProcess* m_messageServerProcess;
     QNetworkConfigurationManager *m_nmanager;

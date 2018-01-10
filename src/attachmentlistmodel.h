@@ -27,21 +27,18 @@ public:
 
     enum Role {
         ContentLocation = Qt::UserRole + 1,
-        DisplayName = Qt::UserRole + 2,
-        Downloaded = Qt::UserRole + 3,
-        MimeType = Qt::UserRole + 4,
-        Size = Qt::UserRole + 5,
-        StatusInfo = Qt::UserRole + 6,
-        Url = Qt::UserRole + 7,
-        ProgressInfo = Qt::UserRole + 8,
-        Index = Qt::UserRole + 9
+        DisplayName,
+        Downloaded,
+        MimeType,
+        Size,
+        StatusInfo,
+        Url,
+        ProgressInfo,
+        Index
     };
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role) const;
-    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
-    QModelIndex indexFromLocation(const QString &location);
-    QString attachmentUrl(const QMailMessage &message, const QString &attachmentLocation);
 
     Q_INVOKABLE QString displayName(int idx);
     Q_INVOKABLE bool downloadStatus(int idx);
@@ -65,11 +62,11 @@ private slots:
     void onAttachmentUrlChanged(const QString &attachmentLocation, const QString &url);
 
 private:
+    QString attachmentUrl(const QMailMessage &message, const QString &attachmentLocation);
     QHash<int, QByteArray> roles;
     QMailMessageId m_messageId;
     QMailMessage m_message;
     struct Attachment {
-        QModelIndex index;
         QMailMessagePart part;
         QString location;
         EmailAgent::AttachmentStatus status;

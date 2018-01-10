@@ -167,7 +167,7 @@ void EmailAgent::setBackgroundProcess(const bool isBackgroundProcess)
 
 void EmailAgent::cancelAction(quint64 actionId)
 {
-    //cancel running action
+    // cancel running action
     if (m_currentAction && (m_currentAction->id() == actionId)) {
         if (m_currentAction->serviceAction()->isRunning()) {
             m_cancellingSingleAction = true;
@@ -277,7 +277,7 @@ void EmailAgent::searchMessages(const QMailMessageKey &filter,
 
 void EmailAgent::cancelSearch()
 {
-    //cancel running action if is search
+    // cancel running action if is search
     if (m_currentAction && (m_currentAction->type() == EmailAction::Search)) {
         if (m_currentAction->serviceAction()->isRunning()) {
             m_cancellingSingleAction = true;
@@ -368,7 +368,7 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
 
     switch (activity) {
     case QMailServiceAction::Failed:
-        //TODO: coordinate with stop logic
+        // TODO: coordinate with stop logic
         // don't try to synchronise extra accounts if the user cancelled the sync
         if (m_cancelling) {
             m_synchronizing = false;
@@ -481,7 +481,7 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
         break;
 
     default:
-        //emit acctivity changed here
+        // emit activity changed here
         qCDebug(lcDebug) << "Activity State Changed:" << activity;
         break;
     }
@@ -522,7 +522,7 @@ void EmailAgent::onOnlineStateChanged(bool isOnline)
 
 void EmailAgent::onStandardFoldersCreated(const QMailAccountId &accountId)
 {
-    //TODO: default minimum should be kept
+    // TODO: default minimum should be kept
     QMailAccount account(accountId);
     QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
     if (foldId.isValid()) {
@@ -536,7 +536,6 @@ void EmailAgent::progressChanged(uint value, uint total)
 {
     if (value < total) {
         int percent = (value * 100) / total;
-        emit progressUpdated(percent);
 
         // Attachment download, do not spam the UI check should be done here
         if (m_currentAction->type() == EmailAction::RetrieveMessagePart) {
@@ -550,7 +549,7 @@ void EmailAgent::progressChanged(uint value, uint total)
 
 // ############# Invokable API ########################
 
-//Sync all accounts (both ways)
+// Sync all accounts (both ways)
 void EmailAgent::accountsSync(const bool syncOnlyInbox, const uint minimum)
 {
     m_enabledAccounts.clear();
@@ -590,11 +589,9 @@ void EmailAgent::cancelSync()
         return;
 
     m_cancelling = true;
-
-    //clear the actions queue
     m_actionQueue.clear();
 
-    //cancel running action
+    // cancel running action
     if (!m_currentAction.isNull() && m_currentAction->serviceAction()->isRunning()) {
         m_currentAction->serviceAction()->cancelOperation();
     }
@@ -604,9 +601,7 @@ void EmailAgent::createFolder(const QString &name, int mailAccountId, int parent
 {
     if (!name.isEmpty()) {
         qCDebug(lcDebug) << "Error: Can't create a folder with empty name";
-    }
-
-    else {
+    } else {
         QMailAccountId accountId(mailAccountId);
         Q_ASSERT(accountId.isValid());
 
@@ -667,7 +662,7 @@ void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
     const bool deleting(QMailStore::instance()->countMessages(idFilter & notTrashFilter) == 0);
 
     if (deleting) {
-        //delete LocalOnly messages clientside first
+        // delete LocalOnly messages clientside first
         QMailMessageKey localOnlyKey(QMailMessageKey::id(ids) & QMailMessageKey::status(QMailMessage::LocalOnly));
         QMailMessageIdList localOnlyIds(QMailStore::instance()->queryMessages(localOnlyKey));
         QMailMessageIdList idsToRemove(ids);
@@ -733,20 +728,21 @@ void EmailAgent::expungeMessages(const QMailMessageIdList &ids)
  */
 bool EmailAgent::downloadAttachment(int messageId, const QString &attachmentLocation)
 {
-    m_messageId = QMailMessageId(messageId);
-    const QMailMessage message(m_messageId);
+    QMailMessageId mailMessageId(messageId);
+    const QMailMessage message(mailMessageId);
     QMailMessagePart::Location location(attachmentLocation);
+
     if (message.contains(location)) {
         const QMailMessagePart attachmentPart = message.partAt(location);
-        location.setContainingMessageId(m_messageId);
+        location.setContainingMessageId(mailMessageId);
         if (attachmentPart.hasBody()) {
-            return saveAttachmentToDownloads(m_messageId, attachmentLocation);
+            return saveAttachmentToDownloads(mailMessageId, attachmentLocation);
         } else {
             qCDebug(lcDebug) << "Start Download for: " << attachmentLocation;
             enqueue(new RetrieveMessagePart(m_retrievalAction.data(), location, true));
         }
     } else {
-       qCDebug(lcDebug) << "ERROR: Attachment location not found " << attachmentLocation;
+        qCDebug(lcDebug) << "ERROR: Attachment location not found " << attachmentLocation;
     }
     return false;
 }
@@ -952,7 +948,7 @@ void EmailAgent::synchronizeInbox(int accountId, const uint minimum)
     }
 }
 
-//Sync accounts list (both ways)
+// Sync accounts list (both ways)
 void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, const bool syncOnlyInbox, const uint minimum)
 {
     if (accountIdList.isEmpty()) {
@@ -974,8 +970,8 @@ void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, const boo
 
 bool EmailAgent::actionInQueue(QSharedPointer<EmailAction> action) const
 {
-    //check current first, there's chances that
-    //user taps same action several times.
+    // check current first, there's chances that
+    // user taps same action several times.
     if (!m_currentAction.isNull()
         && *(m_currentAction.data()) == *(action.data())) {
         return true;
@@ -1309,7 +1305,7 @@ void EmailAgent::updateAttachmentDowloadStatus(const QString &attachmentLocation
     } else {
         updateAttachmentDowloadStatus(attachmentLocation, Failed);
         qCDebug(lcGeneral) << "ERROR: Can't update attachment download status for items outside of the download queue, part location: "
-                         << attachmentLocation;
+                           << attachmentLocation;
     }
 }
 
