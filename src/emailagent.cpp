@@ -110,13 +110,13 @@ int EmailAgent::currentSynchronizingAccountId() const
     return m_accountSynchronizing;
 }
 
-int EmailAgent::attachmentDownloadProgress(const QString &attachmentLocation)
+double EmailAgent::attachmentDownloadProgress(const QString &attachmentLocation)
 {
     if (m_attachmentDownloadQueue.contains(attachmentLocation)) {
         AttachmentInfo attInfo = m_attachmentDownloadQueue.value(attachmentLocation);
         return attInfo.progress;
     }
-    return 0;
+    return 0.0;
 }
 
 EmailAgent::AttachmentStatus EmailAgent::attachmentDownloadStatus(const QString &attachmentLocation)
@@ -125,7 +125,7 @@ EmailAgent::AttachmentStatus EmailAgent::attachmentDownloadStatus(const QString 
         AttachmentInfo attInfo = m_attachmentDownloadQueue.value(attachmentLocation);
         return attInfo.status;
     }
-    return NotDownloaded;
+    return Unknown;
 }
 
 QString EmailAgent::attachmentName(const QMailMessagePart &part) const
@@ -532,16 +532,23 @@ void EmailAgent::onStandardFoldersCreated(const QMailAccountId &accountId)
     }
 }
 
+// Note: values from here are not byte sizes, it's something like "indicative size" which qmf defines internally as size in kilobytes
 void EmailAgent::progressChanged(uint value, uint total)
 {
-    if (value < total) {
-        int percent = (value * 100) / total;
-
-        // Attachment download, do not spam the UI check should be done here
-        if (m_currentAction->type() == EmailAction::RetrieveMessagePart) {
-            RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(m_currentAction.data());
-            if (messagePartAction->isAttachment()) {
-                updateAttachmentDowloadProgress(messagePartAction->partLocation(), percent);
+    // Attachment download, do not spam the UI check should be done here
+    if (value < total && m_currentAction->type() == EmailAction::RetrieveMessagePart) {
+        RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(m_currentAction.data());
+        if (messagePartAction->isAttachment()) {
+            QString location = messagePartAction->partLocation();
+            if (m_attachmentDownloadQueue.contains(location)) {
+                double progress = 0.0;
+                if (total > 0) {
+                    progress = double(value) / total;
+                }
+                AttachmentInfo attInfo = m_attachmentDownloadQueue.value(location);
+                attInfo.progress = progress;
+                m_attachmentDownloadQueue.insert(location, attInfo);
+                emit attachmentDownloadProgressChanged(location, progress);
             }
         }
     }
@@ -1076,7 +1083,6 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
             if (messagePartAction->isAttachment()) {
                 AttachmentInfo attInfo;
                 attInfo.status = Queued;
-                attInfo.progress = 0;
                 m_attachmentDownloadQueue.insert(messagePartAction->partLocation(), attInfo);
                 emit attachmentDownloadStatusChanged(messagePartAction->partLocation(), attInfo.status);
             }
@@ -1291,11 +1297,9 @@ void EmailAgent::updateAttachmentDowloadStatus(const QString &attachmentLocation
 {
     if (status == Failed) {
         emit attachmentDownloadStatusChanged(attachmentLocation, status);
-        emit attachmentDownloadProgressChanged(attachmentLocation, 0);
         m_attachmentDownloadQueue.remove(attachmentLocation);
     } else if (status == Downloaded) {
         emit attachmentDownloadStatusChanged(attachmentLocation, status);
-        emit attachmentDownloadProgressChanged(attachmentLocation, 100);
         m_attachmentDownloadQueue.remove(attachmentLocation);
     } else if (m_attachmentDownloadQueue.contains(attachmentLocation)) {
         AttachmentInfo attInfo = m_attachmentDownloadQueue.value(attachmentLocation);
@@ -1306,19 +1310,6 @@ void EmailAgent::updateAttachmentDowloadStatus(const QString &attachmentLocation
         updateAttachmentDowloadStatus(attachmentLocation, Failed);
         qCDebug(lcGeneral) << "ERROR: Can't update attachment download status for items outside of the download queue, part location: "
                            << attachmentLocation;
-    }
-}
-
-void EmailAgent::updateAttachmentDowloadProgress(const QString &attachmentLocation, int progress)
-{
-    if (m_attachmentDownloadQueue.contains(attachmentLocation)) {
-        AttachmentInfo attInfo = m_attachmentDownloadQueue.value(attachmentLocation);
-        // Avoid reporting progress too often
-        if (progress >= attInfo.progress + 5) {
-            attInfo.progress = progress;
-            m_attachmentDownloadQueue.insert(attachmentLocation, attInfo);
-            emit attachmentDownloadProgressChanged(attachmentLocation, progress);
-        }
     }
 }
 

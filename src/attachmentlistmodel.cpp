@@ -29,14 +29,14 @@ AttachmentListModel::AttachmentListModel(QObject *parent) :
     roles.insert(Url, "url");
     roles.insert(ProgressInfo, "progressInfo");
 
-    connect(EmailAgent::instance(), SIGNAL(attachmentDownloadStatusChanged(QString,EmailAgent::AttachmentStatus)),
-            this, SLOT(onAttachmentDownloadStatusChanged(QString,EmailAgent::AttachmentStatus)));
+    connect(EmailAgent::instance(), &EmailAgent::attachmentDownloadStatusChanged,
+            this, &AttachmentListModel::onAttachmentDownloadStatusChanged);
 
-    connect(EmailAgent::instance(), SIGNAL(attachmentDownloadProgressChanged(QString,int)),
-            this, SLOT(onAttachmentDownloadProgressChanged(QString,int)));
+    connect(EmailAgent::instance(), &EmailAgent::attachmentDownloadProgressChanged,
+            this, &AttachmentListModel::onAttachmentDownloadProgressChanged);
 
-    connect(EmailAgent::instance(), SIGNAL(attachmentUrlChanged(QString,QString)),
-            this, SLOT(onAttachmentUrlChanged(QString,QString)));
+    connect(EmailAgent::instance(), &EmailAgent::attachmentUrlChanged,
+            this, &AttachmentListModel::onAttachmentUrlChanged);
 }
 
 AttachmentListModel::~AttachmentListModel()
@@ -108,7 +108,7 @@ void AttachmentListModel::onAttachmentDownloadStatusChanged(const QString &attac
     }
 }
 
-void AttachmentListModel::onAttachmentDownloadProgressChanged(const QString &attachmentLocation, int progress)
+void AttachmentListModel::onAttachmentDownloadProgressChanged(const QString &attachmentLocation, double progress)
 {
     for (int i = 0; i < m_attachmentsList.count(); ++i) {
         Attachment *attachment = m_attachmentsList.at(i);
@@ -235,18 +235,17 @@ void AttachmentListModel::resetModel()
             m_attachmentFileWatcher->addPath(dlFolder);
             item->part = m_message.partAt(location);
             item->status = EmailAgent::instance()->attachmentDownloadStatus(item->location);
+
             // if attachment is in the queue for download we will get a url update later
-            if (item->status == EmailAgent::NotDownloaded) {
+            if (item->status == EmailAgent::Unknown) {
                 item->url = attachmentUrl(m_message, item->location);
                 // Update status and progress if attachment exists
                 if (!item->url.isEmpty() || item->part.hasBody()) {
                     item->status = EmailAgent::Downloaded;
-                    item->progressInfo = 100;
                 } else {
-                    item->progressInfo = 0;
+                    item->status = EmailAgent::NotDownloaded;
                 }
             } else {
-                item->url = QString();
                 item->progressInfo = EmailAgent::instance()->attachmentDownloadProgress(item->location);
             }
 

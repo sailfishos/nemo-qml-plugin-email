@@ -30,7 +30,7 @@ public:
         DisplayName,
         Downloaded,
         MimeType,
-        Size,
+        Size, // size of the message part, i.e. data to be downloaded, including base64 overhead etc. not file itself.
         StatusInfo,
         Url,
         ProgressInfo,
@@ -58,7 +58,7 @@ signals:
 
 private slots:
     void onAttachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status);
-    void onAttachmentDownloadProgressChanged(const QString &attachmentLocation, int progress);
+    void onAttachmentDownloadProgressChanged(const QString &attachmentLocation, double progress);
     void onAttachmentUrlChanged(const QString &attachmentLocation, const QString &url);
 
 private:
@@ -67,11 +67,16 @@ private:
     QMailMessageId m_messageId;
     QMailMessage m_message;
     struct Attachment {
+        Attachment()
+            : status(EmailAgent::Unknown),
+              progressInfo(0.0)
+        {}
+
         QMailMessagePart part;
         QString location;
         EmailAgent::AttachmentStatus status;
         QString url;
-        int progressInfo;
+        double progressInfo;
     };
 
     QList<Attachment*> m_attachmentsList;
