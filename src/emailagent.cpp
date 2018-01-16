@@ -64,6 +64,7 @@ EmailAgent::EmailAgent(QObject *parent)
     , m_storageAction(new QMailStorageAction(this))
     , m_transmitAction(new QMailTransmitAction(this))
     , m_searchAction(new QMailSearchAction(this))
+    , m_protocolAction(new QMailProtocolAction(this))
     , m_nmanager(new QNetworkConfigurationManager(this))
     , m_networkSession(0)
 {
@@ -89,6 +90,9 @@ EmailAgent::EmailAgent(QObject *parent)
             this, SLOT(activityChanged(QMailServiceAction::Activity)));
 
     connect(m_searchAction.data(), SIGNAL(activityChanged(QMailServiceAction::Activity)),
+            this, SLOT(activityChanged(QMailServiceAction::Activity)));
+
+    connect(m_protocolAction.data(), SIGNAL(activityChanged(QMailServiceAction::Activity)),
             this, SLOT(activityChanged(QMailServiceAction::Activity)));
 
     connect(m_searchAction.data(), SIGNAL(messageIdsMatched(const QMailMessageIdList&)),
@@ -434,6 +438,18 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
                 qCDebug(lcGeneral) << "Failed to download messages";
             }
 
+            if (m_currentAction->type() == EmailAction::CalendarInvitationResponse) {
+                if (m_currentAction->description().startsWith("eas-invitation-response")) {
+                    EasInvitationResponse* responseAction = static_cast<EasInvitationResponse *>(m_currentAction.data());
+                    if (responseAction) {
+                        emit calendarInvitationResponded(
+                                    (CalendarInvitationResponse) responseAction->response(), false);
+                    }
+                } else {
+                    emit calendarInvitationResponded(InvitationResponseUnspecified, false);
+                }
+            }
+
             reportError(status.accountId, status.errorCode);
             processNextAction(true);
             break;
@@ -475,6 +491,18 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
         if (m_currentAction->type() == EmailAction::RetrieveMessages) {
             RetrieveMessages* retrieveMessagesAction = static_cast<RetrieveMessages *>(m_currentAction.data());
             emit messagesDownloaded(retrieveMessagesAction->messageIds(), true);
+        }
+
+        if (m_currentAction->type() == EmailAction::CalendarInvitationResponse) {
+            if (m_currentAction->description().startsWith("eas-invitation-response")) {
+                EasInvitationResponse* responseAction = static_cast<EasInvitationResponse *>(m_currentAction.data());
+                if (responseAction) {
+                    emit calendarInvitationResponded(
+                                (CalendarInvitationResponse) responseAction->response(), true);
+                }
+            } else {
+                emit calendarInvitationResponded(InvitationResponseUnspecified, true);
+            }
         }
 
         processNextAction();
@@ -961,6 +989,84 @@ void EmailAgent::synchronizeInbox(int accountId, const uint minimum)
         m_enqueing = false;
         enqueue(new CreateStandardFolders(m_retrievalAction.data(), acctId));
     }
+}
+
+void EmailAgent::respondToCalendarInvitation(int messageId, CalendarInvitationResponse response,
+                                             const QString &responseSubject)
+{
+    QMailMessageId id(messageId);
+    QMailMessage msg = QMailStore::instance()->message(id);
+
+    bool handled = easCalendarInvitationResponse(msg, response, responseSubject);
+    if (handled) {
+        return;
+    }
+
+    // Add handling of other accounts here
+    qCWarning(lcGeneral) << "Invitation response is not supported for message's email account";
+}
+
+bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,
+                                               CalendarInvitationResponse response,
+                                               const QString &responseSubject)
+{
+    // Exchange ActiveSync: Checking Message Class
+    if (message.customField("X-EAS-MESSAGE-CLASS").compare("IPM.Schedule.Meeting.Request") != 0) {
+        return false;
+    }
+
+    QMailMessage responseMsg;
+    responseMsg.setStatus(QMailMessage::LocalOnly, true);
+
+    responseMsg.setParentAccountId(message.parentAccountId());
+    QMailAccount account(responseMsg.parentAccountId());
+
+    QMailFolderId draftFolderId = account.standardFolder(QMailFolder::DraftsFolder);
+
+    if (draftFolderId.isValid()) {
+        responseMsg.setParentFolderId(draftFolderId);
+    }
+
+    responseMsg.setMessageType(QMailMessage::Email);
+    responseMsg.setSubject(responseSubject);
+    responseMsg.setTo(message.from());
+    responseMsg.setFrom(account.fromAddress());
+    responseMsg.setResponseType(QMailMessage::Reply);
+    responseMsg.setInResponseTo(message.id());
+    responseMsg.setStatus(QMailMessage::CalendarInvitation, true);
+
+    bool stored = QMailStore::instance()->addMessage(&responseMsg);
+    if (!stored) {
+        qCDebug(lcDebug) << "EAS: Can't store local message for calendar response";
+        emit calendarInvitationResponded(response, false);
+        return true;
+    }
+    QVariantMap data;
+    data.insert("messageId", message.id().toULongLong());
+    QString responseString;
+    switch (response) {
+    case InvitationResponseAccept:
+        responseString = "accept";
+        break;
+    case InvitationResponseTentative:
+        responseString = "tentative";
+        break;
+    case InvitationResponseDecline:
+        responseString = "decline";
+        break;
+    default:
+        qCDebug(lcDebug) << "EAS: Invalid calendar response specified";
+        emit calendarInvitationResponded(response, false);
+        return true;
+    }
+
+    data.insert("response", responseString);
+    data.insert("replyMessageId", responseMsg.id().toULongLong());
+
+    enqueue(new EasInvitationResponse(m_protocolAction.data(), message.parentAccountId(),
+                                      response, data));
+    exportUpdates(QMailAccountIdList() << message.parentAccountId());
+    return true;
 }
 
 // Sync accounts list (both ways)

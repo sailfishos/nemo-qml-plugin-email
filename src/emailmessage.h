@@ -30,6 +30,8 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(QString calendarInvitationUrl READ calendarInvitationUrl NOTIFY calendarInvitationUrlChanged FINAL)
     Q_PROPERTY(bool hasCalendarInvitation READ hasCalendarInvitation NOTIFY hasCalendarInvitationChanged FINAL)
     Q_PROPERTY(AttachedDataStatus calendarInvitationStatus READ calendarInvitationStatus NOTIFY calendarInvitationStatusChanged FINAL)
+    Q_PROPERTY(QString calendarInvitationBody READ calendarInvitationBody NOTIFY calendarInvitationBodyChanged)
+    Q_PROPERTY(bool calendarInvitationSupportsEmailResponses READ calendarInvitationSupportsEmailResponses NOTIFY calendarInvitationSupportsEmailResponsesChanged)
     Q_PROPERTY(QStringList cc READ cc WRITE setCc NOTIFY ccChanged)
     Q_PROPERTY(ContentType contentType READ contentType NOTIFY storedMessageChanged FINAL)
     Q_PROPERTY(QDateTime date READ date NOTIFY storedMessageChanged)
@@ -96,6 +98,8 @@ public:
     QString calendarInvitationUrl();
     bool hasCalendarInvitation() const;
     AttachedDataStatus calendarInvitationStatus() const;
+    QString calendarInvitationBody() const;
+    bool calendarInvitationSupportsEmailResponses() const;
     QStringList cc() const;
     ContentType contentType() const;
     QDateTime date() const;
@@ -145,6 +149,8 @@ signals:
     void calendarInvitationUrlChanged();
     void hasCalendarInvitationChanged();
     void calendarInvitationStatusChanged();
+    void calendarInvitationBodyChanged();
+    bool calendarInvitationSupportsEmailResponsesChanged();
     void ccChanged();
     void dateChanged();
     void fromChanged();
@@ -189,7 +195,7 @@ private:
     void insertInlineImage(const QMailMessagePart &inlinePart);
     void removeInlineImagePlaceholder(const QMailMessagePart &inlinePart);
     void insertInlineImages(const QList<QMailMessagePart::Location> &inlineParts);
-    const QMailMessagePart *getCalendarPart();
+    const QMailMessagePart *getCalendarPart() const;
     void saveTempCalendarInvitation(const QMailMessagePart &calendarPart);
 
     QMailAccount m_account;

@@ -816,3 +816,44 @@ QMailAccountId TransmitMessages::accountId() const
 {
     return _accountId;
 }
+
+/*
+    EasInvitationResponse
+*/
+EasInvitationResponse::EasInvitationResponse(QMailProtocolAction* protocolAction,
+                                             const QMailAccountId &accountId,
+                                             int response,
+                                             const QVariant &responseData)
+    : EmailAction()
+    , _protocolAction(protocolAction)
+    , _accountId(accountId)
+    , _response(response)
+    , _responseData(responseData)
+{
+    _description = QString("eas-invitation-response=%1").arg(_responseData.toString());
+    _type = EmailAction::CalendarInvitationResponse;
+}
+
+EasInvitationResponse::~EasInvitationResponse()
+{
+}
+
+void EasInvitationResponse::execute()
+{
+    _protocolAction->protocolRequest(_accountId, "meetingresponse", _responseData);
+}
+
+QMailServiceAction* EasInvitationResponse::serviceAction() const
+{
+    return _protocolAction;
+}
+
+QMailAccountId EasInvitationResponse::accountId() const
+{
+    return _accountId;
+}
+
+int EasInvitationResponse::response() const
+{
+    return _response;
+}

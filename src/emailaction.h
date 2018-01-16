@@ -29,7 +29,8 @@ public:
         Send,
         StandardFolders,
         Storage,
-        Transmit
+        Transmit,
+        CalendarInvitationResponse
     };
 
     virtual ~EmailAction();
@@ -393,6 +394,26 @@ public:
 private:
     QMailTransmitAction* _transmitAction;
     QMailAccountId _accountId;
+};
+
+class EasInvitationResponse : public EmailAction
+{
+public:
+    EasInvitationResponse(QMailProtocolAction* protocolAction,
+                          const QMailAccountId &accountId,
+                          int response,
+                          const QVariant &responseData);
+    ~EasInvitationResponse();
+    void execute();
+    QMailServiceAction* serviceAction() const;
+    QMailAccountId accountId() const;
+    int response() const;
+
+private:
+    QMailProtocolAction* _protocolAction;
+    QMailAccountId _accountId;
+    int _response;
+    QVariant _responseData;
 };
 
 #endif // EMAILACTION_H
