@@ -754,6 +754,14 @@ bool EmailAgent::downloadAttachment(int messageId, const QString &attachmentLoca
     return false;
 }
 
+void EmailAgent::cancelAttachmentDownload(const QString &attachmentLocation)
+{
+    if (m_attachmentDownloadQueue.contains(attachmentLocation)) {
+        cancelAction(m_attachmentDownloadQueue.value(attachmentLocation).actionId);
+        updateAttachmentDowloadStatus(attachmentLocation, Canceled);
+    }
+}
+
 void EmailAgent::exportUpdates(int accountId)
 {
     QMailAccountId acctId(accountId);
@@ -1033,6 +1041,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
                 if (messagePartAction->isAttachment()) {
                     AttachmentInfo attInfo;
                     attInfo.status = Queued;
+                    attInfo.actionId = action->id();
                     attInfo.progress = 0;
                     m_attachmentDownloadQueue.insert(messagePartAction->partLocation(), attInfo);
                     emit attachmentDownloadStatusChanged(messagePartAction->partLocation(), attInfo.status);
@@ -1083,6 +1092,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
             if (messagePartAction->isAttachment()) {
                 AttachmentInfo attInfo;
                 attInfo.status = Queued;
+                attInfo.actionId = action->id();
                 m_attachmentDownloadQueue.insert(messagePartAction->partLocation(), attInfo);
                 emit attachmentDownloadStatusChanged(messagePartAction->partLocation(), attInfo.status);
             }
@@ -1295,10 +1305,7 @@ bool EmailAgent::saveAttachmentToDownloads(const QMailMessageId &messageId, cons
 
 void EmailAgent::updateAttachmentDowloadStatus(const QString &attachmentLocation, AttachmentStatus status)
 {
-    if (status == Failed) {
-        emit attachmentDownloadStatusChanged(attachmentLocation, status);
-        m_attachmentDownloadQueue.remove(attachmentLocation);
-    } else if (status == Downloaded) {
+    if (status == Failed || status == Canceled || status == Downloaded) {
         emit attachmentDownloadStatusChanged(attachmentLocation, status);
         m_attachmentDownloadQueue.remove(attachmentLocation);
     } else if (m_attachmentDownloadQueue.contains(attachmentLocation)) {

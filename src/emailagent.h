@@ -55,7 +55,8 @@ public:
         NotDownloaded,
         Downloaded,
         Failed,
-        FailedToSave
+        FailedToSave,
+        Canceled
     };
 
     enum SyncErrors {
@@ -111,6 +112,7 @@ public:
     Q_INVOKABLE void deleteMessages(const QMailMessageIdList &ids);
     Q_INVOKABLE void expungeMessages(const QMailMessageIdList &ids);
     Q_INVOKABLE bool downloadAttachment(int messageId, const QString &attachmentLocation);
+    Q_INVOKABLE void cancelAttachmentDownload(const QString &attachmentLocation);
     Q_INVOKABLE void exportUpdates(int accountId);
     Q_INVOKABLE void getMoreMessages(int folderId, uint minimum = 20);
     Q_INVOKABLE QString signatureForAccount(int accountId);
@@ -187,10 +189,15 @@ private:
     QList<QSharedPointer<EmailAction> > m_actionQueue;
     QSharedPointer<EmailAction> m_currentAction;
     struct AttachmentInfo {
-        AttachmentInfo() : status(Unknown), progress(0.0) {}
+        AttachmentInfo()
+            : status(Unknown),
+              progress(0.0),
+              actionId(0)
+        {}
 
         AttachmentStatus status;
         double progress;
+        quint64 actionId;
     };
     // Holds a list of the attachments currently dowloading or queued for download
     QHash<QString, AttachmentInfo> m_attachmentDownloadQueue;
