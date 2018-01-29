@@ -515,12 +515,12 @@ void FolderListModel::addFolderAndChildren(const QMailFolderId &folderId, QMailM
 void FolderListModel::resetModel()
 {
     beginResetModel();
-    qDeleteAll(m_folderList.begin(), m_folderList.end());
+    qDeleteAll(m_folderList);
     m_folderList.clear();
     QMailFolderKey key = QMailFolderKey::parentAccountId(m_accountId);
     QMailMessageKey excludeRemovedKey = QMailMessageKey::status(QMailMessage::Removed,  QMailDataComparator::Excludes);
     QList<QMailFolderId> folders = QMailStore::instance()->queryFolders(key);
-    qSort(folders.begin(), folders.end(), FolderListModel::lessThan);
+    std::sort(folders.begin(), folders.end(), FolderListModel::lessThan);
 
     QMailAccount account(m_accountId);
     QMailMessageKey messageKey(excludeRemovedKey);
