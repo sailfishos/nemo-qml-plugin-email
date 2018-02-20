@@ -44,6 +44,7 @@ public:
     Q_INVOKABLE bool downloadStatus(int idx);
     Q_INVOKABLE QString mimeType(int idx);
     Q_INVOKABLE QString url(int idx);
+    Q_INVOKABLE QString location(int idx);
 
     int count() const;
     int messageId() const;
