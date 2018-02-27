@@ -184,6 +184,9 @@ void EmailMessage::downloadMessage()
 
 void EmailMessage::getCalendarInvitation()
 {
+    // Reload the message, because downloaded attachments might change parts location
+    // and this info should be updated before attempt of retrieving of the calendar part.
+    m_msg = QMailMessage(m_id);
     if (const QMailMessagePart *calendarPart = getCalendarPart()) {
         if (calendarPart->contentAvailable()) {
             saveTempCalendarInvitation(*calendarPart);
