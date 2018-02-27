@@ -177,7 +177,7 @@ QString AttachmentListModel::displayName(int idx)
     return data(index(idx, 0), DisplayName).toString();
 }
 
-bool AttachmentListModel::downloadStatus(int idx)
+bool AttachmentListModel::isDownloaded(int idx)
 {
     return data(index(idx, 0), Downloaded).toBool();
 }

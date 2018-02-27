@@ -41,7 +41,7 @@ public:
     QVariant data(const QModelIndex &index, int role) const;
 
     Q_INVOKABLE QString displayName(int idx);
-    Q_INVOKABLE bool downloadStatus(int idx);
+    Q_INVOKABLE bool isDownloaded(int idx);
     Q_INVOKABLE QString mimeType(int idx);
     Q_INVOKABLE QString url(int idx);
     Q_INVOKABLE QString location(int idx);
