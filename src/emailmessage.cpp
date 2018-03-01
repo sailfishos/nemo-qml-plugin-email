@@ -380,6 +380,29 @@ EmailMessage::AttachedDataStatus EmailMessage::calendarInvitationStatus() const
     return m_calendarStatus;
 }
 
+QString EmailMessage::calendarInvitationBody() const
+{
+    const QMailMessagePart *calendarPart = getCalendarPart();
+    return (calendarPart && calendarPart->contentAvailable()) ?
+                calendarPart->body().data() : QString();
+}
+
+bool EmailMessage::calendarInvitationSupportsEmailResponses() const
+{
+    if (!hasCalendarInvitation()) {
+        return false;
+    }
+
+    // Exchange ActiveSync: Checking Message Class
+    if (m_msg.customField("X-EAS-MESSAGE-CLASS").compare("IPM.Schedule.Meeting.Request") == 0) {
+        return true; // Exchange ActiveSync invitations support response by email
+    }
+
+    // Add other account types here when those support response by email
+
+    return false;
+}
+
 QStringList EmailMessage::cc() const
 {
     return QMailAddress::toStringList(m_msg.cc());
@@ -898,6 +921,8 @@ void EmailMessage::emitMessageReloadedSignals()
     emit calendarInvitationUrlChanged();
     emit hasCalendarInvitationChanged();
     emit calendarInvitationStatusChanged();
+    emit calendarInvitationBodyChanged();
+    emit calendarInvitationSupportsEmailResponsesChanged();
     emit bccChanged();
     emit ccChanged();
     emit dateChanged();
@@ -1056,7 +1081,7 @@ void EmailMessage::insertInlineImages(const QList<QMailMessagePart::Location> &i
     }
 }
 
-const QMailMessagePart* EmailMessage::getCalendarPart()
+const QMailMessagePart* EmailMessage::getCalendarPart() const
 {
     const QMailMessagePart *result = 0;
     PartFinder finder(QMailMessageContentType("text/calendar"), result);

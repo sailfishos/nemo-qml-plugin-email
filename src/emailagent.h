@@ -32,6 +32,7 @@ class Q_DECL_EXPORT EmailAgent : public QObject
     Q_ENUMS(AttachmentStatus)
     Q_ENUMS(SyncErrors)
     Q_ENUMS(SearchStatus)
+    Q_ENUMS(CalendarInvitationResponse)
     Q_PROPERTY(bool synchronizing READ synchronizing NOTIFY synchronizingChanged)
     Q_PROPERTY(int currentSynchronizingAccountId READ currentSynchronizingAccountId NOTIFY currentSynchronizingAccountIdChanged)
 
@@ -73,6 +74,13 @@ public:
         SearchDone = 0,
         SearchCanceled,
         SearchFailed
+    };
+
+    enum CalendarInvitationResponse {
+        InvitationResponseUnspecified = 0,
+        InvitationResponseAccept,
+        InvitationResponseTentative,
+        InvitationResponseDecline
     };
 
     int currentSynchronizingAccountId() const;
@@ -134,6 +142,8 @@ public:
     Q_INVOKABLE void purgeSendingQueue(int accountId);
     Q_INVOKABLE void synchronize(int accountId);
     Q_INVOKABLE void synchronizeInbox(int accountId, const uint minimum = 20);
+    Q_INVOKABLE void respondToCalendarInvitation(int messageId, CalendarInvitationResponse response,
+                                                 const QString &responseSubject);
 
 signals:
     void currentSynchronizingAccountIdChanged();
@@ -152,6 +162,7 @@ signals:
     void searchMessageIdsMatched(const QMailMessageIdList &ids);
     void searchCompleted(const QString &search, const QMailMessageIdList &matchedIds, bool isRemote,
                          int remainingMessagesOnRemote, EmailAgent::SearchStatus status);
+    void calendarInvitationResponded(CalendarInvitationResponse response, bool success);
 
 private slots:
     void activityChanged(QMailServiceAction::Activity activity);
@@ -180,6 +191,7 @@ private:
     QScopedPointer<QMailStorageAction> const m_storageAction;
     QScopedPointer<QMailTransmitAction> const m_transmitAction;
     QScopedPointer<QMailSearchAction> const m_searchAction;
+    QScopedPointer<QMailProtocolAction> const m_protocolAction;
     QMailRetrievalAction *m_attachmentRetrievalAction;
 
     QProcess* m_messageServerProcess;
@@ -215,6 +227,9 @@ private:
     bool saveAttachmentToDownloads(const QMailMessageId &messageId, const QString &attachmentLocation);
     void updateAttachmentDowloadStatus(const QString &attachmentLocation, AttachmentStatus status);
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);
+    bool easCalendarInvitationResponse(const QMailMessage &message, CalendarInvitationResponse response,
+                                       const QString &responseSubject);
+
 };
 
 #endif
