@@ -634,7 +634,7 @@ void EmailAgent::cancelSync()
 
 void EmailAgent::createFolder(const QString &name, int mailAccountId, int parentFolderId)
 {
-    if (!name.isEmpty()) {
+    if (name.isEmpty()) {
         qCDebug(lcDebug) << "Error: Can't create a folder with empty name";
     } else {
         QMailAccountId accountId(mailAccountId);
