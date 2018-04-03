@@ -15,9 +15,10 @@ SOURCES += \
     $$PWD/emailaccount.cpp \
     $$PWD/emailaction.cpp \
     $$PWD/emailfolder.cpp \
-    $$PWD/attachmentlistmodel.cpp
+    $$PWD/attachmentlistmodel.cpp \
+    $$PWD/logging.cpp
 
-HEADERS += \
+PUBLIC_HEADERS += \
     $$PWD/emailaccountlistmodel.h \
     $$PWD/emailmessagelistmodel.h \
     $$PWD/folderlistmodel.h \
@@ -29,13 +30,20 @@ HEADERS += \
     $$PWD/emailfolder.h \
     $$PWD/attachmentlistmodel.h
 
+PRIVATE_HEADERS += \
+    $$PWD/logging_p.h
+
+HEADERS += \
+    $$PUBLIC_HEADERS \
+    $$PRIVATE_HEADERS
+
 MOC_DIR = $$PWD/../.moc
 OBJECTS_DIR = $$PWD/../.obj
 
 target.path = $$[QT_INSTALL_LIBS]
 pkgconfig.files = $$TARGET.pc
 pkgconfig.path = $$target.path/pkgconfig
-headers.files = $$HEADERS
+headers.files = $$PUBLIC_HEADERS
 headers.path = /usr/include/nemoemail-qt5
 
 VERSION = 0.0.1

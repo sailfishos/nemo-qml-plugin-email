@@ -12,7 +12,7 @@
 #include <qmailnamespace.h>
 
 #include "emailaccountlistmodel.h"
-#include "emailagent.h"
+#include "logging_p.h"
 
 EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     QMailAccountListModel(parent),
@@ -208,7 +208,7 @@ void EmailAccountListModel::onAccountsRemoved(const QModelIndex &parent, int sta
         }
 
         if (hadPersistentConnection != m_hasPersistentConnection) {
-            qCDebug(lcDebug) << Q_FUNC_INFO << "HasPersistentConnection changed to " << m_hasPersistentConnection;
+            qCDebug(lcEmail) << Q_FUNC_INFO << "HasPersistentConnection changed to" << m_hasPersistentConnection;
             emit hasPersistentConnectionChanged();
         }
 
@@ -260,7 +260,7 @@ void EmailAccountListModel::onAccountsUpdated(const QMailAccountIdList &ids)
     }
 
     if (hadPersistentConnection != m_hasPersistentConnection) {
-        qCDebug(lcDebug) << Q_FUNC_INFO << "HasPersistentConnection changed to " << m_hasPersistentConnection;
+        qCDebug(lcEmail) << Q_FUNC_INFO << "HasPersistentConnection changed to" << m_hasPersistentConnection;
         emit hasPersistentConnectionChanged();
     }
 

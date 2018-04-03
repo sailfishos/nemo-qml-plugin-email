@@ -21,6 +21,7 @@
 #include <mlocale.h>
 
 #include "emailmessagelistmodel.h"
+#include "logging_p.h"
 
 namespace {
 
@@ -147,7 +148,7 @@ int EmailMessageListModel::rowCount(const QModelIndex & parent) const {
 
 QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const {
     if (!index.isValid() || index.row() > rowCount(parent(index))) {
-        qCWarning(lcGeneral) << Q_FUNC_INFO << "Invalid Index";
+        qCWarning(lcEmail) << Q_FUNC_INFO << "Invalid Index";
         return QVariant();
     }
 
@@ -543,7 +544,7 @@ void EmailMessageListModel::sortByTime(int order, EmailMessageListModel::Sort so
         appendSortbyTime = false;
         break;
     default:
-        qCWarning(lcGeneral) << Q_FUNC_INFO << "Invalid sort type provided.";
+        qCWarning(lcEmail) << Q_FUNC_INFO << "Invalid sort type provided.";
         sortChanged = false;
     }
 
@@ -1035,7 +1036,7 @@ void EmailMessageListModel::searchOnline()
     // Check if the search term did not change yet,
     // if changed we skip online search until local search returns again
     if (!m_searchCanceled && (m_remoteSearch == m_search)) {
-        qCDebug(lcGeneral) << "Starting remote search for " << m_search;
+        qCDebug(lcEmail) << "Starting remote search for" << m_search;
         EmailAgent::instance()->searchMessages(m_searchKey, m_search, QMailSearchAction::Remote, m_searchLimit, m_searchBody);
     }
 }
@@ -1048,7 +1049,7 @@ void EmailMessageListModel::onSearchCompleted(const QString &search, const QMail
     }
 
     if (search != m_search) {
-        qCDebug(lcGeneral) << "Search terms are different, skipping. Received: " << search << " Have: " << m_search;
+        qCDebug(lcEmail) << "Search terms are different, skipping. Received:" << search << "Have:" << m_search;
         return;
     }
     switch (status) {
@@ -1057,7 +1058,7 @@ void EmailMessageListModel::onSearchCompleted(const QString &search, const QMail
             // Append online search results to local ones
             setKey(key() | QMailMessageKey::id(matchedIds));
             setSearchRemainingOnRemote(remainingMessagesOnRemote);
-            qCDebug(lcGeneral) << "We have more messages on remote " << remainingMessagesOnRemote;
+            qCDebug(lcEmail) << "We have more messages on remote, remaining count:" << remainingMessagesOnRemote;
         } else {
             setKey(m_searchKey | QMailMessageKey::id(matchedIds));
             if ((m_searchOn == EmailMessageListModel::LocalAndRemote) && EmailAgent::instance()->isOnline() && !m_searchCanceled) {
@@ -1065,7 +1066,7 @@ void EmailMessageListModel::onSearchCompleted(const QString &search, const QMail
                 // start online search after 2 seconds to avoid flooding the server with incomplete queries
                 m_remoteSearchTimer.start(2000);
             } else if (!EmailAgent::instance()->isOnline()) {
-                qCDebug(lcGeneral) << "Device is offline, not performing online search";
+                qCDebug(lcEmail) << "Device is offline, not performing online search";
             }
         }
         break;

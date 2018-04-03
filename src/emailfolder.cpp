@@ -8,7 +8,7 @@
  */
 
 #include "emailfolder.h"
-#include "emailagent.h"
+#include "logging_p.h"
 
 #include <qmailstore.h>
 
@@ -78,7 +78,7 @@ void EmailFolder::setFolderId(int folderId)
             m_folder = QMailFolder(foldId);
         } else {
             m_folder = QMailFolder();
-            qCWarning(lcGeneral) << "Invalid folder id " << foldId.toULongLong();
+            qCWarning(lcEmail) << "Invalid folder id" << foldId.toULongLong();
         }
 
         // Folder loaded from the store (or a empty folder), all properties changes
