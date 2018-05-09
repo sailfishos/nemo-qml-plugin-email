@@ -66,6 +66,7 @@ sed 's/Nemo.Email/org.nemomobile.email/' < src/plugin/qmldir > %{buildroot}%{_li
 %{_libdir}/libnemoemail-qt5.so.*
 %dir %{_libdir}/qt5/qml/Nemo/Email
 %{_libdir}/qt5/qml/Nemo/Email/libnemoemail.so
+%{_libdir}/qt5/qml/Nemo/Email/plugins.qmltypes
 %{_libdir}/qt5/qml/Nemo/Email/qmldir
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/domainSettings.conf
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/serviceSettings.conf
