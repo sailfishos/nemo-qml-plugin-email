@@ -4,7 +4,7 @@ Version:    0.1.41
 Release:    1
 Group:      System/Libraries
 License:    BSD
-URL:        https://github.com/nemomobile/nemo-qml-plugin-email
+URL:        https://git.merproject.org/mer-core/nemo-qml-plugin-email
 Source0:    %{name}-%{version}.tar.bz2
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
