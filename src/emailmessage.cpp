@@ -14,7 +14,8 @@
 
 #include "emailagent.h"
 #include "emailmessage.h"
-#include "qmailnamespace.h"
+#include "logging_p.h"
+#include <qmailnamespace.h>
 #include <qmaildisconnected.h>
 #include <QTextDocument>
 #include <QTemporaryFile>
@@ -126,7 +127,7 @@ void EmailMessage::onMessagePartDownloaded(const QMailMessageId &messageId, cons
                     saveTempCalendarInvitation(*calendarPart);
                 } else {
                     m_calendarStatus = Failed;
-                    qCWarning(lcGeneral) << Q_FUNC_INFO << "Failed to download calendar invitation part";
+                    qCWarning(lcEmail) << Q_FUNC_INFO << "Failed to download calendar invitation part";
                 }
                 emit calendarInvitationStatusChanged();
                 return;
@@ -191,7 +192,7 @@ void EmailMessage::getCalendarInvitation()
         if (calendarPart->contentAvailable()) {
             saveTempCalendarInvitation(*calendarPart);
         } else {
-            qCDebug(lcGeneral) << "Calendar invitation content not available yet, downloading";
+            qCDebug(lcEmail) << "Calendar invitation content not available yet, downloading";
             m_calendarStatus = Downloading;
             emit calendarInvitationStatusChanged();
             if (m_msg.multipartType() == QMailMessage::MultipartNone) {
@@ -203,7 +204,7 @@ void EmailMessage::getCalendarInvitation()
     } else {
         m_calendarInvitationUrl = QString();
         emit calendarInvitationUrlChanged();
-        qCWarning(lcGeneral) << Q_FUNC_INFO <<  "The message does not contain a calendar invitation";
+        qCWarning(lcEmail) << Q_FUNC_INFO <<  "The message does not contain a calendar invitation";
    }
 }
 
@@ -256,7 +257,7 @@ void EmailMessage::send()
         m_newMessage = false;
         emitSignals();
     } else {
-       qCWarning(lcGeneral) << "Error: queuing message, stored: " << stored;
+       qCWarning(lcEmail) << "Error: queuing message, stored:" << stored;
     }
 }
 
@@ -271,7 +272,7 @@ void EmailMessage::saveDraft()
         m_msg.setParentFolderId(draftFolderId);
     } else {
         //local storage set on buildMessage step
-        qCWarning(lcGeneral) << "Drafts folder not found, saving to local storage!";
+        qCWarning(lcEmail) << "Drafts folder not found, saving to local storage!";
     }
 
     bool saved = false;
@@ -298,7 +299,7 @@ void EmailMessage::saveDraft()
         EmailAgent::instance()->exportUpdates(QMailAccountIdList() << m_msg.parentAccountId());
         emitSignals();
     } else {
-        qCWarning(lcGeneral) << "Failed to save message!";
+        qCWarning(lcEmail) << "Failed to save message!";
     }
 }
 
@@ -684,7 +685,7 @@ void EmailMessage::setFrom(const QString &sender)
         emit accountIdChanged();
         emit accountAddressChanged();
     } else {
-        qCWarning(lcGeneral) << Q_FUNC_INFO << "Can't set a empty 'From' address.";
+        qCWarning(lcEmail) << Q_FUNC_INFO << "Can't set a empty 'From' address.";
     }
 }
 
@@ -694,7 +695,7 @@ void EmailMessage::setInReplyTo(const QString &messageId)
         m_msg.setInReplyTo(messageId);
         emit inReplyToChanged();
     } else {
-        qCWarning(lcGeneral) << Q_FUNC_INFO << "Can't set a empty messageId as 'InReplyTo' header.";
+        qCWarning(lcEmail) << Q_FUNC_INFO << "Can't set a empty messageId as 'InReplyTo' header.";
     }
 }
 
@@ -708,7 +709,7 @@ void EmailMessage::setMessageId(int messageId)
         } else {
             m_id = QMailMessageId();
             m_msg = QMailMessage();
-            qCWarning(lcGeneral) << "Invalid message id " << msgId.toULongLong();
+            qCWarning(lcEmail) << "Invalid message id" << msgId.toULongLong();
         }
         // Construct initial plain text body, even if not entirely available.
         m_bodyText = EmailAgent::instance()->bodyPlainText(m_msg);
@@ -771,7 +772,7 @@ void EmailMessage::setReplyTo(const QString &address)
         m_msg.setReplyTo(addr);
         emit replyToChanged();
     } else {
-        qCWarning(lcGeneral) << Q_FUNC_INFO << "Can't set a empty address as 'ReplyTo' header.";
+        qCWarning(lcEmail) << Q_FUNC_INFO << "Can't set a empty address as 'ReplyTo' header.";
     }
 }
 
@@ -1015,7 +1016,7 @@ QString EmailMessage::imageMimeType(const QMailMessageContentType &contentType, 
         if (supportedImageTypes.contains(fileType)) {
             return QString("image/%1").arg(fileType);
         } else {
-            qCWarning(lcGeneral) << "Unsupported content type: " << contentType.type().toLower() + "/" + contentType.subType().toLower()
+            qCWarning(lcEmail) << "Unsupported content type:" << contentType.type().toLower() + "/" + contentType.subType().toLower()
                      << " from file: " << fileName;
             return QString();
         }
@@ -1101,7 +1102,7 @@ void EmailMessage::saveTempCalendarInvitation(const QMailMessagePart &calendarPa
         emit calendarInvitationStatusChanged();
         emit calendarInvitationUrlChanged();
     } else {
-        qCDebug(lcDebug) << "ERROR: Failed to save calendar file to location " << calendarFileName;
+        qCWarning(lcEmail) << "ERROR: Failed to save calendar file to location" << calendarFileName;
         m_calendarStatus = FailedToSave;
         emit calendarInvitationStatusChanged();
     }

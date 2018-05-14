@@ -14,16 +14,12 @@
 #include <QTimer>
 #include <QNetworkConfigurationManager>
 #include <QNetworkSession>
-#include <QtCore/qloggingcategory.h>
 
 #include <qmailaccount.h>
 #include <qmailstore.h>
 #include <qmailserviceaction.h>
 
 #include "emailaction.h"
-
-Q_DECLARE_LOGGING_CATEGORY(lcGeneral)
-Q_DECLARE_LOGGING_CATEGORY(lcDebug)
 
 class Q_DECL_EXPORT EmailAgent : public QObject
 {

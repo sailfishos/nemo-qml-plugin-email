@@ -15,6 +15,7 @@
 
 #include "emailaccount.h"
 #include "emailagent.h"
+#include "logging_p.h"
 
 namespace {
     QString securityType(const QString &securityType) {
@@ -25,7 +26,7 @@ namespace {
         }
 
         if (securityType.toLower() != QLatin1String("none"))
-            qCWarning(lcGeneral) << "Unknown security type:" << securityType;
+            qCWarning(lcEmail) << "Unknown security type:" << securityType;
         return QLatin1String("0");
     }
 
@@ -39,7 +40,7 @@ namespace {
         }
 
         if (authType.toLower() != QLatin1String("none"))
-            qCWarning(lcGeneral) << "Unknown authorization type:" << authType;
+            qCWarning(lcEmail) << "Unknown authorization type:" << authType;
         return QLatin1String("0");
     }
 }
@@ -257,7 +258,7 @@ void EmailAccount::activityChanged(QMailServiceAction::Activity activity)
         } else if (activity == QMailServiceAction::Failed && !mIncomingTested) {
             mErrorMessage = status.text;
             mErrorCode = status.errorCode;
-            qCDebug(lcGeneral) << "Testing configuration failed with error " << mErrorMessage << " code: " << mErrorCode;
+            qCDebug(lcEmail) << "Testing configuration failed with error" << mErrorMessage << "code:" << mErrorCode;
             emitError(IncomingServer, status.errorCode);
         }
     } else if (sender() == static_cast<QObject*>(mTransmitAction)) {
@@ -268,7 +269,7 @@ void EmailAccount::activityChanged(QMailServiceAction::Activity activity)
         } else if (activity == QMailServiceAction::Failed) {
             mErrorMessage = status.text;
             mErrorCode = status.errorCode;
-            qCDebug(lcGeneral) << "Testing configuration failed with error " << mErrorMessage << " code: " << mErrorCode;
+            qCDebug(lcEmail) << "Testing configuration failed with error" << mErrorMessage << "code:" << mErrorCode;
             emitError(OutgoingServer, status.errorCode);
         }
     }
@@ -290,7 +291,7 @@ void EmailAccount::setAccountId(const int accId)
         mAccount = new QMailAccount(accountId);
         mAccountConfig = new QMailAccountConfiguration(mAccount->id());
     } else {
-        qCWarning(lcGeneral) << "Invalid account id " << accountId.toULongLong();
+        qCWarning(lcEmail) << "Invalid account id" << accountId.toULongLong();
     }
 }
 

@@ -27,9 +27,7 @@
 
 #include "emailagent.h"
 #include "emailaction.h"
-
-Q_LOGGING_CATEGORY(lcGeneral, "org.nemomobile.email.general", QtWarningMsg)
-Q_LOGGING_CATEGORY(lcDebug, "org.nemomobile.email.debug", QtWarningMsg)
+#include "logging_p.h"
 
 namespace {
 
@@ -247,7 +245,7 @@ void EmailAgent::initMailServer()
             QDBusPendingReply<QDBusObjectPath> reply = *watcher;
             if (reply.isError()) {
                 QDBusError error = reply.error();
-                qCWarning(lcGeneral) << "EmailAgent::initMailServer failed to start messageserver:" << error.name() << error.message() << error.type();
+                qCWarning(lcEmail) << Q_FUNC_INFO << "Failed to start messageserver:" << error.name() << error.message() << error.type();
                 m_synchronizing = false;
                 emit synchronizingChanged(EmailAgent::Error);
             }
@@ -274,7 +272,7 @@ void EmailAgent::searchMessages(const QMailMessageKey &filter,
     // cancel any running or queued
     m_enqueing = true;
     cancelSearch();
-    qCDebug(lcDebug) << "Enqueuing new search " << bodyText;
+    qCDebug(lcEmail) << "Enqueuing new search:" << bodyText;
     m_enqueing = false;
     enqueue(new SearchMessages(m_searchAction.data(), filter, bodyText, spec, limit, searchBody, sort));
 }
@@ -295,7 +293,7 @@ void EmailAgent::cancelSearch()
     for (int i = 1; i < m_actionQueue.size();) {
          if (m_actionQueue.at(i).data()->type() == EmailAction::Search) {
             m_actionQueue.removeAt(i);
-            qCDebug(lcDebug) <<  "Search action removed from the queue";
+            qCDebug(lcEmail) <<  "Search action removed from the queue";
         } else {
             ++i;
         }
@@ -374,6 +372,10 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
     case QMailServiceAction::Failed:
         // TODO: coordinate with stop logic
         // don't try to synchronise extra accounts if the user cancelled the sync
+
+        qCWarning(lcEmail) << Q_FUNC_INFO << "operation failed:" << status.errorCode << status.text << status.accountId
+                           << "connection status:" << action->connectivity();
+
         if (m_cancelling) {
             m_synchronizing = false;
             m_accountSynchronizing = -1;
@@ -383,16 +385,16 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
             m_cancelling = false;
             m_actionQueue.clear();
             // Cancel by the user skip error reporting
-            qCDebug(lcGeneral) << "Canceled by the user";
+            qCDebug(lcEmail) << "Canceled by the user";
             break;
         } else if (m_cancellingSingleAction) {
             if (m_currentAction->type() == EmailAction::Search) {
-                qCDebug(lcGeneral) << "Search canceled by the user";
+                qCDebug(lcEmail) << "Search canceled by the user";
                 emitSearchStatusChanges(m_currentAction, EmailAgent::SearchCanceled);
             }
             dequeue();
             m_currentAction.clear();
-            qCDebug(lcGeneral) << "Single action canceled by the user";
+            qCDebug(lcEmail) << "Single action canceled by the user";
             m_cancellingSingleAction = false;
             m_accountSynchronizing = -1;
             emit currentSynchronizingAccountIdChanged();
@@ -401,7 +403,7 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
                 m_accountSynchronizing = -1;
                 emit currentSynchronizingAccountIdChanged();
                 emit synchronizingChanged(EmailAgent::Completed);
-                qCDebug(lcGeneral) << "Sync completed.";
+                qCDebug(lcEmail) << "Sync completed.";
             } else {
                 processNextAction();
             }
@@ -413,11 +415,11 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
                 m_transmitting = false;
                 m_sendFailed = true;
                 emit sendCompleted(false);
-                qCDebug(lcGeneral) << "Error: Send failed";
+                qCWarning(lcEmail) << "Error: Send failed";
             }
 
             if (m_currentAction->type() == EmailAction::Search) {
-                qCDebug(lcGeneral) << "Error: Search failed";
+                qCWarning(lcEmail) << "Error: Search failed";
                 emitSearchStatusChanges(m_currentAction, EmailAgent::SearchFailed);
             }
 
@@ -425,17 +427,17 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
                 RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(m_currentAction.data());
                 if (messagePartAction->isAttachment()) {
                     updateAttachmentDowloadStatus(messagePartAction->partLocation(), Failed);
-                    qCDebug(lcGeneral) << "Attachment dowload failed for " << messagePartAction->partLocation();
+                    qCWarning(lcEmail) << "Attachment dowload failed for " << messagePartAction->partLocation();
                 } else {
                     emit messagePartDownloaded(messagePartAction->messageId(), messagePartAction->partLocation(), false);
-                    qCDebug(lcGeneral) << "Failed to dowload message part!!";
+                    qCWarning(lcEmail) << "Failed to dowload message part!!";
                 }
             }
 
             if (m_currentAction->type() == EmailAction::RetrieveMessages) {
                 RetrieveMessages* retrieveMessagesAction = static_cast<RetrieveMessages *>(m_currentAction.data());
                 emit messagesDownloaded(retrieveMessagesAction->messageIds(), false);
-                qCDebug(lcGeneral) << "Failed to download messages";
+                qCWarning(lcEmail) << "Failed to download messages";
             }
 
             if (m_currentAction->type() == EmailAction::CalendarInvitationResponse) {
@@ -458,13 +460,13 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
     case QMailServiceAction::Successful:
         dequeue();
         if (m_currentAction->type() == EmailAction::Transmit) {
-            qCDebug(lcGeneral) << "Finished sending for " << m_currentAction->accountId();
+            qCDebug(lcEmail) << "Finished sending for accountId:" << m_currentAction->accountId();
             m_transmitting = false;
             emit sendCompleted(true);
         }
 
         if (m_currentAction->type() == EmailAction::Search) {
-            qCDebug(lcGeneral) << "Search done";
+            qCDebug(lcEmail) << "Search done";
             emitSearchStatusChanges(m_currentAction, EmailAgent::SearchDone);
         }
 
@@ -510,7 +512,7 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
 
     default:
         // emit activity changed here
-        qCDebug(lcDebug) << "Activity State Changed:" << activity;
+        qCDebug(lcEmail) << "Activity State Changed:" << activity;
         break;
     }
 }
@@ -523,7 +525,7 @@ void EmailAgent::onIpcConnectionEstablished()
             m_currentAction = getNext();
 
         if (m_currentAction.isNull()) {
-            qCDebug(lcDebug) << "Ipc connection established, but no action in the queue.";
+            qCDebug(lcEmail) << "Ipc connection established, but no action in the queue.";
         } else {
             executeCurrent();
         }
@@ -533,13 +535,13 @@ void EmailAgent::onIpcConnectionEstablished()
 
 void EmailAgent::onOnlineStateChanged(bool isOnline)
 {
-    qCDebug(lcGeneral) << Q_FUNC_INFO << "Online State changed, device is now connected ? " << isOnline;
+    qCDebug(lcEmail) << Q_FUNC_INFO << "Online State changed, device is now connected?" << isOnline;
     if (isOnline) {
         if (m_currentAction.isNull())
             m_currentAction = getNext();
 
         if (m_currentAction.isNull()) {
-            qCDebug(lcDebug) << "Network connection established, but no action in the queue.";
+            qCDebug(lcEmail) << "Network connection established, but no action in the queue.";
         } else {
             executeCurrent();
         }
@@ -556,7 +558,7 @@ void EmailAgent::onStandardFoldersCreated(const QMailAccountId &accountId)
     if (foldId.isValid()) {
         synchronizeInbox(accountId.toULongLong());
     } else {
-        qCCritical(lcGeneral) << "Error: Inbox not found!!!";
+        qCCritical(lcEmail) << "Error: Inbox not found!!!";
     }
 }
 
@@ -590,10 +592,10 @@ void EmailAgent::accountsSync(const bool syncOnlyInbox, const uint minimum)
     m_enabledAccounts.clear();
     m_enabledAccounts = QMailStore::instance()->queryAccounts(QMailAccountKey::messageType(QMailMessage::Email)
                                                               & QMailAccountKey::status(QMailAccount::Enabled));
-    qCDebug(lcDebug) << "Enabled accounts size is: " << m_enabledAccounts.count();
+    qCDebug(lcEmail) << "Enabled accounts size is:" << m_enabledAccounts.count();
 
     if (m_enabledAccounts.isEmpty()) {
-        qCDebug(lcDebug) << Q_FUNC_INFO << "No enabled accounts, nothing to do.";
+        qCDebug(lcEmail) << Q_FUNC_INFO << "No enabled accounts, nothing to do.";
         m_synchronizing = false;
         emit synchronizingChanged(EmailAgent::Error);
         return;
@@ -635,7 +637,7 @@ void EmailAgent::cancelSync()
 void EmailAgent::createFolder(const QString &name, int mailAccountId, int parentFolderId)
 {
     if (name.isEmpty()) {
-        qCDebug(lcDebug) << "Error: Can't create a folder with empty name";
+        qCDebug(lcEmail) << "Error: Can't create a folder with empty name";
     } else {
         QMailAccountId accountId(mailAccountId);
         Q_ASSERT(accountId.isValid());
@@ -718,7 +720,7 @@ void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
             QMailFolderId trashFolderId = account.standardFolder(QMailFolder::TrashFolder);
             // If standard folder is not valid we use local storage
             if (!trashFolderId.isValid()) {
-                qCDebug(lcGeneral) << "Trash folder not found using local storage";
+                qCDebug(lcEmail) << "Trash folder not found using local storage";
                 trashFolderId = QMailFolder::LocalStorageFolderId;
             }
             m_enqueing = true;
@@ -773,11 +775,11 @@ bool EmailAgent::downloadAttachment(int messageId, const QString &attachmentLoca
         if (attachmentPart.hasBody()) {
             return saveAttachmentToDownloads(mailMessageId, attachmentLocation);
         } else {
-            qCDebug(lcDebug) << "Start Download for: " << attachmentLocation;
+            qCDebug(lcEmail) << "Start Download for:" << attachmentLocation;
             enqueue(new RetrieveMessagePart(m_retrievalAction.data(), location, true));
         }
     } else {
-        qCDebug(lcDebug) << "ERROR: Attachment location not found " << attachmentLocation;
+        qCDebug(lcEmail) << "ERROR: Attachment location not found:" << attachmentLocation;
     }
     return false;
 }
@@ -832,7 +834,7 @@ int EmailAgent::standardFolderId(int accountId, QMailFolder::StandardFolder fold
             return foldId.toULongLong();
         }
     }
-    qCDebug(lcGeneral) << "Error: Standard folder " << folder << " not found for account: " << accountId;
+    qCDebug(lcEmail) << "Error: Standard folder" << folder << "not found for account:" << accountId;
     return 0;
 }
 
@@ -908,7 +910,7 @@ void EmailAgent::moveMessage(int messageId, int destinationId)
 void EmailAgent::renameFolder(int folderId, const QString &name)
 {
     if (!name.isEmpty()) {
-        qCDebug(lcDebug) << "Error: Can't rename a folder to a empty name";
+        qCDebug(lcEmail) << "Error: Can't rename a folder to a empty name";
     } else {
         QMailFolderId id(folderId);
         Q_ASSERT(id.isValid());
@@ -1003,7 +1005,7 @@ void EmailAgent::respondToCalendarInvitation(int messageId, CalendarInvitationRe
     }
 
     // Add handling of other accounts here
-    qCWarning(lcGeneral) << "Invitation response is not supported for message's email account";
+    qCWarning(lcEmail) << "Invitation response is not supported for message's email account";
 }
 
 bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,
@@ -1037,7 +1039,7 @@ bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,
 
     bool stored = QMailStore::instance()->addMessage(&responseMsg);
     if (!stored) {
-        qCDebug(lcDebug) << "EAS: Can't store local message for calendar response";
+        qCDebug(lcEmail) << "EAS: Can't store local message for calendar response";
         emit calendarInvitationResponded(response, false);
         return true;
     }
@@ -1055,7 +1057,7 @@ bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,
         responseString = "decline";
         break;
     default:
-        qCDebug(lcDebug) << "EAS: Invalid calendar response specified";
+        qCDebug(lcEmail) << "EAS: Invalid calendar response specified";
         emit calendarInvitationResponded(response, false);
         return true;
     }
@@ -1073,7 +1075,7 @@ bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,
 void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, const bool syncOnlyInbox, const uint minimum)
 {
     if (accountIdList.isEmpty()) {
-        qCDebug(lcDebug) << Q_FUNC_INFO << "No enabled accounts, nothing to do.";
+        qCDebug(lcEmail) << Q_FUNC_INFO << "No enabled accounts, nothing to do.";
         emit synchronizingChanged(EmailAgent::Error);
         return;
     } else {
@@ -1114,7 +1116,7 @@ quint64 EmailAgent::actionInQueueId(QSharedPointer<EmailAction> action) const
 void EmailAgent::dequeue()
 {
     if (m_actionQueue.isEmpty()) {
-        qCWarning(lcGeneral) << "Error: can't dequeue a empty list";
+        qCWarning(lcEmail) << "Error: can't dequeue a empty list";
     } else {
         m_actionQueue.removeFirst();
     }
@@ -1133,7 +1135,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
         if (action->needsNetworkConnection()) {
             //discard action in this case
             m_synchronizing = false;
-            qCDebug(lcGeneral) << "Discarding online action!!";
+            qCDebug(lcEmail) << "Discarding online action!!";
             emit synchronizingChanged(EmailAgent::Completed);
             return quint64(0);
         } else {
@@ -1165,8 +1167,8 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
         return action->id();
     }
     else {
-        qCDebug(lcGeneral) << "This request already exists in the queue: " << action->description();
-        qCDebug(lcDebug) << "Number of actions in the queue: " << m_actionQueue.size();
+        qCDebug(lcEmail) << "This request already exists in the queue:" << action->description();
+        qCDebug(lcEmail) << "Number of actions in the queue:" << m_actionQueue.size();
         return actionInQueueId(action);
     }
 #else
@@ -1177,7 +1179,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
     // Check if action neeeds connectivity and if we are not running from a background process
     if (action->needsNetworkConnection() && !backgroundProcess() && !isOnline()) {
         if (m_backgroundProcess) {
-            qCDebug(lcDebug) << "Network not available to execute background action, exiting...";
+            qCDebug(lcEmail) << "Network not available to execute background action, exiting...";
             m_synchronizing = false;
             emit synchronizingChanged(EmailAgent::Error);
             return quint64(0);
@@ -1219,8 +1221,8 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
     if (!foundAction) {
          return action->id();
     } else {
-        qCDebug(lcGeneral) << "This request already exists in the queue: " << action->description();
-        qCDebug(lcDebug) << "Number of actions in the queue: " << m_actionQueue.size();
+        qCDebug(lcEmail) << "This request already exists in the queue:" << action->description();
+        qCDebug(lcEmail) << "Number of actions in the queue:" << m_actionQueue.size();
         return actionInQueueId(action);
     }
 
@@ -1233,17 +1235,17 @@ void EmailAgent::executeCurrent()
 
     if (!QMailStore::instance()->isIpcConnectionEstablished()) {
         if (m_backgroundProcess) {
-            qCWarning(lcGeneral) << "IPC not connected to execute background action, exiting...";
+            qCWarning(lcEmail) << "IPC not connected to execute background action, exiting...";
             m_synchronizing = false;
             emit synchronizingChanged(EmailAgent::Error);
         } else {
-            qCWarning(lcGeneral) << "Ipc connection not established, can't execute service action";
+            qCWarning(lcEmail) << "Ipc connection not established, can't execute service action";
             m_waitForIpc = true;
         }
     } else if (m_currentAction->needsNetworkConnection() && !isOnline()) {
-        qCDebug(lcGeneral) << "Current action not executed, waiting for newtwork";
+        qCDebug(lcEmail) << "Current action not executed, waiting for newtwork";
         if (m_backgroundProcess) {
-            qCWarning(lcGeneral) << "Network not available to execute background action, exiting...";
+            qCWarning(lcEmail) << "Network not available to execute background action, exiting...";
             m_synchronizing = false;
             emit synchronizingChanged(EmailAgent::Error);
         }
@@ -1259,7 +1261,7 @@ void EmailAgent::executeCurrent()
             emit currentSynchronizingAccountIdChanged();
         }
 
-        qCDebug(lcGeneral) << "Executing " << m_currentAction->description();
+        qCDebug(lcEmail) << "Executing action:" << m_currentAction->description();
 
         // Attachment download
         if (m_currentAction->type() == EmailAction::RetrieveMessagePart) {
@@ -1302,10 +1304,10 @@ void EmailAgent::processNextAction(bool error)
         emit currentSynchronizingAccountIdChanged();
         if (error) {
             emit synchronizingChanged(EmailAgent::Error);
-            qCDebug(lcGeneral) << "Sync completed with Errors!!!.";
+            qCDebug(lcEmail) << "Sync completed with Errors!!!.";
         } else {
             emit synchronizingChanged(EmailAgent::Completed);
-            qCDebug(lcGeneral) << "Sync completed.";
+            qCDebug(lcEmail) << "Sync completed.";
         }
     } else {
         executeCurrent();
@@ -1399,12 +1401,12 @@ bool EmailAgent::saveAttachmentToDownloads(const QMailMessageId &messageId, cons
                 updateAttachmentDowloadStatus(attachmentLocation, Downloaded);
                 return true;
             } else {
-                qCDebug(lcGeneral) << "ERROR: Failed to save attachment file to location " << attachmentDownloadFolder;
+                qCDebug(lcEmail) << "ERROR: Failed to save attachment file to location:" << attachmentDownloadFolder;
                 updateAttachmentDowloadStatus(attachmentLocation, FailedToSave);
             }
         }
     } else {
-        qCDebug(lcGeneral) << "ERROR: Can't save attachment, location not found " << attachmentLocation;
+        qCDebug(lcEmail) << "ERROR: Can't save attachment, location not found:" << attachmentLocation;
     }
     return false;
 }
@@ -1421,7 +1423,7 @@ void EmailAgent::updateAttachmentDowloadStatus(const QString &attachmentLocation
         emit attachmentDownloadStatusChanged(attachmentLocation, status);
     } else {
         updateAttachmentDowloadStatus(attachmentLocation, Failed);
-        qCDebug(lcGeneral) << "ERROR: Can't update attachment download status for items outside of the download queue, part location: "
+        qCDebug(lcEmail) << "ERROR: Can't update attachment download status for items outside of the download queue, part location:"
                            << attachmentLocation;
     }
 }
@@ -1430,9 +1432,9 @@ void EmailAgent::emitSearchStatusChanges(QSharedPointer<EmailAction> action, Ema
 {
     SearchMessages* searchAction = static_cast<SearchMessages *>(action.data());
     if (searchAction) {
-        qCDebug(lcDebug) << "Search completed for " << searchAction->searchText();
+        qCDebug(lcEmail) << "Search completed for" << searchAction->searchText();
         emit searchCompleted(searchAction->searchText(), m_searchAction->matchingMessageIds(), searchAction->isRemote(), m_searchAction->remainingMessagesCount(), status);
     } else {
-        qCDebug(lcDebug) << "Error: Invalid search action.";
+        qCDebug(lcEmail) << "Error: Invalid search action.";
     }
 }

@@ -20,8 +20,7 @@
 #include <qmailstore.h>
 
 #include "folderlistmodel.h"
-#include "emailagent.h"
-
+#include "logging_p.h"
 
 FolderListModel::FolderListModel(QObject *parent) :
     QAbstractListModel(parent)
@@ -115,7 +114,7 @@ int FolderListModel::currentFolderIdx() const
 void FolderListModel::setCurrentFolderIdx(int folderIdx)
 {
     if (folderIdx >= m_folderList.count()) {
-        qCWarning(lcGeneral) << Q_FUNC_INFO << " Can't set Invalid Index: " << folderIdx;
+        qCWarning(lcEmail) << Q_FUNC_INFO << "Can't set Invalid Index:" << folderIdx;
     }
 
     if (folderIdx != m_currentFolderIdx) {
@@ -142,7 +141,7 @@ QModelIndex FolderListModel::index(int row, int column, const QModelIndex &paren
         return m_folderList[row]->index;
     }
 
-    qCWarning(lcGeneral) << Q_FUNC_INFO << "Row " << row << "is not present in the model";
+    qCWarning(lcEmail) << Q_FUNC_INFO << "Row" << row << "is not present in the model";
     return QModelIndex();
 }
 
@@ -172,7 +171,7 @@ void FolderListModel::updateUnreadCount(const QMailFolderIdList &folderIds)
                 folderItem->unreadCount = folderUnreadCount(folderItem->folderId, folderItem->folderType, folderItem->messageKey);
                 dataChanged(index(i,0), index(i,0), QVector<int>() << FolderUnreadCount);
             } else {
-                qCWarning(lcGeneral) << Q_FUNC_INFO << "Failed to update unread count for folderId " << tmpFolderId.toULongLong();
+                qCWarning(lcEmail) << Q_FUNC_INFO << "Failed to update unread count for folderId" << tmpFolderId.toULongLong();
             }
         }
     }
@@ -235,7 +234,7 @@ int FolderListModel::folderUnreadCount(const QMailFolderId &folderId, FolderStan
     case SentFolder:
         return 0;
     default:
-        qCWarning(lcGeneral) << "Folder type not recognized.";
+        qCWarning(lcEmail) << "Folder type not recognized.";
         return 0;
     }
 }
@@ -313,7 +312,7 @@ void FolderListModel::setAccountKey(int id)
         m_currentFolderUnreadCount = 0;
         resetModel();
     } else {
-        qCDebug(lcGeneral) << "Can't create folder model for invalid account: " << id;
+        qCWarning(lcEmail) << "Can't create folder model for invalid account:" << id;
     }
 
 }
@@ -340,7 +339,7 @@ bool FolderListModel::lessThan(const QMailFolderId &idA, const QMailFolderId &id
     } else if (aFolder.parentAccountId() != bFolder.parentAccountId()) {
         // Different accounts, we still want to compare since local storage
         // can contain some of the standard folders for the account
-        qCWarning(lcGeneral) << Q_FUNC_INFO << "Comparing folders from different accounts, model only supports a single account";
+        qCWarning(lcEmail) << Q_FUNC_INFO << "Comparing folders from different accounts, model only supports a single account";
         return aFolder.parentAccountId() < bFolder.parentAccountId();
     } else {
         QMailFolderId commonId;
@@ -466,7 +465,7 @@ QString FolderListModel::localFolderName(const FolderStandardType folderType) co
     case JunkFolder:
         return "Junk";
     default:
-        qCWarning(lcGeneral) << "Folder type not recognized.";
+        qCWarning(lcEmail) << "Folder type not recognized.";
         return "Local Storage";
     }
 }
@@ -482,7 +481,7 @@ void FolderListModel::updateCurrentFolderIndex()
             return;
         }
     }
-    qCWarning(lcGeneral) << "Current folder not found in the model: " << m_currentFolderId.toULongLong();
+    qCWarning(lcEmail) << "Current folder not found in the model:" << m_currentFolderId.toULongLong();
     setCurrentFolderIdx(0);
 }
 
@@ -533,7 +532,7 @@ void FolderListModel::resetModel()
     // Take drafts and childs
     QMailFolderId draftsFolderId = account.standardFolder(QMailFolder::DraftsFolder);
     if (!draftsFolderId.isValid()) {
-        qCDebug(lcDebug) << "Creating local drafts folder!";
+        qCDebug(lcEmail) << "Creating local drafts folder!";
         createAndAddFolderItem(QModelIndex(), QMailFolder::LocalStorageFolderId, DraftsFolder,
                                              QMailMessageKey::status(QMailMessage::Draft) &
                                              ~QMailMessageKey::status(QMailMessage::Outbox) &
@@ -546,7 +545,7 @@ void FolderListModel::resetModel()
     // Take sent and childs
     QMailFolderId sentFolderId = account.standardFolder(QMailFolder::SentFolder);
     if (!sentFolderId.isValid()) {
-        qCDebug(lcDebug) << "Creating local sent folder!";
+        qCDebug(lcEmail) << "Creating local sent folder!";
         createAndAddFolderItem(QModelIndex(), QMailFolder::LocalStorageFolderId, SentFolder,
                                           QMailMessageKey::status(QMailMessage::Sent) &
                                           ~QMailMessageKey::status(QMailMessage::Trash) &
@@ -558,7 +557,7 @@ void FolderListModel::resetModel()
     // Take trash and childs
     QMailFolderId trashFolderId = account.standardFolder(QMailFolder::TrashFolder);
     if (!trashFolderId.isValid()) {
-        qCDebug(lcDebug) << "Creating local trash folder!";
+        qCDebug(lcEmail) << "Creating local trash folder!";
         createAndAddFolderItem(QModelIndex(), QMailFolder::LocalStorageFolderId, TrashFolder,
                                           QMailMessageKey::status(QMailMessage::Trash) &
                                           excludeRemovedKey);
