@@ -23,6 +23,8 @@
 
 namespace {
 
+const QString READ_RECEIPT_HEADER_ID("Disposition-Notification-To");
+
 struct PartFinder {
     PartFinder(QMailMessageContentType type, const QMailMessagePart *&part) : contentType(type), partFound(part) {}
 
@@ -209,6 +211,8 @@ void EmailMessage::getCalendarInvitation()
 
 void EmailMessage::send()
 {
+    //setting header here to make sure that used email address in a header is the latest one set for email message
+    updateReadReceiptHeader();
     // Check if we are about to send a existent draft message
     // if so create a new message with the draft content
     if (m_msg.id().isValid()) {
@@ -217,18 +221,18 @@ void EmailMessage::send()
 
         // Record any message properties we should retain
         newMessage.setResponseType(m_msg.responseType());
-        newMessage.setTo(m_msg.to());
-        newMessage.setCc(m_msg.cc());
-        newMessage.setBcc(m_msg.bcc());
         newMessage.setParentAccountId(m_account.id());
         newMessage.setFrom(m_account.fromAddress());
-        newMessage.setSubject(m_msg.subject());
         if (!m_originalMessageId.isValid() && m_msg.inResponseTo().isValid()) {
             m_originalMessageId = m_msg.inResponseTo();
             if (newMessage.responseType() == QMailMessage::UnspecifiedResponse ||
                     newMessage.responseType() == QMailMessage::NoResponse) {
                 newMessage.setResponseType(QMailMessage::Reply);
             }
+        }
+        // Copy all headers
+        for (const QMailMessageHeaderField &headerField : m_msg.headerFields()) {
+            newMessage.appendHeaderField(headerField);
         }
         m_msg = newMessage;
         this->setPriority(previousMessagePriority);
@@ -283,6 +287,8 @@ void EmailMessage::saveDraft()
     m_msg.setStatus(QMailMessage::Draft, true);
     // This message is present only on the local device until we externalise or send it
     m_msg.setStatus(QMailMessage::LocalOnly, true);
+    //setting readReceipt here to make sure that used email address is the latest one set for email message
+    updateReadReceiptHeader();
 
     if (!m_msg.id().isValid()) {
         saved = QMailStore::instance()->addMessage(&m_msg);
@@ -632,6 +638,11 @@ EmailMessage::ResponseType EmailMessage::responseType() const
     }
 }
 
+bool EmailMessage::requestReadReceipt() const
+{
+    return m_requestReadReceipt;
+}
+
 void EmailMessage::setAttachments(const QStringList &uris)
 {
     // Signals are only emited when message is constructed
@@ -714,6 +725,14 @@ void EmailMessage::setMessageId(int messageId)
         m_bodyText = EmailAgent::instance()->bodyPlainText(m_msg);
         m_htmlBodyConstructed = false;
         m_partsToDownload.clear();
+
+        if (!m_msg.headerField(READ_RECEIPT_HEADER_ID).isNull() && !m_requestReadReceipt) {
+            // we have a header field in a message, but m_requestReadReceipt is false, so we need to update m_requestReadReceipt value.
+            m_requestReadReceipt = true;
+        } else if (m_msg.headerField(READ_RECEIPT_HEADER_ID).isNull() && m_requestReadReceipt) {
+            // we do not have a header field in a message, but m_requestReadReceipt is true, so we need to update m_requestReadReceipt value.
+            m_requestReadReceipt = false;
+        }
 
         // Message loaded from the store (or a empty message), all properties changes
         emitMessageReloadedSignals();
@@ -802,6 +821,14 @@ void EmailMessage::setResponseType(EmailMessage::ResponseType responseType)
         break;
     }
     emit responseTypeChanged();
+}
+
+void EmailMessage::setRequestReadReceipt(bool requestReadRecipient)
+{
+    if (requestReadRecipient != m_requestReadReceipt) {
+        m_requestReadReceipt = requestReadRecipient;
+        emit requestReadReceiptChanged();
+    }
 }
 
 void EmailMessage::setSubject(const QString &subject)
@@ -937,6 +964,7 @@ void EmailMessage::emitMessageReloadedSignals()
     emit recipientsDisplayNameChanged();
     emit replyToChanged();
     emit responseTypeChanged();
+    emit requestReadReceiptChanged();
     emit subjectChanged();
     emit storedMessageChanged();
     emit toChanged();
@@ -1104,5 +1132,14 @@ void EmailMessage::saveTempCalendarInvitation(const QMailMessagePart &calendarPa
         qCDebug(lcDebug) << "ERROR: Failed to save calendar file to location " << calendarFileName;
         m_calendarStatus = FailedToSave;
         emit calendarInvitationStatusChanged();
+    }
+}
+
+void EmailMessage::updateReadReceiptHeader()
+{
+    if (requestReadReceipt()) {
+        m_msg.setHeaderField(READ_RECEIPT_HEADER_ID, accountAddress());
+    } else {
+        m_msg.removeHeaderField(READ_RECEIPT_HEADER_ID);
     }
 }
