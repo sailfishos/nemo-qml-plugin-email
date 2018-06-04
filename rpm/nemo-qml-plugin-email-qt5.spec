@@ -1,6 +1,6 @@
 Name:       nemo-qml-plugin-email-qt5
 Summary:    Email plugin for Nemo Mobile
-Version:    0.2.9
+Version:    0.3.2
 Release:    1
 Group:      System/Libraries
 License:    BSD

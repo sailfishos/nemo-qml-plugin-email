@@ -52,6 +52,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(bool read READ read WRITE setRead NOTIFY readChanged)
     Q_PROPERTY(QString replyTo READ replyTo WRITE setReplyTo NOTIFY replyToChanged)
     Q_PROPERTY(ResponseType responseType READ responseType WRITE setResponseType NOTIFY responseTypeChanged)
+    Q_PROPERTY(bool requestReadReceipt READ requestReadReceipt WRITE setRequestReadReceipt NOTIFY requestReadReceiptChanged)
     Q_PROPERTY(int size READ size NOTIFY storedMessageChanged)
     Q_PROPERTY(QString subject READ subject WRITE setSubject NOTIFY subjectChanged)
     Q_PROPERTY(QStringList to READ to WRITE setTo NOTIFY toChanged)
@@ -120,6 +121,7 @@ public:
     bool read() const;
     QString replyTo() const;
     ResponseType responseType() const;
+    bool requestReadReceipt() const;
     void setAttachments(const QStringList &uris);
     void setBcc(const QStringList &bccList);
     void setBody(const QString &body);
@@ -132,6 +134,7 @@ public:
     void setRead(bool read);
     void setReplyTo(const QString &address);
     void setResponseType(ResponseType responseType);
+    void setRequestReadReceipt(bool requestReadReceipt);
     void setSubject(const QString &subject);
     void setTo(const QStringList &toList);
     int size();
@@ -167,6 +170,7 @@ signals:
     void recipientsDisplayNameChanged();
     void replyToChanged();
     void responseTypeChanged();
+    void requestReadReceiptChanged();
     void subjectChanged();
     void storedMessageChanged();
     void toChanged();
@@ -197,6 +201,7 @@ private:
     void insertInlineImages(const QList<QMailMessagePart::Location> &inlineParts);
     const QMailMessagePart *getCalendarPart() const;
     void saveTempCalendarInvitation(const QMailMessagePart &calendarPart);
+    void updateReadReceiptHeader();
 
     QMailAccount m_account;
     QStringList m_attachments;
@@ -207,6 +212,7 @@ private:
     QMailMessageId m_idToRemove;
     QMailMessage m_msg;
     bool m_newMessage;
+    bool m_requestReadReceipt;
     quint64 m_downloadActionId;
     QMap<QString, QMailMessagePart::Location> m_partsToDownload;
     bool m_htmlBodyConstructed;
