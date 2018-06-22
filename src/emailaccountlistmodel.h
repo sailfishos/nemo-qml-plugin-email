@@ -40,7 +40,10 @@ public:
         AppendSignature,
         IconPath,
         HasPersistentConnection,
-        Index
+        Index,
+        CryptoSignatureType,
+        CryptoSignatureIds,
+        UseCryptoSignatureByDefault
     };
 
     virtual QVariant data(const QModelIndex &index, int role) const;
@@ -67,6 +70,9 @@ public:
     Q_INVOKABLE bool standardFoldersRetrieved(int idx);
     Q_INVOKABLE bool appendSignature(int accountId);
     Q_INVOKABLE QString signature(int accountId);
+    Q_INVOKABLE bool useCryptoSignatureByDefault(int accountId);
+    Q_INVOKABLE QString cryptoSignatureType(int accountId);
+    Q_INVOKABLE QStringList cryptoSignatureIds(int accountId);
 
 signals:
     void accountsAdded();
