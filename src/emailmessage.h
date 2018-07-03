@@ -109,6 +109,7 @@ public:
     Q_INVOKABLE void send();
     Q_INVOKABLE bool sendReadReceipt(const QString &subjectPrefix, const QString &readReceiptBodyText);
     Q_INVOKABLE void saveDraft();
+    Q_INVOKABLE void verifySignature();
     Q_INVOKABLE SignatureStatus getSignatureStatusForKey(const QString &fpr) const;
 
     int accountId() const;
@@ -237,7 +238,6 @@ private:
     void saveTempCalendarInvitation(const QMailMessagePart &calendarPart);
     void updateReadReceiptHeader();
     QString readReceiptRequestEmail() const;
-    void verifySignature();
     void setSignatureStatus(SignatureStatus status);
 
     QMailAccount m_account;
