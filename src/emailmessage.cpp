@@ -1374,6 +1374,9 @@ void EmailMessage::onVerifyCompleted(QMailCryptoFwd::VerificationResult result)
         return;
     setSignatureStatus(signatureStatus);
 
+    m_signingType = result.engine;
+    emit signingTypeChanged();
+
     m_signingKeys.clear();
     for (int i = 0; i < result.keyResults.length(); i++)
         m_signingKeys.append(result.keyResults.at(i).key);
