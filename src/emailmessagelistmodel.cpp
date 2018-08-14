@@ -125,6 +125,10 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     connect(QMailStore::instance(), SIGNAL(messagesRemoved(QMailMessageIdList)),
             this, SLOT(messagesRemoved(QMailMessageIdList)));
 
+    connect(QMailStore::instance(), SIGNAL(accountsUpdated(QMailAccountIdList)), this, SLOT(accountsChanged()));
+
+    connect(this, SIGNAL(modelReset()), this, SIGNAL(countChanged()));
+
     connect(EmailAgent::instance(), SIGNAL(searchCompleted(QString,const QMailMessageIdList&,bool,int,EmailAgent::SearchStatus)),
             this, SLOT(onSearchCompleted(QString,const QMailMessageIdList&,bool,int,EmailAgent::SearchStatus)));
 
@@ -824,13 +828,12 @@ bool EmailMessageListModel::combinedInbox() const
     return m_combinedInbox;
 }
 
-void EmailMessageListModel::setCombinedInbox(bool c)
+void EmailMessageListModel::setCombinedInbox(bool c, bool forceUpdate)
 {
-    if (c == m_combinedInbox) {
+    if (!forceUpdate && c == m_combinedInbox) {
         return;
     }
 
-    m_mailAccountIds.clear();
     m_mailAccountIds = QMailStore::instance()->queryAccounts(QMailAccountKey::messageType(QMailMessage::Email)
                                                              & QMailAccountKey::status(QMailAccount::Enabled),
                                                              QMailAccountSortKey::name());
@@ -1077,4 +1080,13 @@ void EmailMessageListModel::onSearchCompleted(const QString &search, const QMail
     default:
         break;
     }
+}
+
+void EmailMessageListModel::accountsChanged()
+{
+    if (!m_combinedInbox) {
+        return;
+    }
+
+    setCombinedInbox(true, true);
 }

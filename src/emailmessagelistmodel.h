@@ -92,7 +92,7 @@ public:
     bool canFetchMore() const;
     int count() const;
     bool combinedInbox() const;
-    void setCombinedInbox(bool c);
+    void setCombinedInbox(bool c, bool forceUpdate = false);
     bool filterUnread() const;
     uint limit() const;
     void setLimit(uint limit);
@@ -190,6 +190,7 @@ private slots:
     void searchOnline();
     void onSearchCompleted(const QString &search, const QMailMessageIdList &matchedIds, bool isRemote,
                            int remainingMessagesOnRemote, EmailAgent::SearchStatus status);
+    void accountsChanged();
 
 protected:
     virtual QHash<int, QByteArray> roleNames() const;
