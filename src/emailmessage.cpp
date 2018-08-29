@@ -252,13 +252,13 @@ void EmailMessage::send()
 
     // We may delay sending after asynchronous actions
     // have been done, otherwise, we send immediately.
-    if (!m_signingKeys.isEmpty() && !m_signingType.isEmpty()) {
+    if (!m_signingKeys.isEmpty() && !m_signingPlugin.isEmpty()) {
         if (!m_cryptoWorker) {
             m_cryptoWorker = new EmailCryptoWorker(this);
             connect(m_cryptoWorker, &EmailCryptoWorker::signCompleted,
                     this, &EmailMessage::onSignCompleted);
         }
-        m_cryptoWorker->sign(m_msg, m_signingType, m_signingKeys);
+        m_cryptoWorker->sign(m_msg, m_signingPlugin, m_signingKeys);
     } else {
         sendBuiltMessage();
     }
@@ -641,9 +641,9 @@ QString EmailMessage::inReplyTo() const
     return m_msg.inReplyTo();
 }
 
-QString EmailMessage::signingType() const
+QString EmailMessage::signingPlugin() const
 {
-    return m_signingType;
+    return m_signingPlugin;
 }
 
 QStringList EmailMessage::signingKeys() const
@@ -847,13 +847,14 @@ void EmailMessage::setInReplyTo(const QString &messageId)
     }
 }
 
-void EmailMessage::setSigningType(const QString &cryptoType)
+void EmailMessage::setSigningPlugin(const QString &cryptoType)
 {
-    if (cryptoType == m_signingType)
+    if (cryptoType == m_signingPlugin)
         return;
 
-    m_signingType = cryptoType;
-    emit signingTypeChanged();
+    m_signingPlugin = cryptoType;
+    emit signingPluginChanged();
+    emit cryptoProtocolChanged();
 }
 
 void EmailMessage::setSigningKeys(const QStringList &fingerPrints)
@@ -863,6 +864,7 @@ void EmailMessage::setSigningKeys(const QStringList &fingerPrints)
 
     m_signingKeys = fingerPrints;
     emit signingKeysChanged();
+    emit cryptoProtocolChanged();
 }
 
 void EmailMessage::setMessageId(int messageId)
@@ -1374,19 +1376,21 @@ void EmailMessage::onVerifyCompleted(QMailCryptoFwd::VerificationResult result)
         return;
     setSignatureStatus(signatureStatus);
 
-    m_signingType = result.engine;
-    emit signingTypeChanged();
+    m_signingPlugin = result.engine;
+    emit signingPluginChanged();
 
     m_signingKeys.clear();
     for (int i = 0; i < result.keyResults.length(); i++)
         m_signingKeys.append(result.keyResults.at(i).key);
     emit signingKeysChanged();
+
+    emit cryptoProtocolChanged();
 }
 
-EmailMessage::SignatureStatus EmailMessage::getSignatureStatusForKey(const QString &fpr) const
+EmailMessage::SignatureStatus EmailMessage::getSignatureStatusForKey(const QString &keyIdentifier) const
 {
     foreach (const QMailCryptoFwd::KeyResult &result, m_cryptoResult.keyResults) {
-        if (result.key == fpr)
+        if (result.key == keyIdentifier)
             return toSignatureStatus(result.status);
     }
     return EmailMessage::SignedMissing;
@@ -1406,4 +1410,25 @@ void EmailMessage::verifySignature()
     } else {
         setSignatureStatus(EmailMessage::NoDigitalSignature);
     }
+}
+
+EmailMessage::CryptoProtocol EmailMessage::cryptoProtocolForKey(const QString &pluginName,
+                                                                const QString &keyIdentifier) const
+{
+    Q_UNUSED(keyIdentifier); // Will be used when plugin is multi-protocol,
+                             // like a sailfish-secret based QMF plugin.
+
+    // These are QMF plugin names.
+    if (pluginName.compare("libgpgme.so") == 0) {
+        return EmailMessage::OpenPGP;
+    } else if (pluginName.compare("libsmime.so") == 0) {
+        return EmailMessage::SecureMIME;
+    } else {
+        return EmailMessage::UnknownProtocol;
+    }
+}
+
+EmailMessage::CryptoProtocol EmailMessage::cryptoProtocol() const
+{
+    return cryptoProtocolForKey(m_signingPlugin, m_signingKeys.value(0, QString()));
 }

@@ -26,6 +26,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_ENUMS(ContentType)
     Q_ENUMS(ResponseType)
     Q_ENUMS(AttachedDataStatus)
+    Q_ENUMS(CryptoProtocol)
     Q_ENUMS(SignatureStatus)
 
     Q_PROPERTY(int accountId READ accountId NOTIFY accountIdChanged)
@@ -41,6 +42,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(bool calendarInvitationSupportsEmailResponses READ calendarInvitationSupportsEmailResponses NOTIFY calendarInvitationSupportsEmailResponsesChanged)
     Q_PROPERTY(QStringList cc READ cc WRITE setCc NOTIFY ccChanged)
     Q_PROPERTY(ContentType contentType READ contentType NOTIFY storedMessageChanged FINAL)
+    Q_PROPERTY(CryptoProtocol cryptoProtocol READ cryptoProtocol NOTIFY cryptoProtocolChanged)
     Q_PROPERTY(SignatureStatus signatureStatus READ signatureStatus NOTIFY signatureStatusChanged FINAL)
     Q_PROPERTY(QDateTime date READ date NOTIFY storedMessageChanged)
     Q_PROPERTY(QString from READ from WRITE setFrom NOTIFY fromChanged)
@@ -48,7 +50,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(QString fromDisplayName READ fromDisplayName NOTIFY fromChanged)
     Q_PROPERTY(QString htmlBody READ htmlBody NOTIFY htmlBodyChanged FINAL)
     Q_PROPERTY(QString inReplyTo READ inReplyTo WRITE setInReplyTo NOTIFY inReplyToChanged)
-    Q_PROPERTY(QString signingType READ signingType WRITE setSigningType NOTIFY signingTypeChanged)
+    Q_PROPERTY(QString signingPlugin READ signingPlugin WRITE setSigningPlugin NOTIFY signingPluginChanged)
     Q_PROPERTY(QStringList signingKeys READ signingKeys WRITE setSigningKeys NOTIFY signingKeysChanged)
     Q_PROPERTY(int messageId READ messageId WRITE setMessageId NOTIFY messageIdChanged)
     Q_PROPERTY(bool multipleRecipients READ multipleRecipients NOTIFY multipleRecipientsChanged)
@@ -103,6 +105,12 @@ public:
         SignedMissing
     };
 
+    enum CryptoProtocol {
+        UnknownProtocol,
+        OpenPGP,
+        SecureMIME
+    };
+
     Q_INVOKABLE void cancelMessageDownload();
     Q_INVOKABLE void downloadMessage();
     Q_INVOKABLE void getCalendarInvitation();
@@ -110,7 +118,8 @@ public:
     Q_INVOKABLE bool sendReadReceipt(const QString &subjectPrefix, const QString &readReceiptBodyText);
     Q_INVOKABLE void saveDraft();
     Q_INVOKABLE void verifySignature();
-    Q_INVOKABLE SignatureStatus getSignatureStatusForKey(const QString &fpr) const;
+    Q_INVOKABLE SignatureStatus getSignatureStatusForKey(const QString &keyIdentifier) const;
+    Q_INVOKABLE CryptoProtocol cryptoProtocolForKey(const QString &pluginName, const QString &keyIdentifier) const;
 
     int accountId() const;
     QString accountAddress() const;
@@ -125,6 +134,7 @@ public:
     bool calendarInvitationSupportsEmailResponses() const;
     QStringList cc() const;
     ContentType contentType() const;
+    CryptoProtocol cryptoProtocol() const;
     SignatureStatus signatureStatus() const;
     QDateTime date() const;
     QString from() const;
@@ -132,7 +142,7 @@ public:
     QString fromDisplayName() const;
     QString htmlBody();
     QString inReplyTo() const;
-    QString signingType() const;
+    QString signingPlugin() const;
     QStringList signingKeys() const;
     int messageId() const;
     bool multipleRecipients() const;
@@ -153,7 +163,7 @@ public:
     void setCc(const QStringList &ccList);
     void setFrom(const QString &sender);
     void setInReplyTo(const QString &messageId);
-    void setSigningType(const QString &cryptoType);
+    void setSigningPlugin(const QString &cryptoPlugin);
     void setSigningKeys(const QStringList &fingerPrints);
     void setMessageId(int messageId);
     void setOriginalMessageId(int messageId);
@@ -183,12 +193,13 @@ signals:
     void calendarInvitationBodyChanged();
     bool calendarInvitationSupportsEmailResponsesChanged();
     void ccChanged();
+    void cryptoProtocolChanged();
     void signatureStatusChanged();
     void dateChanged();
     void fromChanged();
     void htmlBodyChanged();
     void inReplyToChanged();
-    void signingTypeChanged();
+    void signingPluginChanged();
     void signingKeysChanged();
     void messageIdChanged();
     void messageDownloaded();
@@ -244,7 +255,7 @@ private:
     QStringList m_attachments;
     QString m_bodyText;
     QString m_htmlText;
-    QString m_signingType;
+    QString m_signingPlugin;
     QStringList m_signingKeys;
     QMailMessageId m_id;
     QMailMessageId m_originalMessageId;
