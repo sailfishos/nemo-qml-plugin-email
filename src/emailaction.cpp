@@ -278,7 +278,7 @@ OnlineCreateFolder::OnlineCreateFolder(QMailStorageAction* storageAction, const 
     }
     _description = QString("create-folder:name=%1;account-id=%2;parent-id=%3").arg(_accountId.toULongLong())
             .arg(_name).arg(pId);
-    _type = EmailAction::Storage;
+    _type = EmailAction::OnlineCreateFolder;
 }
 
 OnlineCreateFolder::~OnlineCreateFolder()
@@ -309,7 +309,7 @@ OnlineDeleteFolder::OnlineDeleteFolder(QMailStorageAction* storageAction, const 
     , _folderId(folderId)
 {
     _description = QString("delete-folder:folder-id=%1").arg(_folderId.toULongLong());
-    _type = EmailAction::Storage;
+    _type = EmailAction::OnlineDeleteFolder;
 }
 
 OnlineDeleteFolder::~OnlineDeleteFolder()
@@ -372,7 +372,7 @@ OnlineRenameFolder::OnlineRenameFolder(QMailStorageAction* storageAction, const 
     , _name(name)
 {
     _description = QString("rename-folder:folder-id=%1;new-name=%2").arg(_folderId.toULongLong()).arg(_name);
-    _type = EmailAction::Storage;
+    _type = EmailAction::OnlineRenameFolder;
 }
 
 OnlineRenameFolder::~OnlineRenameFolder()
@@ -390,6 +390,39 @@ QMailServiceAction* OnlineRenameFolder::serviceAction() const
 }
 
 QMailAccountId OnlineRenameFolder::accountId() const
+{
+    QMailFolder folder(_folderId);
+    return folder.parentAccountId();
+}
+
+/*
+  OnlineMoveFolder
+*/
+OnlineMoveFolder::OnlineMoveFolder(QMailStorageAction* storageAction, const QMailFolderId &folderId, const QMailFolderId &newParentId)
+    : EmailAction()
+    , _storageAction(storageAction)
+    , _folderId(folderId)
+    , _newParentId(newParentId)
+{
+    _description = QString("move-folder:folder-id=%1;new-parent=%2").arg(_folderId.toULongLong()).arg(_newParentId.toULongLong());
+    _type = EmailAction::OnlineMoveFolder;
+}
+
+OnlineMoveFolder::~OnlineMoveFolder()
+{
+}
+
+void OnlineMoveFolder::execute()
+{
+    _storageAction->onlineMoveFolder(_folderId, _newParentId);
+}
+
+QMailServiceAction* OnlineMoveFolder::serviceAction() const
+{
+    return _storageAction;
+}
+
+QMailAccountId OnlineMoveFolder::accountId() const
 {
     QMailFolder folder(_folderId);
     return folder.parentAccountId();

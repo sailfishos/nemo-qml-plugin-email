@@ -29,6 +29,7 @@ class Q_DECL_EXPORT EmailAgent : public QObject
     Q_ENUMS(SyncErrors)
     Q_ENUMS(SearchStatus)
     Q_ENUMS(CalendarInvitationResponse)
+    Q_ENUMS(OnlineFolderAction)
     Q_PROPERTY(bool synchronizing READ synchronizing NOTIFY synchronizingChanged)
     Q_PROPERTY(int currentSynchronizingAccountId READ currentSynchronizingAccountId NOTIFY currentSynchronizingAccountIdChanged)
 
@@ -77,6 +78,13 @@ public:
         InvitationResponseAccept,
         InvitationResponseTentative,
         InvitationResponseDecline
+    };
+
+    enum OnlineFolderAction {
+        ActionOnlineCreateFolder = 0,
+        ActionOnlineDeleteFolder,
+        ActionOnlineRenameFolder,
+        ActionOnlineMoveFolder
     };
 
     int currentSynchronizingAccountId() const;
@@ -130,6 +138,7 @@ public:
     Q_INVOKABLE bool isMessageValid(int messageId);
     Q_INVOKABLE void markMessageAsRead(int messageId);
     Q_INVOKABLE void markMessageAsUnread(int messageId);
+    Q_INVOKABLE void moveFolder(int folderId, int parentFolderId);
     Q_INVOKABLE void moveMessage(int messageId, int destinationId);
     Q_INVOKABLE void renameFolder(int folderId, const QString &name);
     Q_INVOKABLE void retrieveFolderList(int accountId, int folderId = 0, const bool descending = true);
@@ -159,6 +168,7 @@ signals:
     void searchCompleted(const QString &search, const QMailMessageIdList &matchedIds, bool isRemote,
                          int remainingMessagesOnRemote, EmailAgent::SearchStatus status);
     void calendarInvitationResponded(CalendarInvitationResponse response, bool success);
+    void onlineFolderActionCompleted(OnlineFolderAction action, bool success);
 
 private slots:
     void activityChanged(QMailServiceAction::Activity activity);
