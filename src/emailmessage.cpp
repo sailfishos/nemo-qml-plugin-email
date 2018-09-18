@@ -877,14 +877,13 @@ void EmailMessage::buildMessage()
         }
     }
 
-    QMailMessageContentType type;
-    type.setType("text/plain; charset=UTF-8");
+    QMailMessageContentType type("text/plain; charset=UTF-8");
     // Sending only supports plain text at the moment
     /*
     if (contentType() == EmailMessage::Plain)
-        type.setType("text/plain; charset=UTF-8");
+        type.setSubType("plain");
     else
-        type.setType("text/html; charset=UTF-8");
+        type.setSubType("html");
     */
     // This should be improved to use QuotedPrintable when appending parts and inline references are implemented
     if (m_attachments.size() == 0) {
