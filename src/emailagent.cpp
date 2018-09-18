@@ -132,19 +132,6 @@ EmailAgent::AttachmentStatus EmailAgent::attachmentDownloadStatus(const QString 
 
 QString EmailAgent::attachmentName(const QMailMessagePart &part) const
 {
-    bool isRFC822 = (part.contentType().type().toLower() == "message") &&
-        (part.contentType().subType().toLower() == "rfc822");
-    if (isRFC822) {
-        bool noName = (part.contentDisposition().parameter("name").isEmpty() &&
-                       part.contentDisposition().parameter("filename").isEmpty() &&
-                       part.contentType().name().isEmpty());
-        if (noName) {
-            // Show email subject of attached message as attachment name
-            QMailMessage msg = QMailMessage::fromRfc2822(part.body().data(QMailMessageBody::Decoded));
-            if (!msg.subject().isEmpty())
-                return msg.subject();
-        }
-    }
     return part.displayName();
 }
 
