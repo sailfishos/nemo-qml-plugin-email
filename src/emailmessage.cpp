@@ -27,13 +27,14 @@ namespace {
 const QString READ_RECEIPT_HEADER_ID("Disposition-Notification-To");
 
 struct PartFinder {
-    PartFinder(QMailMessageContentType type, const QMailMessagePart *&part) : contentType(type), partFound(part) {}
+    PartFinder(const QByteArray &type, const QByteArray &subType, const QMailMessagePart *&part) : type(type), subType(subType), partFound(part) {}
 
-    QMailMessageContentType contentType;
+    QByteArray type;
+    QByteArray subType;
     const QMailMessagePart *&partFound;
 
     bool operator()(const QMailMessagePart &part) {
-        if (part.contentType().content().toLower() == contentType.content().toLower()) {
+        if (part.contentType().matches(type, subType)) {
             partFound = const_cast<QMailMessagePart*>(&part);
             return false;
         }
@@ -422,7 +423,7 @@ EmailMessage::ContentType EmailMessage::contentType() const
         if (m_msg.findHtmlContainer()
             || (m_msg.multipartType() == QMailMessagePartContainer::MultipartNone
                 && m_msg.contentDisposition().type() == QMailMessageContentDisposition::Inline
-                && m_msg.contentType().type().toLower() == "image"
+                && m_msg.contentType().matches("image")
                 && supportedImageTypes.contains(m_msg.contentType().subType().toLower()))) {
             return EmailMessage::HTML;
         } else {
@@ -1035,7 +1036,7 @@ void EmailMessage::updateReferences(QMailMessage &message, const QMailMessage &o
 
 QString EmailMessage::imageMimeType(const QMailMessageContentType &contentType, const QString &fileName)
 {
-    if (contentType.type().toLower() == QStringLiteral("image")) {
+    if (contentType.matches("image")) {
         return QString("image/%1").arg(QString::fromLatin1(contentType.subType().toLower()));
     } else {
         QFileInfo fileInfo(fileName);
@@ -1112,7 +1113,7 @@ void EmailMessage::insertInlineImages(const QList<QMailMessagePart::Location> &i
 const QMailMessagePart* EmailMessage::getCalendarPart() const
 {
     const QMailMessagePart *result = 0;
-    PartFinder finder(QMailMessageContentType("text/calendar"), result);
+    PartFinder finder("text", "calendar", result);
     m_msg.foreachPart(finder);
     return result;
 }
