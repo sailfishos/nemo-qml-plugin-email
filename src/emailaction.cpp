@@ -721,10 +721,11 @@ QString SearchMessages::searchText() const
 /*
   Synchronize
 */
-Synchronize::Synchronize(QMailRetrievalAction* retrievalAction, const QMailAccountId& id)
+Synchronize::Synchronize(QMailRetrievalAction* retrievalAction, const QMailAccountId& id, uint minimum)
         : EmailAction()
         , _retrievalAction(retrievalAction)
         , _accountId(id)
+        , _minimum(minimum)
 {
     _description = QString("synchronize:account-id=%1").arg(_accountId.toULongLong());
     _type = EmailAction::Retrieve;
@@ -736,7 +737,7 @@ Synchronize::~Synchronize()
 
 void Synchronize::execute()
 {
-    _retrievalAction->synchronize(_accountId, 20);
+    _retrievalAction->synchronize(_accountId, _minimum);
 }
 
 QMailServiceAction* Synchronize::serviceAction() const

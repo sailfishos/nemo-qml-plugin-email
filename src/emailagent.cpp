@@ -537,18 +537,6 @@ void EmailAgent::onOnlineStateChanged(bool isOnline)
     }
 }
 
-void EmailAgent::onStandardFoldersCreated(const QMailAccountId &accountId)
-{
-    // TODO: default minimum should be kept
-    QMailAccount account(accountId);
-    QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
-    if (foldId.isValid()) {
-        synchronizeInbox(accountId.toULongLong());
-    } else {
-        qCCritical(lcEmail) << "Error: Inbox not found!!!";
-    }
-}
-
 // Note: values from here are not byte sizes, it's something like "indicative size" which qmf defines internally as size in kilobytes
 void EmailAgent::progressChanged(uint value, uint total)
 {
@@ -581,30 +569,7 @@ void EmailAgent::accountsSync(const bool syncOnlyInbox, const uint minimum)
                                                               & QMailAccountKey::status(QMailAccount::Enabled));
     qCDebug(lcEmail) << "Enabled accounts size is:" << m_enabledAccounts.count();
 
-    if (m_enabledAccounts.isEmpty()) {
-        qCDebug(lcEmail) << Q_FUNC_INFO << "No enabled accounts, nothing to do.";
-        m_synchronizing = false;
-        emit synchronizingChanged(EmailAgent::Error);
-        return;
-    } else {
-        for (const QMailAccountId &accountId : m_enabledAccounts) {
-            if (syncOnlyInbox) {
-                synchronizeInbox(accountId.toULongLong(), minimum);
-            }
-            else {
-                bool messagesToSend = hasMessagesInOutbox(accountId);
-                if (messagesToSend) {
-                    m_enqueing = true;
-                }
-                enqueue(new Synchronize(m_retrievalAction.data(), accountId));
-                if (messagesToSend) {
-                    m_enqueing = false;
-                    // Send any message waiting in the outbox
-                    enqueue(new TransmitMessages(m_transmitAction.data(), accountId));
-                }
-            }
-        }
-    }
+    syncAccounts(m_enabledAccounts, syncOnlyInbox, minimum);
 }
 
 void EmailAgent::cancelSync()
@@ -940,12 +905,22 @@ void EmailAgent::purgeSendingQueue(int accountId)
     }
 }
 
-void EmailAgent::synchronize(int accountId)
+void EmailAgent::synchronize(int accountId, const uint minimum)
 {
     QMailAccountId acctId(accountId);
 
-    if (acctId.isValid()) {
-        enqueue(new Synchronize(m_retrievalAction.data(), acctId));
+    if (!acctId.isValid())
+        return;
+
+    bool messagesToSend = hasMessagesInOutbox(acctId);
+    if (messagesToSend) {
+        m_enqueing = true;
+    }
+    enqueue(new Synchronize(m_retrievalAction.data(), acctId, minimum));
+    if (messagesToSend) {
+        m_enqueing = false;
+        // Send any message waiting in the outbox
+        enqueue(new TransmitMessages(m_transmitAction.data(), acctId));
     }
 }
 
@@ -971,8 +946,17 @@ void EmailAgent::synchronizeInbox(int accountId, const uint minimum)
         }
 
     } else { //Account was never synced, retrieve list of folders and come back here.
-        connect(this, SIGNAL(standardFoldersCreated(const QMailAccountId &)),
-                this, SLOT(onStandardFoldersCreated(const QMailAccountId &)));
+        connect(this, &EmailAgent::standardFoldersCreated,
+                this, [=](const QMailAccountId &acctId) {
+                    QMailAccount account(acctId);
+                    QMailFolderId foldId =
+                        account.standardFolder(QMailFolder::InboxFolder);
+                    if (foldId.isValid()) {
+                        synchronizeInbox(acctId.toULongLong(), minimum);
+                    } else {
+                        qCCritical(lcEmail) << "Error: Inbox not found!!!";
+                    }
+                });
         m_enqueing = true;
         enqueue(new RetrieveFolderList(m_retrievalAction.data(), acctId, QMailFolderId(), true));
         m_enqueing = false;
@@ -1063,6 +1047,7 @@ void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, const boo
 {
     if (accountIdList.isEmpty()) {
         qCDebug(lcEmail) << Q_FUNC_INFO << "No enabled accounts, nothing to do.";
+        m_synchronizing = false;
         emit synchronizingChanged(EmailAgent::Error);
         return;
     } else {
@@ -1070,7 +1055,7 @@ void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, const boo
             if (syncOnlyInbox) {
                 synchronizeInbox(accountId.toULongLong(), minimum);
             } else {
-                enqueue(new Synchronize(m_retrievalAction.data(), accountId));
+                synchronize(accountId.toULongLong(), minimum);
             }
         }
     }
