@@ -99,6 +99,7 @@ public:
     enum SignatureStatus {
         NoDigitalSignature,
         SignedUnchecked,
+        SignedChecking,
         SignedValid,
         SignedInvalid,
         SignedExpired,

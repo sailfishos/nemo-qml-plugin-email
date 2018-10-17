@@ -1137,15 +1137,6 @@ void EmailMessage::emitMessageReloadedSignals()
 
     // Update and emit cryptography status.
     verifySignature();
-    // Add an attachment listener to update signature checking
-    // automatically when parts become available after user action.
-    if (m_msg.status() & QMailMessage::HasSignature) {
-        connect(EmailAgent::instance(), SIGNAL(attachmentDownloadStatusChanged(const QString &, EmailAgent::AttachmentStatus)),
-                this, SLOT(onAttachmentDownloadStatusChanged(const QString &, EmailAgent::AttachmentStatus)));
-    } else {
-        disconnect(EmailAgent::instance(), SIGNAL(attachmentDownloadStatusChanged(const QString &, EmailAgent::AttachmentStatus)),
-                   this, SLOT(onAttachmentDownloadStatusChanged(const QString &, EmailAgent::AttachmentStatus)));
-    }
 }
 
 void EmailMessage::processAttachments()
@@ -1338,6 +1329,8 @@ void EmailMessage::onAttachmentDownloadStatusChanged(const QString &attachmentLo
     if (status != EmailAgent::Downloaded)
         return;
 
+    // This is to check that downloaded part is within the signed part container.
+    // Todo: use the attachment location to do this.
     if (m_signatureStatus != EmailMessage::SignedUnchecked)
         return;
 
@@ -1371,19 +1364,26 @@ void EmailMessage::onVerifyCompleted(QMailCryptoFwd::VerificationResult result)
     EmailMessage::SignatureStatus signatureStatus = toSignatureStatus(result.summary);
 
     m_cryptoResult = result;
-    
+
+    // Status is unchecked as long as some parts are missing.
+    if (signatureStatus != EmailMessage::SignedUnchecked) {
+        disconnect(EmailAgent::instance(), &EmailAgent::attachmentDownloadStatusChanged,
+                   this, &EmailMessage::onAttachmentDownloadStatusChanged);
+    }
+
     if (signatureStatus == m_signatureStatus)
         return;
     setSignatureStatus(signatureStatus);
 
-    m_signingPlugin = result.engine;
-    emit signingPluginChanged();
+    if (m_signingPlugin != result.engine) {
+        m_signingPlugin = result.engine;
+        emit signingPluginChanged();
+    }
 
     m_signingKeys.clear();
     for (int i = 0; i < result.keyResults.length(); i++)
         m_signingKeys.append(result.keyResults.at(i).key);
     emit signingKeysChanged();
-
     emit cryptoProtocolChanged();
 }
 
@@ -1399,7 +1399,7 @@ EmailMessage::SignatureStatus EmailMessage::getSignatureStatusForKey(const QStri
 void EmailMessage::verifySignature()
 {
     if (m_msg.status() & QMailMessageMetaData::HasSignature) {
-        setSignatureStatus(EmailMessage::SignedUnchecked);
+        setSignatureStatus(EmailMessage::SignedChecking);
 
         if (!m_cryptoWorker) {
             m_cryptoWorker = new EmailCryptoWorker(this);
@@ -1407,6 +1407,12 @@ void EmailMessage::verifySignature()
                     this, &EmailMessage::onVerifyCompleted);
         }
         m_cryptoWorker->verify(m_msg);
+
+        // Add an attachment listener to update signature checking
+        // automatically when parts become available after user action.
+        connect(EmailAgent::instance(), &EmailAgent::attachmentDownloadStatusChanged,
+                this, &EmailMessage::onAttachmentDownloadStatusChanged,
+                Qt::UniqueConnection);
     } else {
         setSignatureStatus(EmailMessage::NoDigitalSignature);
     }
