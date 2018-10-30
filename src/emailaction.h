@@ -356,7 +356,7 @@ private:
 class Synchronize : public EmailAction
 {
 public:
-    Synchronize(QMailRetrievalAction* retrievalAction, const QMailAccountId& id);
+    Synchronize(QMailRetrievalAction* retrievalAction, const QMailAccountId& id, uint minimum);
     ~Synchronize();
     void execute();
     QMailServiceAction* serviceAction() const;
@@ -365,6 +365,7 @@ public:
 private:
     QMailRetrievalAction* _retrievalAction;
     QMailAccountId _accountId;
+    uint _minimum;
 };
 
 class TransmitMessage : public EmailAction

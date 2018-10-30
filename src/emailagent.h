@@ -136,7 +136,7 @@ public:
     Q_INVOKABLE void retrieveMessageList(int accountId, int folderId, const uint minimum = 20);
     Q_INVOKABLE void retrieveMessageRange(int messageId, uint minimum);
     Q_INVOKABLE void purgeSendingQueue(int accountId);
-    Q_INVOKABLE void synchronize(int accountId);
+    Q_INVOKABLE void synchronize(int accountId, const uint minimum = 20);
     Q_INVOKABLE void synchronizeInbox(int accountId, const uint minimum = 20);
     Q_INVOKABLE void respondToCalendarInvitation(int messageId, CalendarInvitationResponse response,
                                                  const QString &responseSubject);
@@ -164,7 +164,6 @@ private slots:
     void activityChanged(QMailServiceAction::Activity activity);
     void onIpcConnectionEstablished();
     void onOnlineStateChanged(bool isOnline);
-    void onStandardFoldersCreated(const QMailAccountId &accountId);
     void progressChanged(uint value, uint total);
 
 private:
