@@ -140,7 +140,6 @@ bool EmailAccount::save()
     mAccount->setStatus(QMailAccount::MessageSink, true);
     mAccount->setStatus(QMailAccount::CanTransmit, true);
     mAccount->setStatus(QMailAccount::Enabled, true);
-    mAccount->setStatus(QMailAccount::CanCreateFolders, true);
     mAccount->setFromAddress(QMailAddress(address()));
     if (mAccount->id().isValid()) {
         result = QMailStore::instance()->updateAccount(mAccount, mAccountConfig);

@@ -90,6 +90,7 @@ void EmailFolder::onFoldersUpdated(const QMailFolderIdList &ids)
 {
     for (const QMailFolderId &folderId : ids) {
         if (folderId == m_folder.id()) {
+            m_folder = QMailFolder(folderId);
             emit displayNameChanged();
             return;
         }

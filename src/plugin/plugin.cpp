@@ -31,6 +31,7 @@
  */
 
 #include "folderlistmodel.h"
+#include "folderlistproxymodel.h"
 #include "emailaccountlistmodel.h"
 #include "emailmessagelistmodel.h"
 #include "emailagent.h"
@@ -66,6 +67,7 @@ public:
         Q_ASSERT(uri == QLatin1String("Nemo.Email") || uri == QLatin1String("org.nemomobile.email"));
 
         qmlRegisterType<FolderListModel>(uri, 0, 1, "FolderListModel");
+        qmlRegisterType<FolderListProxyModel>(uri, 0, 1, "FolderListProxyModel");
         qmlRegisterType<EmailAccountListModel>(uri, 0, 1, "EmailAccountListModel");
         qmlRegisterType<EmailMessageListModel>(uri, 0, 1, "EmailMessageListModel");
         qmlRegisterType<EmailAgent>(uri, 0, 1, "EmailAgent");

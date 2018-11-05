@@ -9,6 +9,7 @@ SOURCES += \
     $$PWD/emailaccountlistmodel.cpp \
     $$PWD/emailmessagelistmodel.cpp \
     $$PWD/folderlistmodel.cpp \
+    $$PWD/folderlistproxymodel.cpp \
     $$PWD/emailagent.cpp \
     $$PWD/emailmessage.cpp \
     $$PWD/emailaccountsettingsmodel.cpp \
@@ -22,6 +23,7 @@ PUBLIC_HEADERS += \
     $$PWD/emailaccountlistmodel.h \
     $$PWD/emailmessagelistmodel.h \
     $$PWD/folderlistmodel.h \
+    $$PWD/folderlistproxymodel.h \
     $$PWD/emailagent.h \
     $$PWD/emailmessage.h \
     $$PWD/emailaccountsettingsmodel.h \

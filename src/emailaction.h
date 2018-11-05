@@ -30,7 +30,11 @@ public:
         StandardFolders,
         Storage,
         Transmit,
-        CalendarInvitationResponse
+        CalendarInvitationResponse,
+        OnlineCreateFolder,
+        OnlineDeleteFolder,
+        OnlineRenameFolder,
+        OnlineMoveFolder
     };
 
     virtual ~EmailAction();
@@ -204,6 +208,22 @@ private:
     QMailStorageAction* _storageAction;
     QMailFolderId _folderId;
     QString _name;
+};
+
+class OnlineMoveFolder : public EmailAction
+{
+public:
+    OnlineMoveFolder(QMailStorageAction *storageAction,
+                     const QMailFolderId &folderId, const QMailFolderId &newParentId);
+    ~OnlineMoveFolder();
+    void execute();
+    QMailServiceAction* serviceAction() const;
+    QMailAccountId accountId() const;
+
+private:
+    QMailStorageAction* _storageAction;
+    QMailFolderId _folderId;
+    QMailFolderId _newParentId;
 };
 
 class RetrieveFolderList : public EmailAction

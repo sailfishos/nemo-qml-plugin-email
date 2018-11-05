@@ -438,8 +438,17 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
                     emit calendarInvitationResponded(InvitationResponseUnspecified, false);
                 }
             }
-
-            reportError(status.accountId, status.errorCode);
+            if (m_currentAction->type() == EmailAction::OnlineCreateFolder) {
+                emit onlineFolderActionCompleted(ActionOnlineCreateFolder, false);
+            } else if (m_currentAction->type() == EmailAction::OnlineDeleteFolder) {
+                emit onlineFolderActionCompleted(ActionOnlineDeleteFolder, false);
+            } else if (m_currentAction->type() == EmailAction::OnlineRenameFolder) {
+                emit onlineFolderActionCompleted(ActionOnlineRenameFolder, false);
+            } else if (m_currentAction->type() == EmailAction::OnlineMoveFolder) {
+                emit onlineFolderActionCompleted(ActionOnlineMoveFolder, false);
+            } else {
+                reportError(status.accountId, status.errorCode);
+            }
             processNextAction(true);
             break;
         }
@@ -492,6 +501,15 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
             } else {
                 emit calendarInvitationResponded(InvitationResponseUnspecified, true);
             }
+        }
+        if (m_currentAction->type() == EmailAction::OnlineCreateFolder) {
+            emit onlineFolderActionCompleted(ActionOnlineCreateFolder, true);
+        } else if (m_currentAction->type() == EmailAction::OnlineDeleteFolder) {
+            emit onlineFolderActionCompleted(ActionOnlineDeleteFolder, true);
+        } else if (m_currentAction->type() == EmailAction::OnlineRenameFolder) {
+            emit onlineFolderActionCompleted(ActionOnlineRenameFolder, true);
+        } else if (m_currentAction->type() == EmailAction::OnlineMoveFolder) {
+            emit onlineFolderActionCompleted(ActionOnlineMoveFolder, true);
         }
 
         processNextAction();
@@ -590,6 +608,7 @@ void EmailAgent::createFolder(const QString &name, int mailAccountId, int parent
 {
     if (name.isEmpty()) {
         qCDebug(lcEmail) << "Error: Can't create a folder with empty name";
+        emit onlineFolderActionCompleted(ActionOnlineCreateFolder, false);
     } else {
         QMailAccountId accountId(mailAccountId);
         Q_ASSERT(accountId.isValid());
@@ -859,9 +878,20 @@ void EmailAgent::moveMessage(int messageId, int destinationId)
     moveMessages(msgIdList, destId);
 }
 
+void EmailAgent::moveFolder(int folderId, int parentFolderId)
+{
+    QMailFolderId id(folderId);
+    if (!id.isValid()) {
+        qCDebug(lcEmail) << "Error: Invalid folderId specified for moveFolder: " << folderId;
+    } else {
+        QMailFolderId parentId(parentFolderId);
+        enqueue(new OnlineMoveFolder(m_storageAction.data(), id, parentId));
+    }
+}
+
 void EmailAgent::renameFolder(int folderId, const QString &name)
 {
-    if (!name.isEmpty()) {
+    if (name.isEmpty()) {
         qCDebug(lcEmail) << "Error: Can't rename a folder to a empty name";
     } else {
         QMailFolderId id(folderId);
