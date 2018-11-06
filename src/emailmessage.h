@@ -18,7 +18,6 @@
 
 #include "emailagent.h"
 
-class EmailCryptoWorker;
 class Q_DECL_EXPORT EmailMessage : public QObject
 {
     Q_OBJECT
@@ -233,11 +232,10 @@ private slots:
 private:
     friend class tst_EmailMessage;
 
-    void buildMessage();
+    void buildMessage(QMailMessage *msg);
     void sendBuiltMessage();
     void emitSignals();
     void emitMessageReloadedSignals();
-    void processAttachments();
     void requestMessageDownload();
     void requestMessagePartDownload(const QMailMessagePartContainer *container);
     void requestInlinePartsDownload(const QMap<QString, QMailMessagePart::Location> &inlineParts);
@@ -269,7 +267,6 @@ private:
     bool m_htmlBodyConstructed;
     QString m_calendarInvitationUrl;
     AttachedDataStatus m_calendarStatus;
-    EmailCryptoWorker *m_cryptoWorker;
     SignatureStatus m_signatureStatus;
     QMailCryptoFwd::VerificationResult m_cryptoResult;
 };

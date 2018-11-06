@@ -138,7 +138,6 @@ void tst_EmailMessage::setAttachments()
     QStringList attachments;
     attachments << "Attachment1.txt" << "Attachment2.txt" << "Attachment3.txt";
     emailMessage->setAttachments(attachments);
-    emailMessage->processAttachments();
     QCOMPARE(emailMessage->attachments(), attachments);
 }
 
