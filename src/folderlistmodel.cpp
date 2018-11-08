@@ -214,20 +214,32 @@ void FolderListModel::onFoldersAdded(const QMailFolderIdList &ids)
     if (folder.parentAccountId() != m_accountId || !folderId.isValid()) {
         return;
     }
-    int i = -1;
-    for (FolderItem *folderItem : m_folderList) {
-        i++;
-        if (lessThan(folderId, folderItem->folderId)) {
-            break;
+    //FIXME: improve 'lessThan' function to place standard folders (with siblings) on top
+    int prevFolderListSize = m_folderList.size();
+    doReloadModel(); // Reload model data
+    bool addedFolderFound = false;
+    if (prevFolderListSize + 1 == m_folderList.size()) {
+        // Find added index and notify about 1 added row
+        int i = -1;
+        for (FolderItem *folderItem : m_folderList) {
+            i++;
+            if (folderId == folderItem->folderId) {
+                addedFolderFound = true;
+                break;
+            }
+        }
+        if (addedFolderFound) {
+            beginInsertRows(QModelIndex(), i, i);
+            endInsertRows();
         }
     }
-    beginInsertRows(QModelIndex(), i, i);
-    QMailMessageKey excludeRemovedKey = QMailMessageKey::status(QMailMessage::Removed,  QMailDataComparator::Excludes);
-    FolderStandardType type = folderTypeFromId(folderId);
-    int unreadCount = folderUnreadCount(folderId, type, excludeRemovedKey);
-    FolderItem *item = new FolderItem(folderId, type, excludeRemovedKey, unreadCount);
-    m_folderList.insert(i, item);
-    endInsertRows();
+
+    if (!addedFolderFound) {
+        // Reset the model (either more updates or added folder was not found)
+        qCWarning(lcEmail) << "Skip folder insertion, reset model";
+        beginResetModel();
+        endResetModel();
+    }
     updateCurrentFolderIndex();
 }
 
