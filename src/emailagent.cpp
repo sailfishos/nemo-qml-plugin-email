@@ -360,8 +360,9 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
         // TODO: coordinate with stop logic
         // don't try to synchronise extra accounts if the user cancelled the sync
 
-        qCWarning(lcEmail) << Q_FUNC_INFO << "operation failed:" << status.errorCode << status.text << status.accountId
-                           << "connection status:" << action->connectivity();
+        // See qmailserviceaction.h for ErrorCodes
+        qCWarning(lcEmail) << Q_FUNC_INFO << "operation failed error code:" << status.errorCode << "error text:" << status.text << "account:" << status.accountId
+                           << "connection status:" << action->connectivity() << "sender:" << sender();
 
         if (m_cancelling) {
             m_synchronizing = false;
@@ -446,7 +447,7 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
                 emit onlineFolderActionCompleted(ActionOnlineRenameFolder, false);
             } else if (m_currentAction->type() == EmailAction::OnlineMoveFolder) {
                 emit onlineFolderActionCompleted(ActionOnlineMoveFolder, false);
-            } else {
+            } else if (status.errorCode != QMailServiceAction::Status::ErrUnknownResponse) {
                 reportError(status.accountId, status.errorCode);
             }
             processNextAction(true);
