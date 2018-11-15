@@ -302,6 +302,15 @@ Module {
                 "InvitationResponseDecline": 3
             }
         }
+        Enum {
+            name: "OnlineFolderAction"
+            values: {
+                "ActionOnlineCreateFolder": 0,
+                "ActionOnlineDeleteFolder": 1,
+                "ActionOnlineRenameFolder": 2,
+                "ActionOnlineMoveFolder": 3
+            }
+        }
         Property { name: "synchronizing"; type: "bool"; isReadonly: true }
         Property { name: "currentSynchronizingAccountId"; type: "int"; isReadonly: true }
         Signal {
@@ -368,6 +377,11 @@ Module {
         Signal {
             name: "calendarInvitationResponded"
             Parameter { name: "response"; type: "CalendarInvitationResponse" }
+            Parameter { name: "success"; type: "bool" }
+        }
+        Signal {
+            name: "onlineFolderActionCompleted"
+            Parameter { name: "action"; type: "OnlineFolderAction" }
             Parameter { name: "success"; type: "bool" }
         }
         Method {
@@ -480,6 +494,11 @@ Module {
             Parameter { name: "messageId"; type: "int" }
         }
         Method {
+            name: "moveFolder"
+            Parameter { name: "folderId"; type: "int" }
+            Parameter { name: "parentFolderId"; type: "int" }
+        }
+        Method {
             name: "moveMessage"
             Parameter { name: "messageId"; type: "int" }
             Parameter { name: "destinationId"; type: "int" }
@@ -523,6 +542,11 @@ Module {
         Method {
             name: "purgeSendingQueue"
             Parameter { name: "accountId"; type: "int" }
+        }
+        Method {
+            name: "synchronize"
+            Parameter { name: "accountId"; type: "int" }
+            Parameter { name: "minimum"; type: "uint" }
         }
         Method {
             name: "synchronize"
@@ -917,6 +941,9 @@ Module {
         }
         Property { name: "currentFolderIdx"; type: "qulonglong" }
         Property { name: "currentFolderUnreadCount"; type: "int"; isReadonly: true }
+        Property { name: "canCreateTopLevelFolders"; type: "bool"; isReadonly: true }
+        Property { name: "supportsFolderActions"; type: "bool"; isReadonly: true }
+        Signal { name: "resyncNeeded" }
         Method {
             name: "folderId"
             type: "int"
@@ -967,6 +994,19 @@ Module {
             type: "int"
             Parameter { name: "folderType"; type: "FolderStandardType" }
         }
+        Method {
+            name: "isFolderAncestorOf"
+            type: "bool"
+            Parameter { name: "folderId"; type: "int" }
+            Parameter { name: "ancestorFolderId"; type: "int" }
+        }
+    }
+    Component {
+        name: "FolderListProxyModel"
+        prototype: "QAbstractProxyModel"
+        exports: ["Nemo.Email/FolderListProxyModel 0.1"]
+        exportMetaObjectRevisions: [0]
+        Property { name: "includeRoot"; type: "bool" }
     }
     Component {
         name: "QAbstractItemModel"
@@ -1233,6 +1273,31 @@ Module {
         }
     }
     Component { name: "QAbstractListModel"; prototype: "QAbstractItemModel" }
+    Component {
+        name: "QAbstractProxyModel"
+        prototype: "QAbstractItemModel"
+        Property { name: "sourceModel"; type: "QAbstractItemModel"; isPointer: true }
+        Method {
+            name: "mapToSource"
+            type: "QModelIndex"
+            Parameter { name: "proxyIndex"; type: "QModelIndex" }
+        }
+        Method {
+            name: "mapFromSource"
+            type: "QModelIndex"
+            Parameter { name: "sourceIndex"; type: "QModelIndex" }
+        }
+        Method {
+            name: "mapSelectionToSource"
+            type: "QItemSelection"
+            Parameter { name: "selection"; type: "QItemSelection" }
+        }
+        Method {
+            name: "mapSelectionFromSource"
+            type: "QItemSelection"
+            Parameter { name: "selection"; type: "QItemSelection" }
+        }
+    }
     Component { name: "QMailAccountListModel"; prototype: "QAbstractListModel" }
     Component { name: "QMailMessageListModel"; prototype: "QMailMessageModelBase" }
     Component {
