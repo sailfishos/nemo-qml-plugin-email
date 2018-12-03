@@ -88,6 +88,7 @@ public:
     Q_INVOKABLE void downloadMessage();
     Q_INVOKABLE void getCalendarInvitation();
     Q_INVOKABLE void send();
+    Q_INVOKABLE bool sendReadReceipt(const QString &subjectPrefix, const QString &readReceiptBodyText);
     Q_INVOKABLE void saveDraft();
 
     int accountId() const;
@@ -202,6 +203,7 @@ private:
     const QMailMessagePart *getCalendarPart() const;
     void saveTempCalendarInvitation(const QMailMessagePart &calendarPart);
     void updateReadReceiptHeader();
+    QString readReceiptRequestEmail() const;
 
     QMailAccount m_account;
     QStringList m_attachments;
