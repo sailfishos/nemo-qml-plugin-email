@@ -97,12 +97,14 @@ public:
 
     enum SignatureStatus {
         NoDigitalSignature,
-        SignedUnchecked,
-        SignedChecking,
+        SignatureDownloading,
+        SignatureMissing,
+        SignatureChecking,
         SignedValid,
         SignedInvalid,
         SignedExpired,
-        SignedMissing
+        SignedMissing,
+        SignedFailure
     };
 
     enum CryptoProtocol {
@@ -269,6 +271,7 @@ private:
     AttachedDataStatus m_calendarStatus;
     SignatureStatus m_signatureStatus;
     QMailCryptoFwd::VerificationResult m_cryptoResult;
+    QString m_signatureLocation;
 };
 
 #endif

@@ -1346,19 +1346,21 @@ QString EmailMessage::readReceiptRequestEmail() const
 void EmailMessage::onAttachmentDownloadStatusChanged(const QString &attachmentLocation,
                                                      EmailAgent::AttachmentStatus status)
 {
-    Q_UNUSED(attachmentLocation);
-
-    if (status != EmailAgent::Downloaded)
+    if (attachmentLocation != m_signatureLocation)
         return;
 
-    // This is to check that downloaded part is within the signed part container.
-    // Todo: use the attachment location to do this.
-    if (m_signatureStatus != EmailMessage::SignedUnchecked)
+    if (status != EmailAgent::Downloaded && status != EmailAgent::Failed)
         return;
 
-    // Reload the message to get the missing bits that have been downloaded.
-    m_msg = QMailMessage(m_id);
-    verifySignature();
+    disconnect(EmailAgent::instance(),
+               &EmailAgent::attachmentDownloadStatusChanged,
+               this, &EmailMessage::onAttachmentDownloadStatusChanged);
+    if (status == EmailAgent::Downloaded) {
+        verifySignature();
+    } else {
+        m_signatureLocation.clear();
+        setSignatureStatus(EmailMessage::SignatureMissing);
+    }
 }
 
 static EmailMessage::SignatureStatus toSignatureStatus(QMailCryptoFwd::SignatureResult result)
@@ -1377,7 +1379,7 @@ static EmailMessage::SignatureStatus toSignatureStatus(QMailCryptoFwd::Signature
     case QMailCryptoFwd::MissingSignature:
         return EmailMessage::NoDigitalSignature;
     default:
-        return EmailMessage::SignedUnchecked;
+        return EmailMessage::SignedFailure;
     }
 }
 
@@ -1387,10 +1389,6 @@ void EmailMessage::onVerifyCompleted(QMailCryptoFwd::VerificationResult result)
 
     // Status is unchecked as long as some parts are missing.
     EmailMessage::SignatureStatus signatureStatus = toSignatureStatus(m_cryptoResult.summary);
-    if (signatureStatus != EmailMessage::SignedUnchecked) {
-        disconnect(EmailAgent::instance(), &EmailAgent::attachmentDownloadStatusChanged,
-                   this, &EmailMessage::onAttachmentDownloadStatusChanged);
-    }
 
     if (signatureStatus == m_signatureStatus)
         return;
@@ -1432,11 +1430,26 @@ static QMailCryptoFwd::VerificationResult verificationHelper(QMailMessage *messa
 void EmailMessage::verifySignature()
 {
     if (m_msg.status() & QMailMessageMetaData::HasSignature) {
-        setSignatureStatus(EmailMessage::SignedChecking);
+        const QMailMessagePartContainer *cryptoContainer
+            = QMailCryptographicServiceFactory::findSignedContainer(&m_msg);
+        if (cryptoContainer && cryptoContainer->partCount() > 1) {
+            const QMailMessagePart &signature = cryptoContainer->partAt(1);
+            if (!signature.contentAvailable() && m_signatureLocation.isEmpty()) {
+                m_signatureLocation = signature.location().toString(true);
+                setSignatureStatus(EmailMessage::SignatureDownloading);
 
-        // Ensure that the CryptographicServiceFactory object
-        // is created in the main thread.
-        QMailCryptographicServiceFactory::instance();
+                connect(EmailAgent::instance(),
+                        &EmailAgent::attachmentDownloadStatusChanged,
+                        this, &EmailMessage::onAttachmentDownloadStatusChanged);
+                EmailAgent::instance()->downloadAttachment(m_msg.id().toULongLong(),
+                                                           m_signatureLocation);
+                return;
+            } else if (!signature.contentAvailable()) {
+                return;
+            }
+        }
+        setSignatureStatus(EmailMessage::SignatureChecking);
+
         // Execute verification in a thread, using a copy of the message.
         QFutureWatcher<QMailCryptoFwd::VerificationResult> *verifyingWatcher
           = new QFutureWatcher<QMailCryptoFwd::VerificationResult>(this);
@@ -1447,16 +1460,11 @@ void EmailMessage::verifySignature()
                     verifyingWatcher->deleteLater();
                     onVerifyCompleted(verifyingWatcher->result());
                 });
+        // Delegate the ownership to the thread later.
         QMailMessage *verificationCopy = new QMailMessage(m_msg.id());
         QFuture<QMailCryptoFwd::VerificationResult> future =
             QtConcurrent::run(verificationHelper, verificationCopy);
         verifyingWatcher->setFuture(future);
-
-        // Add an attachment listener to update signature checking
-        // automatically when parts become available after user action.
-        connect(EmailAgent::instance(), &EmailAgent::attachmentDownloadStatusChanged,
-                this, &EmailMessage::onAttachmentDownloadStatusChanged,
-                Qt::UniqueConnection);
     } else {
         setSignatureStatus(EmailMessage::NoDigitalSignature);
     }
