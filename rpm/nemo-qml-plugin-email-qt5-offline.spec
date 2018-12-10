@@ -43,7 +43,7 @@ Requires:   %{name} = %{version}-%{release}
 
 %build
 echo "DEFINES+=OFFLINE" > .qmake.conf
-%qmake5 DEFINES+=OFFLINE
+%qmake5 "VERSION=%{version}" "DEFINES+=OFFLINE"
 
 make %{?_smp_mflags}
 
