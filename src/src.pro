@@ -48,11 +48,11 @@ pkgconfig.path = $$target.path/pkgconfig
 headers.files = $$PUBLIC_HEADERS
 headers.path = /usr/include/nemoemail-qt5
 
-VERSION = 0.0.1
 QMAKE_PKGCONFIG_NAME = lib$$TARGET
 QMAKE_PKGCONFIG_DESCRIPTION = Email plugin for Nemo Mobile
 QMAKE_PKGCONFIG_LIBDIR = $$target.path
 QMAKE_PKGCONFIG_INCDIR = $$headers.path
 QMAKE_PKGCONFIG_DESTDIR = pkgconfig
+QMAKE_PKGCONFIG_VERSION = $$VERSION
 
 INSTALLS += target headers pkgconfig
