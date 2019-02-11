@@ -45,6 +45,17 @@ namespace {
     }
 }
 
+// workaround to QMF hiding its base64 password encoder in
+// protected methods
+// TODO: just use QByteArray's encoding support?
+class Base64 : public QMailServiceConfiguration {
+public:
+    static QString decode(const QString &value)
+        { return decodeValue(value); }
+    static QString encode(const QString &value)
+        { return encodeValue(value); }
+};
+
 EmailAccount::EmailAccount()
     : mAccount(new QMailAccount())
     , mAccountConfig(new QMailAccountConfiguration())
@@ -506,16 +517,6 @@ QString EmailAccount::errorMessage() const
 int EmailAccount::errorCode() const
 {
     return mErrorCode;
-}
-
-QString EmailAccount::toBase64(const QString &value)
-{
-    return Base64::encode(value);
-}
-
-QString EmailAccount::fromBase64(const QString &value)
-{
-    return Base64::decode(value);
 }
 
 void EmailAccount::emitError(const EmailAccount::ServerType serverType, const QMailServiceAction::Status::ErrorCode &errorCode)

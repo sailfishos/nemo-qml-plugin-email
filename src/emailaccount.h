@@ -61,8 +61,6 @@ public:
     Q_INVOKABLE void cancelTest();
     Q_INVOKABLE void retrieveSettings(QString emailAdress);
     Q_INVOKABLE void clear();
-    Q_INVOKABLE QString toBase64(const QString &value);
-    Q_INVOKABLE QString fromBase64(const QString &value);
 
     int accountId() const;
     void setAccountId(const int accId);
@@ -154,16 +152,6 @@ private:
     void init();
     void emitError(const ServerType serverType, const QMailServiceAction::Status::ErrorCode &errorCode);
     void stopTimeout();
-
-    // workaround to QMF hiding its base64 password encoder in
-    // protected methods
-    class Base64 : public QMailServiceConfiguration {
-    public:
-        static QString decode(const QString &value)
-            { return decodeValue(value); }
-        static QString encode(const QString &value)
-            { return encodeValue(value); }
-    };
 };
 
 

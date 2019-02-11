@@ -12,6 +12,15 @@
 #include "emailaccountsettingsmodel.h"
 #include "logging_p.h"
 
+// workaround to QMF hiding its base64 password encoder in protected methods
+// TODO: just use QByteArray's encoding support?
+class QMailDecoder : public QMailServiceConfiguration {
+public:
+    static QString decode(const QString &value) { return decodeValue(value); }
+    static QString encode(const QString &value) { return encodeValue(value); }
+};
+
+
 EmailAccountSettingsModel::EmailAccountSettingsModel(QObject *parent)
     : QAbstractListModel(parent)
 {

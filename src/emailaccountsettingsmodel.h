@@ -80,14 +80,5 @@ private:
     static QMailAccountConfiguration::ServiceConfiguration *getRecvCfg(QMailAccountConfiguration &acctcfg);
 };
 
-
-// workaround to QMF hiding its base64 password encoder in
-// protected methods
-class QMailDecoder : public QMailServiceConfiguration {
-public:
-    static QString decode(const QString &value) { return decodeValue(value); }
-    static QString encode(const QString &value) { return encodeValue(value); }
-};
-
 #endif // EMAILACCOUNTSETTINGSMODEL_H
 
