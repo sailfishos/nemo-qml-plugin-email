@@ -356,7 +356,7 @@ QString EmailAccountSettingsModel::signature()
     return mSignature;
 }
 
-void EmailAccountSettingsModel::setSignature(QString signature)
+void EmailAccountSettingsModel::setSignature(const QString &signature)
 {
     mSignature = signature;
 }

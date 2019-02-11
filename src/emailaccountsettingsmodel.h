@@ -54,7 +54,7 @@ public:
     Q_INVOKABLE int updateInterval();
     Q_INVOKABLE void setUpdateInterval(int interval);
     Q_INVOKABLE QString signature();
-    Q_INVOKABLE void setSignature(QString signature);
+    Q_INVOKABLE void setSignature(const QString &signature);
     Q_INVOKABLE bool newMailNotifications();
     Q_INVOKABLE void setNewMailNotifications(bool val);
     Q_INVOKABLE bool confirmDeleteMail();
