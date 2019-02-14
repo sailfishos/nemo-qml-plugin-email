@@ -45,6 +45,17 @@ namespace {
     }
 }
 
+// workaround to QMF hiding its base64 password encoder in
+// protected methods
+// TODO: just use QByteArray's encoding support?
+class Base64 : public QMailServiceConfiguration {
+public:
+    static QString decode(const QString &value)
+        { return decodeValue(value); }
+    static QString encode(const QString &value)
+        { return encodeValue(value); }
+};
+
 EmailAccount::EmailAccount()
     : mAccount(new QMailAccount())
     , mAccountConfig(new QMailAccountConfiguration())
@@ -190,9 +201,9 @@ void EmailAccount::cancelTest()
     }
 }
 
-void EmailAccount::retrieveSettings(QString emailAdress)
+void EmailAccount::retrieveSettings(const QString &emailAdress)
 {
-    QString domain = (emailAdress.remove(QRegExp("^.*@"))).toLower();
+    QString domain = QString(emailAdress).remove(QRegExp("^.*@")).toLower();
     QSettings domains(QSettings::SystemScope, "nemo-qml-plugin-email", "domainSettings");
 
     if (!domain.isEmpty() && domains.contains(domain + QLatin1String("/serviceProvider"))) {
@@ -299,7 +310,7 @@ QString EmailAccount::description() const
     return mAccount->name();
 }
 
-void EmailAccount::setDescription(QString val)
+void EmailAccount::setDescription(const QString &val)
 {
     mAccount->setName(val);
 }
@@ -319,7 +330,7 @@ QString EmailAccount::name() const
     return mSendCfg->value("username");
 }
 
-void EmailAccount::setName(QString val)
+void EmailAccount::setName(const QString &val)
 {
     mSendCfg->setValue("username", val);
 }
@@ -329,7 +340,7 @@ QString EmailAccount::address() const
     return mSendCfg->value("address");
 }
 
-void EmailAccount::setAddress(QString val)
+void EmailAccount::setAddress(const QString &val)
 {
     mSendCfg->setValue("address", val);
 }
@@ -351,7 +362,7 @@ QString EmailAccount::password() const
     return mPassword;
 }
 
-void EmailAccount::setPassword(QString val)
+void EmailAccount::setPassword(const QString &val)
 {
     mPassword = val;
 }
@@ -361,7 +372,7 @@ QString EmailAccount::recvType() const
     return mRecvType;
 }
 
-void EmailAccount::setRecvType(QString val)
+void EmailAccount::setRecvType(const QString &val)
 {
     // prevent bug where recv type gets reset
     // when loading the first time
@@ -381,7 +392,7 @@ QString EmailAccount::recvServer() const
     return mRecvCfg->value("server");
 }
 
-void EmailAccount::setRecvServer(QString val)
+void EmailAccount::setRecvServer(const QString &val)
 {
     mRecvCfg->setValue("server", val);
 }
@@ -391,7 +402,7 @@ QString EmailAccount::recvPort() const
     return mRecvCfg->value("port");
 }
 
-void EmailAccount::setRecvPort(QString val)
+void EmailAccount::setRecvPort(const QString &val)
 {
     mRecvCfg->setValue("port", val);
 }
@@ -401,7 +412,7 @@ QString EmailAccount::recvSecurity() const
     return mRecvCfg->value("encryption");
 }
 
-void EmailAccount::setRecvSecurity(QString val)
+void EmailAccount::setRecvSecurity(const QString &val)
 {
     mRecvCfg->setValue("encryption", val);
 }
@@ -411,7 +422,7 @@ QString EmailAccount::recvUsername() const
     return mRecvCfg->value("username");
 }
 
-void EmailAccount::setRecvUsername(QString val)
+void EmailAccount::setRecvUsername(const QString &val)
 {
     mRecvCfg->setValue("username", val);
 }
@@ -421,7 +432,7 @@ QString EmailAccount::recvPassword() const
     return Base64::decode(mRecvCfg->value("password"));
 }
 
-void EmailAccount::setRecvPassword(QString val)
+void EmailAccount::setRecvPassword(const QString &val)
 {
     mRecvCfg->setValue("password", Base64::encode(val));
 }
@@ -443,7 +454,7 @@ QString EmailAccount::sendServer() const
     return mSendCfg->value("server");
 }
 
-void EmailAccount::setSendServer(QString val)
+void EmailAccount::setSendServer(const QString &val)
 {
     mSendCfg->setValue("server", val);
 }
@@ -453,7 +464,7 @@ QString EmailAccount::sendPort() const
     return mSendCfg->value("port");
 }
 
-void EmailAccount::setSendPort(QString val)
+void EmailAccount::setSendPort(const QString &val)
 {
     mSendCfg->setValue("port", val);
 }
@@ -463,7 +474,7 @@ QString EmailAccount::sendAuth() const
     return mSendCfg->value("authentication");
 }
 
-void EmailAccount::setSendAuth(QString val)
+void EmailAccount::setSendAuth(const QString &val)
 {
     mSendCfg->setValue("authentication", val);
 }
@@ -473,7 +484,7 @@ QString EmailAccount::sendSecurity() const
     return mSendCfg->value("encryption");
 }
 
-void EmailAccount::setSendSecurity(QString val)
+void EmailAccount::setSendSecurity(const QString &val)
 {
     mSendCfg->setValue("encryption", val);
 }
@@ -483,7 +494,7 @@ QString EmailAccount::sendUsername() const
     return mSendCfg->value("smtpusername");
 }
 
-void EmailAccount::setSendUsername(QString val)
+void EmailAccount::setSendUsername(const QString &val)
 {
     mSendCfg->setValue("smtpusername", val);
 }
@@ -493,7 +504,7 @@ QString EmailAccount::sendPassword() const
     return Base64::decode(mSendCfg->value("smtppassword"));
 }
 
-void EmailAccount::setSendPassword(QString val)
+void EmailAccount::setSendPassword(const QString &val)
 {
     mSendCfg->setValue("smtppassword", Base64::encode(val));
 }
@@ -506,16 +517,6 @@ QString EmailAccount::errorMessage() const
 int EmailAccount::errorCode() const
 {
     return mErrorCode;
-}
-
-QString EmailAccount::toBase64(const QString &value)
-{
-    return Base64::encode(value);
-}
-
-QString EmailAccount::fromBase64(const QString &value)
-{
-    return Base64::decode(value);
 }
 
 void EmailAccount::emitError(const EmailAccount::ServerType serverType, const QMailServiceAction::Status::ErrorCode &errorCode)

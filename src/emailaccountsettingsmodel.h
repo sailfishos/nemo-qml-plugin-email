@@ -54,7 +54,7 @@ public:
     Q_INVOKABLE int updateInterval();
     Q_INVOKABLE void setUpdateInterval(int interval);
     Q_INVOKABLE QString signature();
-    Q_INVOKABLE void setSignature(QString signature);
+    Q_INVOKABLE void setSignature(const QString &signature);
     Q_INVOKABLE bool newMailNotifications();
     Q_INVOKABLE void setNewMailNotifications(bool val);
     Q_INVOKABLE bool confirmDeleteMail();
@@ -78,15 +78,6 @@ private:
 
     void init();
     static QMailAccountConfiguration::ServiceConfiguration *getRecvCfg(QMailAccountConfiguration &acctcfg);
-};
-
-
-// workaround to QMF hiding its base64 password encoder in
-// protected methods
-class QMailDecoder : public QMailServiceConfiguration {
-public:
-    static QString decode(const QString &value) { return decodeValue(value); }
-    static QString encode(const QString &value) { return encodeValue(value); }
 };
 
 #endif // EMAILACCOUNTSETTINGSMODEL_H
