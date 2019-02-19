@@ -460,59 +460,28 @@ void EmailMessageListModel::notifyDateChanged()
     dataChanged(index(0), index(rowCount() - 1), QVector<int>() << MessageTimeSectionRole);
 }
 
-void EmailMessageListModel::sortBySender(int order)
+void EmailMessageListModel::setSortBy(EmailMessageListModel::Sort sort)
 {
-    sortByTime(order, Sender);
-}
+    Qt::SortOrder order = Qt::AscendingOrder;
+    switch (sort) {
+    case Time:
+    case Attachments:
+    case Priority:
+    case Size:
+        order = Qt::DescendingOrder;
+    default:
+        break;
+    }
 
-void EmailMessageListModel::sortByRecipients(int order)
-{
-    sortByTime(order, Recipients);
-}
-
-void EmailMessageListModel::sortBySubject(int order)
-{
-    sortByTime(order, Subject);
-}
-
-void EmailMessageListModel::sortByDate(int order)
-{
-    sortByTime(order, Time);
-}
-
-void EmailMessageListModel::sortByAttachment(int order)
-{
-    // 0 - messages with attachments before messages without
-   sortByTime(order, Attachments);
-}
-
-void EmailMessageListModel::sortByReadStatus(int order)
-{
-    // 0 - read before non-read
-    sortByTime(order, ReadStatus);
-}
-
-void EmailMessageListModel::sortByPriority(int order)
-{
-    sortByTime(order, Priority);
-}
-
-void EmailMessageListModel::sortBySize(int order)
-{
-    sortByTime(order, Size);
+    sortByOrder(order, sort);
 }
 
 // Always sorts by Qt::DescendingOrder
-void EmailMessageListModel::sortByTime(int order, EmailMessageListModel::Sort sortBy)
+void EmailMessageListModel::sortByOrder(Qt::SortOrder sortOrder, EmailMessageListModel::Sort sortBy)
 {
-    Qt::SortOrder sortOrder = static_cast<Qt::SortOrder>(order);
-    bool sortChanged = true;
-    bool appendSortbyTime = true;
-
     switch (sortBy) {
     case Attachments:
         m_sortKey = QMailMessageSortKey::status(QMailMessage::HasAttachments, sortOrder);
-        m_sortBy = Attachments;
         break;
     case Priority:
         if (sortOrder == Qt::AscendingOrder) {
@@ -522,45 +491,37 @@ void EmailMessageListModel::sortByTime(int order, EmailMessageListModel::Sort so
             m_sortKey = QMailMessageSortKey::status(QMailMessage::HighPriority, sortOrder) &
                     QMailMessageSortKey::status(QMailMessage::LowPriority, Qt::AscendingOrder);
         }
-        m_sortBy = Priority;
         break;
     case ReadStatus:
         m_sortKey = QMailMessageSortKey::status(QMailMessage::Read, sortOrder);
-        m_sortBy = ReadStatus;
         break;
     case Recipients:
         m_sortKey = QMailMessageSortKey::recipients(sortOrder);
-        m_sortBy = Recipients;
         break;
     case Sender:
         m_sortKey = QMailMessageSortKey::sender(sortOrder);
-        m_sortBy = Sender;
         break;
     case Size:
         m_sortKey = QMailMessageSortKey::size(sortOrder);
-        m_sortBy = Size;
         break;
     case Subject:
         m_sortKey = QMailMessageSortKey::subject(sortOrder);
-        m_sortBy = Subject;
         break;
     case Time:
         m_sortKey = QMailMessageSortKey::timeStamp(sortOrder);
-        m_sortBy = Time;
-        appendSortbyTime = false;
         break;
     default:
         qCWarning(lcEmail) << Q_FUNC_INFO << "Invalid sort type provided.";
-        sortChanged = false;
+        return;
     }
 
-    if (sortChanged) {
-        if (appendSortbyTime) {
-            m_sortKey &= QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
-        }
-        QMailMessageListModel::setSortKey(m_sortKey);
-        emit sortByChanged();
+    m_sortBy = sortBy;
+
+    if (sortBy != Time) {
+        m_sortKey &= QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
     }
+    QMailMessageListModel::setSortKey(m_sortKey);
+    emit sortByChanged();
 }
 
 int EmailMessageListModel::accountIdForMessage(int messageId)

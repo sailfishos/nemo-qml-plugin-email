@@ -41,7 +41,7 @@ class Q_DECL_EXPORT EmailMessageListModel : public QMailMessageListModel
     Q_PROPERTY(bool searchSubject READ searchSubject WRITE setSearchSubject NOTIFY searchSubjectChanged)
     Q_PROPERTY(bool searchBody READ searchBody WRITE setSearchBody NOTIFY searchBodyChanged)
     Q_PROPERTY(int searchRemainingOnRemote READ searchRemainingOnRemote NOTIFY searchRemainingOnRemoteChanged FINAL)
-    Q_PROPERTY(EmailMessageListModel::Sort sortBy READ sortBy NOTIFY sortByChanged)
+    Q_PROPERTY(EmailMessageListModel::Sort sortBy READ sortBy WRITE setSortBy NOTIFY sortByChanged)
     Q_PROPERTY(bool unreadMailsSelected READ unreadMailsSelected NOTIFY unreadMailsSelectedChanged FINAL)
 
 public:
@@ -78,13 +78,14 @@ public:
 
     EmailMessageListModel(QObject *parent = 0);
     ~EmailMessageListModel();
+
     int rowCount(const QModelIndex & parent = QModelIndex()) const;
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
     QString bodyHtmlText(const QMailMessage &) const;
 
     enum Priority { LowPriority, NormalPriority, HighPriority };
 
-    enum Sort { Time, Sender, Size, ReadStatus, Priority, Attachments, Subject, Recipients};
+    enum Sort { Time, Sender, Size, ReadStatus, Priority, Attachments, Subject, Recipients };
 
     enum SearchOn { LocalAndRemote, Local, Remote };
 
@@ -110,6 +111,7 @@ public:
     void setSearchBody(bool value);
     int searchRemainingOnRemote() const;
     void setFilterUnread(bool u);
+    void setSortBy(Sort sort);
     EmailMessageListModel::Sort sortBy() const;
     bool unreadMailsSelected() const;
 
@@ -137,15 +139,6 @@ signals:
 public:
     Q_INVOKABLE void setFolderKey(int id, QMailMessageKey messageKey = QMailMessageKey());
     Q_INVOKABLE void setAccountKey(int id, bool defaultInbox = true);
-    Q_INVOKABLE void sortBySender(int order = 0);
-    Q_INVOKABLE void sortByRecipients(int order = 0);
-    Q_INVOKABLE void sortBySubject(int order = 0);
-    Q_INVOKABLE void sortByDate(int order = 1);
-    Q_INVOKABLE void sortByAttachment(int order = 1);
-    Q_INVOKABLE void sortByReadStatus(int order = 0);
-    Q_INVOKABLE void sortByPriority(int order = 1);
-    Q_INVOKABLE void sortBySize(int order = 1);
-    Q_INVOKABLE void sortByTime(int order, EmailMessageListModel::Sort sortBy);
     Q_INVOKABLE void setSearch(const QString &search);
     Q_INVOKABLE void cancelSearch();
 
@@ -196,6 +189,10 @@ protected:
     virtual QHash<int, QByteArray> roleNames() const;
 
 private:
+    void sortByOrder(Qt::SortOrder order, EmailMessageListModel::Sort sortBy);
+    void checkFetchMoreChanged();
+    void setSearchRemainingOnRemote(int count);
+
     QHash<int, QByteArray> roles;
     bool m_combinedInbox;
     bool m_filterUnread;
@@ -223,9 +220,6 @@ private:
     QMap<int, QMailMessageId> m_selectedMsgIds;
     QList<int> m_selectedUnreadIdx;
     QTimer m_remoteSearchTimer;
-
-    void checkFetchMoreChanged();
-    void setSearchRemainingOnRemote(int count);
 };
 
 #endif
