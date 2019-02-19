@@ -18,22 +18,8 @@
 
 #include <qmailnamespace.h>
 
-#include <mlocale.h>
-
 #include "emailmessagelistmodel.h"
 #include "logging_p.h"
-
-namespace {
-
-Q_GLOBAL_STATIC(ML10N::MLocale, m_locale)
-
-QString firstChar(const QString &str)
-{
-    QString group = m_locale()->indexBucket(str);
-    return group.isNull() ? QString::fromLatin1("#") : group;
-}
-
-}
 
 QString EmailMessageListModel::bodyHtmlText(const QMailMessage &mailMsg) const
 {
@@ -74,10 +60,6 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[QMailMessageModelBase::MessageFilterTextRole] = "messageFilter";
     roles[QMailMessageModelBase::MessageTimeStampTextRole] = "timeStamp";
     roles[QMailMessageModelBase::MessageSizeTextRole] = "size";
-    roles[QMailMessageModelBase::MessageTypeIconRole] = "icon";
-    roles[QMailMessageModelBase::MessageStatusIconRole] = "statusIcon";
-    roles[QMailMessageModelBase::MessageDirectionIconRole] = "directionIcon";
-    roles[QMailMessageModelBase::MessagePresenceIconRole] = "presenceIcon";
     roles[QMailMessageModelBase::MessageBodyTextRole] = "body";
     roles[MessageAttachmentCountRole] = "numberOfAttachments";
     roles[MessageAttachmentsRole] = "listOfAttachments";
@@ -102,8 +84,6 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageHasCalendarInvitationRole] = "hasCalendarInvitation";
     roles[MessageSizeSectionRole] = "sizeSection";
     roles[MessageFolderIdRole] = "folderId";
-    roles[MessageSubjectFirstCharRole] = "subjectFirstChar";
-    roles[MessageSenderFirstCharRole] = "senderFirstChar";
     roles[MessageParsedSubject] = "parsedSubject";
 
     m_key = key();
@@ -287,12 +267,6 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
         }
     } else if (role == MessageFolderIdRole) {
         return messageMetaData.parentFolderId().toULongLong();
-    } else if (role == MessageSubjectFirstCharRole) {
-        QString subject = data(index, QMailMessageModelBase::MessageSubjectTextRole).toString();
-        return firstChar(subject);
-    } else if (role == MessageSenderFirstCharRole) {
-        QString sender = messageMetaData.from().name();
-        return firstChar(sender);
     } else if (role == MessageParsedSubject) {
         // Filter <img> and <ahref> html tags to make the text suitable to be displayed in a qml
         // label using StyledText(allows only small subset of html)

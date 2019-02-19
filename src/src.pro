@@ -2,7 +2,7 @@ TEMPLATE = lib
 QT += network dbus
 CONFIG += link_pkgconfig qt hide_symbols create_pc create_prl
 TARGET = nemoemail-qt5
-PKGCONFIG += QmfMessageServer QmfClient mlocale5
+PKGCONFIG += QmfMessageServer QmfClient
 
 SOURCES += \
     $$PWD/emailaccountlistmodel.cpp \
