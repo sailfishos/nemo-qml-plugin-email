@@ -102,7 +102,6 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageHasCalendarInvitationRole] = "hasCalendarInvitation";
     roles[MessageSizeSectionRole] = "sizeSection";
     roles[MessageFolderIdRole] = "folderId";
-    roles[MessageSortByRole] = "sortBy";
     roles[MessageSubjectFirstCharRole] = "subjectFirstChar";
     roles[MessageSenderFirstCharRole] = "senderFirstChar";
     roles[MessageParsedSubject] = "parsedSubject";
@@ -156,10 +155,6 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
     if (!index.isValid() || index.row() > rowCount(parent(index))) {
         qCWarning(lcEmail) << Q_FUNC_INFO << "Invalid Index";
         return QVariant();
-    }
-
-    if (role == MessageSortByRole) {
-        return m_sortBy;
     }
 
     QMailMessageId msgId = idFromIndex(index);

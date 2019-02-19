@@ -70,7 +70,6 @@ public:
         MessageHasCalendarInvitationRole,                      // returns 1 if message has a calendar invitation, 0 otherwise
         MessageSizeSectionRole,                                // returns size section (0-2)
         MessageFolderIdRole,                                   // returns parent folder id for the message
-        MessageSortByRole,                                     // returns the sorting order of the list model
         MessageSubjectFirstCharRole,                           // returns the first character of the subject
         MessageSenderFirstCharRole,                            // returns the first character of the sender's display name
         MessageParsedSubject                                   // returns the message subject parsed against a pre-defined regular expression
