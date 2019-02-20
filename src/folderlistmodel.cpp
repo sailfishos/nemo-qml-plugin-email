@@ -410,7 +410,7 @@ int FolderListModel::numberOfFolders()
 
 void FolderListModel::setAccountKey(int id)
 {
-  // Get all the folders belonging to this email account
+    // Get all the folders belonging to this email account
     QMailAccountId accountId(id);
     if (accountId.isValid()) {
         m_accountId = accountId;
@@ -418,10 +418,17 @@ void FolderListModel::setAccountKey(int id)
         m_currentFolderIdx = -1;
         m_currentFolderUnreadCount = 0;
         resetModel();
+        emit accountKeyChanged();
     } else {
         qCWarning(lcEmail) << "Can't create folder model for invalid account:" << id;
     }
+}
 
+int FolderListModel::accountKey() const
+{
+    // NOTE: losing higher bits, but that's already the problem in the whole module.
+    // Could consider e.g. wrapping the identifier into its own qml type.
+    return static_cast<int>(m_accountId.toULongLong());
 }
 
 int FolderListModel::standardFolderIndex(FolderStandardType folderType)

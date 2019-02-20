@@ -18,6 +18,7 @@ class Q_DECL_EXPORT FolderListModel : public QAbstractListModel
 {
     Q_OBJECT
     Q_ENUMS(FolderStandardType)
+    Q_PROPERTY(int accountKey READ accountKey WRITE setAccountKey NOTIFY accountKeyChanged FINAL)
     Q_PROPERTY(quint64 currentFolderIdx READ currentFolderIdx WRITE setCurrentFolderIdx NOTIFY currentFolderIdxChanged FINAL)
     Q_PROPERTY(int currentFolderUnreadCount READ currentFolderUnreadCount NOTIFY currentFolderUnreadCountChanged FINAL)
     Q_PROPERTY(bool canCreateTopLevelFolders READ canCreateTopLevelFolders NOTIFY canCreateTopLevelFoldersChanged FINAL)
@@ -65,6 +66,9 @@ public:
     bool canCreateTopLevelFolders() const;
     bool supportsFolderActions() const;
 
+    void setAccountKey(int id);
+    int accountKey() const;
+
     Q_INVOKABLE int folderId(int idx);
     Q_INVOKABLE QVariant folderMessageKey(int idx);
     Q_INVOKABLE QString folderName(int idx);
@@ -74,7 +78,6 @@ public:
     Q_INVOKABLE int indexFromFolderId(int folderId);
     Q_INVOKABLE bool isOutgoingFolder(int idx);
     Q_INVOKABLE int numberOfFolders();
-    Q_INVOKABLE void setAccountKey(int id);
     Q_INVOKABLE int standardFolderIndex(FolderStandardType folderType);
     Q_INVOKABLE bool isFolderAncestorOf(int folderId, int ancestorFolderId);
 
@@ -84,6 +87,7 @@ signals:
     void canCreateTopLevelFoldersChanged();
     void supportsFolderActionsChanged();
     void resyncNeeded();
+    void accountKeyChanged();
 
 protected:
     virtual QHash<int, QByteArray> roleNames() const;
