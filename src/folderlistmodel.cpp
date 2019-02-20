@@ -17,6 +17,65 @@
 #include "folderlistmodel.h"
 #include "logging_p.h"
 
+static bool folderLessThan(const QMailFolderId &idA, const QMailFolderId &idB)
+{
+    Q_ASSERT(idA.isValid());
+    Q_ASSERT(idB.isValid());
+
+    QMailFolder aFolder(idA), bFolder(idB);
+    if (aFolder.parentFolderId() == bFolder.parentFolderId()) {
+        // Siblings
+        return aFolder.displayName().compare(bFolder.displayName(), Qt::CaseInsensitive) < 0;
+    } else if (aFolder.parentAccountId() != bFolder.parentAccountId()) {
+        // Different accounts, we still want to compare since local storage
+        // can contain some of the standard folders for the account
+        qCWarning(lcEmail) << Q_FUNC_INFO << "Comparing folders from different accounts, model only supports a single account";
+        return aFolder.parentAccountId() < bFolder.parentAccountId();
+    } else {
+        QMailFolderId commonId;
+        QList<QMailFolderId> aParents;
+        QMailFolderId parentId = idA;
+        while (parentId.isValid()) {
+            QMailFolder folderA(parentId);
+            if (!(folderA.status() & QMailFolder::NonMail)) {
+                aParents.append(parentId);
+            }
+            parentId = folderA.parentFolderId();
+        }
+        if (aParents.contains(idB)) {
+            // b is ancestor of a
+            return false;
+        }
+        QMailFolderId bLastParent;
+        parentId = idB;
+        while (parentId.isValid()) {
+            if (aParents.contains(parentId)) {
+                commonId = parentId;
+                break;
+            }
+            QMailFolder folderB(parentId);
+            if (!(folderB.status() & QMailFolder::NonMail)) {
+                bLastParent = parentId;
+            }
+            parentId = folderB.parentFolderId();
+        }
+
+        if (commonId.isValid()) {
+            int idIsParentOfA = aParents.indexOf(commonId);
+            if (idIsParentOfA == 0) {
+                // a is ancestor of b
+                return true;
+            }
+            // Common ancestor found
+            return folderLessThan(aParents[idIsParentOfA - 1], bLastParent);
+        } else {
+            QMailFolder topA(aParents.last()), topB(bLastParent);
+            // No common ancestor found
+            return topA.displayName().compare(topB.displayName(), Qt::CaseInsensitive) < 0;
+        }
+    }
+}
+
 FolderListModel::FolderListModel(QObject *parent) :
     QAbstractListModel(parent)
   , m_currentFolderIdx(-1)
@@ -211,7 +270,7 @@ void FolderListModel::onFoldersAdded(const QMailFolderIdList &ids)
     if (folder.parentAccountId() != m_accountId || !folderId.isValid()) {
         return;
     }
-    //FIXME: improve 'lessThan' function to place standard folders (with siblings) on top
+    //FIXME: improve 'folderLessThan' function to place standard folders (with siblings) on top
     int prevFolderListSize = m_folderList.size();
     doReloadModel(); // Reload model data
     bool addedFolderFound = false;
@@ -452,65 +511,6 @@ bool FolderListModel::isFolderAncestorOf(int folderId, int ancestorFolderId)
     return false;
 }
 
-bool FolderListModel::lessThan(const QMailFolderId &idA, const QMailFolderId &idB)
-{
-    Q_ASSERT(idA.isValid());
-    Q_ASSERT(idB.isValid());
-
-    QMailFolder aFolder(idA), bFolder(idB);
-    if (aFolder.parentFolderId() == bFolder.parentFolderId()) {
-        // Siblings
-        return aFolder.displayName().compare(bFolder.displayName(), Qt::CaseInsensitive) < 0;
-    } else if (aFolder.parentAccountId() != bFolder.parentAccountId()) {
-        // Different accounts, we still want to compare since local storage
-        // can contain some of the standard folders for the account
-        qCWarning(lcEmail) << Q_FUNC_INFO << "Comparing folders from different accounts, model only supports a single account";
-        return aFolder.parentAccountId() < bFolder.parentAccountId();
-    } else {
-        QMailFolderId commonId;
-        QList<QMailFolderId> aParents;
-        QMailFolderId parentId = idA;
-        while (parentId.isValid()) {
-            QMailFolder folderA(parentId);
-            if (!(folderA.status() & QMailFolder::NonMail)) {
-                aParents.append(parentId);
-            }
-            parentId = folderA.parentFolderId();
-        }
-        if (aParents.contains(idB)) {
-            // b is ancestor of a
-            return false;
-        }
-        QMailFolderId bLastParent;
-        parentId = idB;
-        while (parentId.isValid()) {
-            if (aParents.contains(parentId)) {
-                commonId = parentId;
-                break;
-            }
-            QMailFolder folderB(parentId);
-            if (!(folderB.status() & QMailFolder::NonMail)) {
-                bLastParent = parentId;
-            }
-            parentId = folderB.parentFolderId();
-        }
-
-        if (commonId.isValid()) {
-            int idIsParentOfA = aParents.indexOf(commonId);
-            if (idIsParentOfA == 0) {
-                // a is ancestor of b
-                return true;
-            }
-            // Common ancestor found
-            return lessThan(aParents[idIsParentOfA - 1], bLastParent);
-        } else {
-            QMailFolder topA(aParents.last()), topB(bLastParent);
-            // No common ancestor found
-            return topA.displayName().compare(topB.displayName(), Qt::CaseInsensitive) < 0;
-        }
-    }
-}
-
 FolderListModel::FolderStandardType FolderListModel::folderTypeFromId(const QMailFolderId &id) const
 {
     QMailFolder folder(id);
@@ -659,7 +659,7 @@ void FolderListModel::doReloadModel()
     QMailFolderKey key = QMailFolderKey::parentAccountId(m_accountId);
     QMailMessageKey excludeRemovedKey = QMailMessageKey::status(QMailMessage::Removed,  QMailDataComparator::Excludes);
     QList<QMailFolderId> folders = QMailStore::instance()->queryFolders(key);
-    std::sort(folders.begin(), folders.end(), FolderListModel::lessThan);
+    std::sort(folders.begin(), folders.end(), folderLessThan);
 
     QMailAccount account(m_accountId);
     m_account = account;

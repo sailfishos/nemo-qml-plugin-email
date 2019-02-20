@@ -122,7 +122,6 @@ private:
     QMailAccount m_account;
     QList<FolderItem*> m_folderList;
 
-    static bool lessThan(const QMailFolderId &idA, const QMailFolderId &idB);
     FolderStandardType folderTypeFromId(const QMailFolderId &id) const;
     bool isStandardFolder(const QMailFolderId &id) const;
     bool isAncestorFolder(const QMailFolderId &id, const QMailFolderId &ancestor) const;
