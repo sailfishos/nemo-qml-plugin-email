@@ -138,24 +138,6 @@ public:
     Q_INVOKABLE int accountIdForMessage(int messageId);
     Q_INVOKABLE int folderIdForMessage(int messageId);
     Q_INVOKABLE int indexFromMessageId(int messageId);
-    Q_INVOKABLE int messageId(int index);
-    Q_INVOKABLE QString subject(int index);
-    Q_INVOKABLE QString mailSender(int index);
-    Q_INVOKABLE QString senderDisplayName(int index);
-    Q_INVOKABLE QString senderEmailAddress(int index);
-    Q_INVOKABLE QDateTime timeStamp(int index);
-    Q_INVOKABLE QString body(int index);
-    Q_INVOKABLE QString quotedBody(int index);
-    Q_INVOKABLE QStringList attachments(int index);
-    Q_INVOKABLE int numberOfAttachments(int index);
-    Q_INVOKABLE QStringList recipients(int index);
-    Q_INVOKABLE QStringList ccList(int index);
-    Q_INVOKABLE QStringList bccList(int index);
-    Q_INVOKABLE QStringList toList(int index);
-    Q_INVOKABLE bool messageRead(int index);
-    Q_INVOKABLE QString size(int index);
-    Q_INVOKABLE int accountId(int index);
-    Q_INVOKABLE QVariant priority(int index);
 
     Q_INVOKABLE void selectAllMessages();
     Q_INVOKABLE void deSelectAllMessages();

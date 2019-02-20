@@ -495,97 +495,6 @@ int EmailMessageListModel::indexFromMessageId(int messageId)
     return -1;
 }
 
-int EmailMessageListModel::messageId(int idx)
-{
-    QMailMessageId id = idFromIndex(index(idx));
-    return id.toULongLong();
-}
-
-QString EmailMessageListModel::subject(int idx)
-{
-    return data(index(idx), QMailMessageModelBase::MessageSubjectTextRole).toString();
-}
-
-QString EmailMessageListModel::mailSender(int idx)
-{
-    return data(index(idx), QMailMessageModelBase::MessageAddressTextRole).toString();
-}
-
-QString EmailMessageListModel::senderDisplayName(int idx)
-{
-    return data(index(idx), MessageSenderDisplayNameRole).toString();
-}
-
-QString EmailMessageListModel::senderEmailAddress(int idx)
-{
-    return data(index(idx), MessageSenderEmailAddressRole).toString();
-}
-
-QDateTime EmailMessageListModel::timeStamp(int idx)
-{
-    return data(index(idx), QMailMessageModelBase::MessageTimeStampTextRole).toDateTime();
-}
-
-QString EmailMessageListModel::body(int idx)
-{
-    return data(index(idx), QMailMessageModelBase::MessageBodyTextRole).toString();
-}
-
-QString EmailMessageListModel::quotedBody(int idx)
-{
-    return data(index(idx), MessageQuotedBodyRole).toString();
-}
-
-QStringList EmailMessageListModel::attachments(int idx)
-{
-    return data(index(idx), MessageAttachmentsRole).toStringList();
-}
-
-int EmailMessageListModel::numberOfAttachments(int idx)
-{
-    return data(index(idx), MessageAttachmentCountRole).toInt();
-}
-
-QStringList EmailMessageListModel::toList(int idx)
-{
-    return data(index(idx), MessageToRole).toStringList();
-}
-
-QStringList EmailMessageListModel::recipients(int idx)
-{
-    return data(index(idx), MessageRecipientsRole).toStringList();
-}
-
-QStringList EmailMessageListModel::ccList(int idx)
-{
-    return data(index(idx), MessageCcRole).toStringList();
-}
-
-QStringList EmailMessageListModel::bccList(int idx)
-{
-    return data(index(idx), MessageBccRole).toStringList();
-}
-
-bool EmailMessageListModel::messageRead(int idx)
-{
-    return data(index(idx), MessageReadStatusRole).toBool();
-}
-
-QString EmailMessageListModel::size(int idx)
-{
-    return data(index(idx), QMailMessageModelBase::MessageSizeTextRole).toString();
-}
-
-int EmailMessageListModel::accountId(int idx)
-{
-    return data(index(idx), MessageAccountIdRole).toInt();
-}
-
-QVariant EmailMessageListModel::priority(int idx)
-{
-    return data(index(idx), MessagePriorityRole);
-}
-
 void EmailMessageListModel::selectAllMessages()
 {
     for (int row = 0; row < rowCount(); row++) {
@@ -618,10 +527,11 @@ void EmailMessageListModel::selectMessage(int idx)
         dataChanged(index(idx), index(idx), QVector<int>() << MessageSelectModeRole);
     }
 
-    if (m_selectedUnreadIdx.isEmpty() && !messageRead(idx)) {
+    bool messageRead = data(index(idx), MessageReadStatusRole).toBool();
+    if (m_selectedUnreadIdx.isEmpty() && !messageRead) {
         m_selectedUnreadIdx.append(idx);
         emit unreadMailsSelectedChanged();
-    } else if (!messageRead(idx)) {
+    } else if (!messageRead) {
         m_selectedUnreadIdx.append(idx);
     }
 }
