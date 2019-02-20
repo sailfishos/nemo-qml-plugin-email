@@ -45,15 +45,13 @@ class Q_DECL_EXPORT EmailMessageListModel : public QMailMessageListModel
     Q_PROPERTY(bool unreadMailsSelected READ unreadMailsSelected NOTIFY unreadMailsSelectedChanged FINAL)
 
 public:
-    enum Roles
-    {
+    enum Roles {
         MessageAttachmentCountRole = QMailMessageModelBase::MessageIdRole + 1, // returns number of attachment
         MessageAttachmentsRole,                                // returns a list of attachments
         MessageRecipientsRole,                                 // returns a list of recipients (email address)
         MessageRecipientsDisplayNameRole,                      // returns a list of recipients (displayName)
         MessageReadStatusRole,                                 // returns the read/unread status
         MessageQuotedBodyRole,                                 // returns the quoted body
-        MessageHtmlBodyRole,                                   // returns the html body
         MessageIdRole,                                         // returns the message id
         MessageSenderDisplayNameRole,                          // returns sender's display name
         MessageSenderEmailAddressRole,                         // returns sender's email address
@@ -73,20 +71,18 @@ public:
         MessageParsedSubject                                   // returns the message subject parsed against a pre-defined regular expression
     };
 
-    EmailMessageListModel(QObject *parent = 0);
-    ~EmailMessageListModel();
-
-    int rowCount(const QModelIndex & parent = QModelIndex()) const;
-    QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
-    QString bodyHtmlText(const QMailMessage &) const;
-
     enum Priority { LowPriority, NormalPriority, HighPriority };
 
     enum Sort { Time, Sender, Size, ReadStatus, Priority, Attachments, Subject, Recipients };
 
     enum SearchOn { LocalAndRemote, Local, Remote };
 
-    // property accessors.
+    EmailMessageListModel(QObject *parent = 0);
+    ~EmailMessageListModel();
+
+    int rowCount(const QModelIndex & parent = QModelIndex()) const;
+    QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
+
     bool canFetchMore() const;
     int count() const;
     bool combinedInbox() const;
@@ -149,7 +145,6 @@ public:
     Q_INVOKABLE QString senderEmailAddress(int index);
     Q_INVOKABLE QDateTime timeStamp(int index);
     Q_INVOKABLE QString body(int index);
-    Q_INVOKABLE QString htmlBody(int index);
     Q_INVOKABLE QString quotedBody(int index);
     Q_INVOKABLE QStringList attachments(int index);
     Q_INVOKABLE int numberOfAttachments(int index);
@@ -174,7 +169,6 @@ public:
 
 private slots:
     void foldersAdded(const QMailFolderIdList &folderIds);
-    void downloadActivityChanged(QMailServiceAction::Activity);
     void messagesAdded(const QMailMessageIdList &ids);
     void messagesRemoved(const QMailMessageIdList &ids);
     void searchOnline();
@@ -198,7 +192,6 @@ private:
     QProcess m_msgAccount;
     QMailFolderId m_currentFolderId;
     QMailAccountIdList m_mailAccountIds;
-    QMailRetrievalAction *m_retrievalAction;
     QString m_search;
     QString m_remoteSearch;
     QString m_searchBodyText;

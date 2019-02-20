@@ -21,31 +21,11 @@
 #include "emailmessagelistmodel.h"
 #include "logging_p.h"
 
-QString EmailMessageListModel::bodyHtmlText(const QMailMessage &mailMsg) const
-{
-    // TODO: This function assumes that at least the structure has been retrieved already
-    if (const QMailMessagePartContainer *container = mailMsg.findHtmlContainer()) {
-        if (!container->contentAvailable()) {
-            // Retrieve the data for this part
-            connect (m_retrievalAction, SIGNAL(activityChanged(QMailServiceAction::Activity)),
-                                        this, SLOT(downloadActivityChanged(QMailServiceAction::Activity)));
-            QMailMessagePart::Location location = static_cast<const QMailMessagePart *>(container)->location();
-            m_retrievalAction->retrieveMessagePart(location);
-            return " ";  // Put a space here as a place holder to notify UI that we do have html body.
-        }
-        return container->body().data();
-    }
-
-    return QString();
-}
-
-//![0]
 EmailMessageListModel::EmailMessageListModel(QObject *parent)
     : QMailMessageListModel(parent),
       m_combinedInbox(false),
       m_filterUnread(true),
       m_canFetchMore(false),
-      m_retrievalAction(new QMailRetrievalAction(this)),
       m_searchLimit(100),
       m_searchOn(EmailMessageListModel::LocalAndRemote),
       m_searchFrom(true),
@@ -66,7 +46,6 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageRecipientsRole] = "recipients";
     roles[MessageRecipientsDisplayNameRole] = "recipientsDisplayName";
     roles[MessageReadStatusRole] = "readStatus";
-    roles[MessageHtmlBodyRole] = "htmlBody";
     roles[MessageQuotedBodyRole] = "quotedBody";
     roles[MessageIdRole] = "messageId";
     roles[MessageSenderDisplayNameRole] = "senderDisplayName";
@@ -93,10 +72,10 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     m_selectedMsgIds.clear();
 
     connect(this, SIGNAL(rowsInserted(QModelIndex,int,int)),
-            this,SIGNAL(countChanged()));
+            this, SIGNAL(countChanged()));
 
     connect(this, SIGNAL(rowsRemoved(QModelIndex,int,int)),
-            this,SIGNAL(countChanged()));
+            this, SIGNAL(countChanged()));
 
     connect(QMailStore::instance(), SIGNAL(messagesAdded(QMailMessageIdList)),
             this, SLOT(messagesAdded(QMailMessageIdList)));
@@ -104,7 +83,8 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     connect(QMailStore::instance(), SIGNAL(messagesRemoved(QMailMessageIdList)),
             this, SLOT(messagesRemoved(QMailMessageIdList)));
 
-    connect(QMailStore::instance(), SIGNAL(accountsUpdated(QMailAccountIdList)), this, SLOT(accountsChanged()));
+    connect(QMailStore::instance(), SIGNAL(accountsUpdated(QMailAccountIdList)),
+            this, SLOT(accountsChanged()));
 
     connect(this, SIGNAL(modelReset()), this, SIGNAL(countChanged()));
 
@@ -117,7 +97,6 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
 
 EmailMessageListModel::~EmailMessageListModel()
 {
-    delete m_retrievalAction;
 }
 
 QHash<int, QByteArray> EmailMessageListModel::roleNames() const
@@ -142,9 +121,6 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
     if (role == QMailMessageModelBase::MessageBodyTextRole) {
         QMailMessage message(msgId);
         return EmailAgent::instance()->bodyPlainText(message);
-    } else if (role == MessageHtmlBodyRole) {
-        QMailMessage message(msgId);
-        return bodyHtmlText(message);
     } else if (role == MessageQuotedBodyRole) {
         QMailMessage message (msgId);
         QString body = EmailAgent::instance()->bodyPlainText(message);
@@ -560,11 +536,6 @@ QString EmailMessageListModel::quotedBody(int idx)
     return data(index(idx), MessageQuotedBodyRole).toString();
 }
 
-QString EmailMessageListModel::htmlBody(int idx)
-{
-    return data(index(idx), MessageHtmlBodyRole).toString();
-}
-
 QStringList EmailMessageListModel::attachments(int idx)
 {
     return data(index(idx), MessageAttachmentsRole).toStringList();
@@ -732,20 +703,6 @@ void EmailMessageListModel::markAllMessagesAsRead()
         }
         for (const QMailAccountId &accId : accountIdList) {
             EmailAgent::instance()->exportUpdates(QMailAccountIdList() << accId);
-        }
-    }
-}
-
-void EmailMessageListModel::downloadActivityChanged(QMailServiceAction::Activity activity)
-{
-    if (QMailServiceAction *action = static_cast<QMailServiceAction*>(sender())) {
-        if (activity == QMailServiceAction::Successful) {
-            if (action == m_retrievalAction) {
-                emit messageDownloadCompleted();
-            }
-        } else if (activity == QMailServiceAction::Failed) {
-            //  Todo:  hmm.. may be I should emit an error here.
-            emit messageDownloadCompleted();
         }
     }
 }
