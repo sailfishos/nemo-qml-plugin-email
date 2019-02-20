@@ -77,7 +77,6 @@ public:
     Q_INVOKABLE int folderServerCount(int folderId);
     Q_INVOKABLE int indexFromFolderId(int folderId);
     Q_INVOKABLE bool isOutgoingFolder(int idx);
-    Q_INVOKABLE int numberOfFolders();
     Q_INVOKABLE int standardFolderIndex(FolderStandardType folderType);
     Q_INVOKABLE bool isFolderAncestorOf(int folderId, int ancestorFolderId);
 

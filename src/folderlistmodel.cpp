@@ -43,14 +43,14 @@ FolderListModel::FolderListModel(QObject *parent) :
     roles.insert(FolderMessagesPermitted, "canHaveMessages");
     roles.insert(FolderParentId, "parentFolderId");
 
-    connect(QMailStore::instance(), SIGNAL(foldersAdded(const QMailFolderIdList &)), this,
-                          SLOT(onFoldersAdded(const QMailFolderIdList &)));
-    connect(QMailStore::instance(), SIGNAL(foldersRemoved(const QMailFolderIdList &)), this,
-                          SLOT(onFoldersRemoved(const QMailFolderIdList &)));
-    connect(QMailStore::instance(), SIGNAL(foldersUpdated(const QMailFolderIdList &)), this,
-                          SLOT(onFoldersChanged(const QMailFolderIdList &)));
-    connect(QMailStore::instance(), SIGNAL(folderContentsModified(const QMailFolderIdList&)), this,
-                          SLOT(updateUnreadCount(const QMailFolderIdList&)));
+    connect(QMailStore::instance(), SIGNAL(foldersAdded(const QMailFolderIdList &)),
+            this, SLOT(onFoldersAdded(const QMailFolderIdList &)));
+    connect(QMailStore::instance(), SIGNAL(foldersRemoved(const QMailFolderIdList &)),
+            this, SLOT(onFoldersRemoved(const QMailFolderIdList &)));
+    connect(QMailStore::instance(), SIGNAL(foldersUpdated(const QMailFolderIdList &)),
+            this, SLOT(onFoldersChanged(const QMailFolderIdList &)));
+    connect(QMailStore::instance(), SIGNAL(folderContentsModified(const QMailFolderIdList&)),
+            this, SLOT(updateUnreadCount(const QMailFolderIdList&)));
 }
 
 FolderListModel::~FolderListModel()
@@ -401,11 +401,6 @@ bool FolderListModel::isOutgoingFolder(int idx)
 {
     FolderStandardType folderStdType = static_cast<FolderListModel::FolderStandardType>(folderType(idx).toInt());
     return (folderStdType == SentFolder || folderStdType == DraftsFolder || folderStdType == OutboxFolder);
-}
-
-int FolderListModel::numberOfFolders()
-{
-    return m_folderList.count();
 }
 
 void FolderListModel::setAccountKey(int id)
