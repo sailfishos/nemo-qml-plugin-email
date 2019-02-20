@@ -20,10 +20,6 @@ class Q_DECL_EXPORT EmailFolder : public QObject
     Q_PROPERTY(int folderId READ folderId WRITE setFolderId NOTIFY folderIdChanged)
     Q_PROPERTY(int parentAccountId READ parentAccountId NOTIFY folderIdChanged)
     Q_PROPERTY(int parentFolderId READ parentFolderId NOTIFY folderIdChanged)
-    Q_PROPERTY(QString path READ path NOTIFY folderIdChanged)
-    Q_PROPERTY(int serverCount READ serverCount NOTIFY folderIdChanged)
-    Q_PROPERTY(int serverUndiscoveredCount READ serverUndiscoveredCount NOTIFY folderIdChanged)
-    Q_PROPERTY(int serverUnreadCount READ serverUnreadCount NOTIFY folderIdChanged)
 
 public:
     explicit EmailFolder(QObject *parent = 0);

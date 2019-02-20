@@ -44,26 +44,6 @@ int EmailFolder::parentFolderId() const
     return m_folder.parentFolderId().toULongLong();
 }
 
-QString EmailFolder::path() const
-{
-    return m_folder.path();
-}
-
-int EmailFolder::serverCount() const
-{
-    return m_folder.serverCount();
-}
-
-int EmailFolder::serverUndiscoveredCount() const
-{
-    return m_folder.serverUndiscoveredCount();
-}
-
-int EmailFolder::serverUnreadCount() const
-{
-    return m_folder.serverUnreadCount();
-}
-
 void EmailFolder::setDisplayName(const QString &displayName)
 {
     m_folder.setDisplayName(displayName);

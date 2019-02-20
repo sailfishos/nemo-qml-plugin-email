@@ -30,7 +30,6 @@ private slots:
     void setFolderId();
     void parentAccountId();
     void parentFolderId();
-    void path();
 
 private:
     QMailAccount m_account;
@@ -146,16 +145,6 @@ void tst_EmailFolder::parentFolderId()
     emailFolder->setFolderId(m_folder3.id().toULongLong());
     QCOMPARE(folderIdSpy.count(), 1);
     QCOMPARE(emailFolder->parentFolderId(),static_cast<int>(m_folder.id().toULongLong()));
-}
-
-void tst_EmailFolder::path()
-{
-    QScopedPointer<EmailFolder> emailFolder(new EmailFolder);
-    QSignalSpy folderIdSpy(emailFolder.data(), SIGNAL(folderIdChanged()));
-
-    emailFolder->setFolderId(m_folder3.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 1);
-    QCOMPARE(emailFolder->path(),QString(QLatin1String("TestFolder3")));
 }
 
 #include "tst_emailfolder.moc"
