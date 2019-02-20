@@ -83,6 +83,7 @@ void EmailFolder::setFolderId(int folderId)
 
         // Folder loaded from the store (or a empty folder), all properties changes
         emit folderIdChanged();
+        emit displayNameChanged();
     }
 }
 
