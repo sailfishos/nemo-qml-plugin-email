@@ -3,13 +3,11 @@
  * Copyright (C) 2012 Jolla Ltd.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
 #include <QDateTime>
-#include <QTimer>
-#include <QProcess>
 
 #include <qmailmessage.h>
 #include <qmailmessagekey.h>
@@ -69,12 +67,12 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     m_sortKey = QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
     m_sortBy = Time;
     QMailMessageListModel::setSortKey(m_sortKey);
-    m_selectedMsgIds.clear();
 
     connect(this, SIGNAL(rowsInserted(QModelIndex,int,int)),
             this, SIGNAL(countChanged()));
-
     connect(this, SIGNAL(rowsRemoved(QModelIndex,int,int)),
+            this, SIGNAL(countChanged()));
+    connect(this, SIGNAL(modelReset()),
             this, SIGNAL(countChanged()));
 
     connect(QMailStore::instance(), SIGNAL(messagesAdded(QMailMessageIdList)),
@@ -85,8 +83,6 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
 
     connect(QMailStore::instance(), SIGNAL(accountsUpdated(QMailAccountIdList)),
             this, SLOT(accountsChanged()));
-
-    connect(this, SIGNAL(modelReset()), this, SIGNAL(countChanged()));
 
     connect(EmailAgent::instance(), SIGNAL(searchCompleted(QString,const QMailMessageIdList&,bool,int,EmailAgent::SearchStatus)),
             this, SLOT(onSearchCompleted(QString,const QMailMessageIdList&,bool,int,EmailAgent::SearchStatus)));
@@ -353,8 +349,8 @@ void EmailMessageListModel::setAccountKey(int id, bool defaultInbox)
                 QMailMessageListModel::setKey(folderKey);
             } else {
                 QMailMessageListModel::setKey(QMailMessageKey::nonMatchingKey());
-                connect(QMailStore::instance(), SIGNAL(foldersAdded(const QMailFolderIdList &)), this,
-                        SLOT(foldersAdded(const QMailFolderIdList &)));
+                connect(QMailStore::instance(), SIGNAL(foldersAdded(const QMailFolderIdList &)),
+                        this, SLOT(foldersAdded(const QMailFolderIdList &)));
             }
         }
     }
@@ -384,8 +380,8 @@ void EmailMessageListModel::foldersAdded(const QMailFolderIdList &folderIds)
         // default to INBOX
         QMailMessageKey folderKey = QMailMessageKey::parentFolderId(folderId);
         QMailMessageListModel::setKey(folderKey);
-        disconnect(QMailStore::instance(), SIGNAL(foldersAdded(const QMailFolderIdList &)), this,
-                   SLOT(foldersAdded(const QMailFolderIdList &)));
+        disconnect(QMailStore::instance(), SIGNAL(foldersAdded(const QMailFolderIdList &)),
+                   this, SLOT(foldersAdded(const QMailFolderIdList &)));
         m_key = key();
     }
 }
@@ -649,7 +645,7 @@ void EmailMessageListModel::setCombinedInbox(bool c, bool forceUpdate)
         }
 
         QMailFolderKey inboxKey = QMailFolderKey::id(folderIds, QMailDataComparator::Includes);
-        QMailMessageKey messageKey =  QMailMessageKey::parentFolderId(inboxKey) & excludeRemovedKey;
+        QMailMessageKey messageKey = QMailMessageKey::parentFolderId(inboxKey) & excludeRemovedKey;
 
         if (m_filterUnread) {
             QMailMessageKey unreadKey = QMailMessageKey::parentFolderId(inboxKey)

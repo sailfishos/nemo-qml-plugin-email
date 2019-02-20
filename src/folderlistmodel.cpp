@@ -7,11 +7,6 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-
-#include <QDateTime>
-#include <QTimer>
-#include <QProcess>
-
 #include <qmailnamespace.h>
 #include <qmailaccount.h>
 #include <qmailfolder.h>

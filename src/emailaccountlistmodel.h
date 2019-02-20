@@ -29,17 +29,17 @@ public:
 
     enum Role {
         DisplayName = Qt::UserRole + 4,
-        EmailAddress = Qt::UserRole + 5,
-        MailServer = Qt::UserRole + 6,
-        UnreadCount = Qt::UserRole + 7,
-        MailAccountId  = Qt::UserRole + 8,
-        LastSynchronized = Qt::UserRole + 9,
-        StandardFoldersRetrieved = Qt::UserRole + 10,
-        Signature = Qt::UserRole + 11,
-        AppendSignature = Qt::UserRole + 12,
-        IconPath = Qt::UserRole + 13,
-        HasPersistentConnection = Qt::UserRole + 14,
-        Index = Qt::UserRole + 15
+        EmailAddress,
+        MailServer,
+        UnreadCount,
+        MailAccountId,
+        LastSynchronized,
+        StandardFoldersRetrieved,
+        Signature,
+        AppendSignature,
+        IconPath,
+        HasPersistentConnection,
+        Index
     };
 
     virtual QVariant data(const QModelIndex &index, int role) const;

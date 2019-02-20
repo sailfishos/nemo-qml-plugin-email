@@ -13,7 +13,6 @@
 #include "emailagent.h"
 
 #include <QAbstractListModel>
-#include <QProcess>
 #include <QTimer>
 
 #include <qmailmessage.h>
@@ -126,9 +125,6 @@ Q_SIGNALS:
     void sortByChanged();
     void unreadMailsSelectedChanged();
 
-signals:
-    void messageDownloadCompleted();
-
 public:
     Q_INVOKABLE void setFolderKey(int id, QMailMessageKey messageKey = QMailMessageKey());
     Q_INVOKABLE void setAccountKey(int id, bool defaultInbox = true);
@@ -171,7 +167,6 @@ private:
     bool m_filterUnread;
     bool m_canFetchMore;
     int m_limit;
-    QProcess m_msgAccount;
     QMailFolderId m_currentFolderId;
     QMailAccountIdList m_mailAccountIds;
     QString m_search;

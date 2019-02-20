@@ -180,7 +180,7 @@ FlagMessages::FlagMessages(QMailStorageAction* storageAction, const QMailMessage
     , _unsetMask(unsetMask)
 {
     QString idsList = idListToString(_ids);
-    _description =  QString("flag-messages:message-ids=%1;setMark=%2;unsetMark=%3").arg(idsList)
+    _description = QString("flag-messages:message-ids=%1;setMark=%2;unsetMark=%3").arg(idsList)
             .arg(_setMask).arg(_unsetMask);
     _type = EmailAction::Storage;
 }
@@ -210,7 +210,7 @@ MoveToFolder::MoveToFolder(QMailStorageAction *storageAction, const QMailMessage
     , _destinationFolder(folderId)
 {
     QString idsList = idListToString(_ids);
-    _description =  QString("move-messages-to-folder:message-ids=%1;folder-id=%2").arg(idsList)
+    _description = QString("move-messages-to-folder:message-ids=%1;folder-id=%2").arg(idsList)
             .arg(_destinationFolder.toULongLong());
     _type = EmailAction::Storage;
 }
@@ -240,7 +240,7 @@ MoveToStandardFolder::MoveToStandardFolder(QMailStorageAction *storageAction,
     , _standardFolder(standardFolder)
 {
     QString idsList = idListToString(_ids);
-    _description =  QString("move-messages-to-standard-folder:message-ids=%1;standard-folder=%2").arg(idsList)
+    _description = QString("move-messages-to-standard-folder:message-ids=%1;standard-folder=%2").arg(idsList)
             .arg(_standardFolder);
     _type = EmailAction::Storage;
 }
@@ -710,7 +710,7 @@ QMailMessageIdList RetrieveMessages::messageIds() const
 SearchMessages::SearchMessages(QMailSearchAction *searchAction,
                                const QMailMessageKey &filter, const QString &bodyText,
                                QMailSearchAction::SearchSpecification spec, quint64 limit, bool searchBody, const QMailMessageSortKey &sort)
-    : EmailAction(spec == QMailSearchAction::Local ? false : true)
+    : EmailAction(spec != QMailSearchAction::Local)
     , _searchAction(searchAction)
     , _filter(filter)
     , _bodyText(bodyText)

@@ -12,7 +12,6 @@
 
 #include <QObject>
 #include <qmailserviceaction.h>
-#include <qmailserviceaction.h>
 
 class Q_DECL_EXPORT EmailAction : public QObject
 {
