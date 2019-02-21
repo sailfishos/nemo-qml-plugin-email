@@ -673,6 +673,12 @@ Module {
         Method { name: "downloadMessage" }
         Method { name: "getCalendarInvitation" }
         Method { name: "send" }
+        Method {
+            name: "sendReadReceipt"
+            type: "bool"
+            Parameter { name: "subjectPrefix"; type: "string" }
+            Parameter { name: "readReceiptBodyText"; type: "string" }
+        }
         Method { name: "saveDraft" }
     }
     Component {
