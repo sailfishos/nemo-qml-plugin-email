@@ -1,6 +1,6 @@
 Name:       nemo-qml-plugin-email-qt5
 Summary:    Email plugin for Nemo Mobile
-Version:    0.4.6
+Version:    0.5.0
 Release:    1
 Group:      System/Libraries
 License:    BSD
@@ -32,7 +32,6 @@ Requires:   %{name} = %{version}-%{release}
 %package tests
 Summary:    QML email plugin tests
 Group:      System/Libraries
-Requires:   qmf-qt5-tests >= 4.0.4+git16
 Requires:   %{name} = %{version}-%{release}
 
 %description tests

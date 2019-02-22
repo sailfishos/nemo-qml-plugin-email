@@ -18,6 +18,8 @@
 
 #include "emailaction.h"
 
+class FolderAccessor;
+
 class Q_DECL_EXPORT EmailAgent : public QObject
 {
     Q_OBJECT
@@ -144,11 +146,18 @@ public:
     Q_INVOKABLE void retrieveFolderList(int accountId, int folderId = 0, bool descending = true);
     Q_INVOKABLE void retrieveMessageList(int accountId, int folderId, uint minimum = 20);
     Q_INVOKABLE void retrieveMessageRange(int messageId, uint minimum);
-    Q_INVOKABLE void purgeSendingQueue(int accountId);
+    Q_INVOKABLE void processSendingQueue(int accountId);
     Q_INVOKABLE void synchronize(int accountId, uint minimum = 20);
     Q_INVOKABLE void synchronizeInbox(int accountId, uint minimum = 20);
     Q_INVOKABLE void respondToCalendarInvitation(int messageId, CalendarInvitationResponse response,
                                                  const QString &responseSubject);
+
+    Q_INVOKABLE int accountIdForMessage(int messageId);
+    Q_INVOKABLE int folderIdForMessage(int messageId);
+
+    Q_INVOKABLE FolderAccessor *accessorFromFolderId(int folderId);
+    Q_INVOKABLE FolderAccessor *accountWideSearchAccessor(int accountId);
+    Q_INVOKABLE FolderAccessor *combinedInboxAccessor();
 
 signals:
     void currentSynchronizingAccountIdChanged();
@@ -231,7 +240,6 @@ private:
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);
     bool easCalendarInvitationResponse(const QMailMessage &message, CalendarInvitationResponse response,
                                        const QString &responseSubject);
-
 };
 
 #endif

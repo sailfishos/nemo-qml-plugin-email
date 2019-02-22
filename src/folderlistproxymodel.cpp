@@ -97,10 +97,8 @@ QVariant FolderListProxyModel::data(const QModelIndex &index, int role) const
         case FolderListModel::FolderServerCount:
         case FolderListModel::FolderNestingLevel:
             return 0;
-        case FolderListModel::FolderMessageKey:
-            return QMailMessageKey();
         case FolderListModel::FolderType:
-            return FolderListModel::NormalFolder;
+            return EmailFolder::NormalFolder;
         case FolderListModel::FolderRenamePermitted:
         case FolderListModel::FolderDeletionPermitted:
         case FolderListModel::FolderMovePermitted:

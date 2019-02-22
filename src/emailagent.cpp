@@ -24,6 +24,8 @@
 
 #include "emailagent.h"
 #include "emailaction.h"
+#include "folderutils.h"
+#include "folderaccessor.h"
 #include "logging_p.h"
 
 namespace {
@@ -924,7 +926,7 @@ void EmailAgent::retrieveMessageRange(int messageId, uint minimum)
     enqueue(new RetrieveMessageRange(m_retrievalAction.data(), id, minimum));
 }
 
-void EmailAgent::purgeSendingQueue(int accountId)
+void EmailAgent::processSendingQueue(int accountId)
 {
     QMailAccountId acctId(accountId);
     if (hasMessagesInOutbox(acctId)) {
@@ -1004,6 +1006,47 @@ void EmailAgent::respondToCalendarInvitation(int messageId, CalendarInvitationRe
 
     // Add handling of other accounts here
     qCWarning(lcEmail) << "Invitation response is not supported for message's email account";
+}
+
+int EmailAgent::accountIdForMessage(int messageId)
+{
+    QMailMessageId msgId(messageId);
+    QMailMessageMetaData metaData(msgId);
+    return metaData.parentAccountId().toULongLong();
+}
+
+int EmailAgent::folderIdForMessage(int messageId)
+{
+    QMailMessageId msgId(messageId);
+    QMailMessageMetaData metaData(msgId);
+    return metaData.parentFolderId().toULongLong();
+}
+
+FolderAccessor *EmailAgent::accessorFromFolderId(int folderId)
+{
+    QMailFolderId id(folderId);
+    // just the basic key, emaillistmodel takes care of filtering with folder id
+    QMailMessageKey excludeRemovedKey = QMailMessageKey::status(QMailMessage::Removed, QMailDataComparator::Excludes);
+
+    return new FolderAccessor(id, FolderUtils::folderTypeFromId(id), excludeRemovedKey);
+}
+
+FolderAccessor *EmailAgent::accountWideSearchAccessor(int accountId)
+{
+    QMailFolderId invalidId;
+    QMailMessageKey excludeRemovedKey = QMailMessageKey::status(QMailMessage::Removed, QMailDataComparator::Excludes);
+    FolderAccessor *accessor = new FolderAccessor(invalidId, EmailFolder::InvalidFolder, excludeRemovedKey);
+    accessor->setOperationMode(FolderAccessor::AccountWideSearch);
+    accessor->setAccountId(QMailAccountId(accountId));
+    return accessor;
+}
+
+FolderAccessor *EmailAgent::combinedInboxAccessor()
+{
+    QMailFolderId invalidId;
+    FolderAccessor *accessor = new FolderAccessor(invalidId, EmailFolder::InvalidFolder, QMailMessageKey());
+    accessor->setOperationMode(FolderAccessor::CombinedInbox);
+    return accessor;
 }
 
 bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,

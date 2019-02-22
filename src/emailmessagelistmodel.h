@@ -11,6 +11,7 @@
 #define EMAILMESSAGELISTMODEL_H
 
 #include "emailagent.h"
+#include "folderaccessor.h"
 
 #include <QAbstractListModel>
 #include <QTimer>
@@ -28,9 +29,10 @@ class Q_DECL_EXPORT EmailMessageListModel : public QMailMessageListModel
     Q_ENUMS(Sort)
     Q_ENUMS(SearchOn)
 
+    Q_PROPERTY(FolderAccessor *folderAccessor READ folderAccessor WRITE setFolderAccessor NOTIFY folderAccessorChanged)
     Q_PROPERTY(bool canFetchMore READ canFetchMore NOTIFY canFetchMoreChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(bool combinedInbox READ combinedInbox WRITE setCombinedInbox NOTIFY combinedInboxChanged)
+    Q_PROPERTY(int selectedMessageCount READ selectedMessageCount NOTIFY selectedMessageCountChanged)
     Q_PROPERTY(uint limit READ limit WRITE setLimit NOTIFY limitChanged)
     Q_PROPERTY(uint searchLimit READ searchLimit WRITE setSearchLimit NOTIFY searchLimitChanged)
     Q_PROPERTY(EmailMessageListModel::SearchOn searchOn READ searchOn WRITE setSearchOn NOTIFY searchOnChanged)
@@ -81,10 +83,12 @@ public:
     int rowCount(const QModelIndex & parent = QModelIndex()) const;
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
 
+    FolderAccessor *folderAccessor() const;
+    void setFolderAccessor(FolderAccessor *accessor);
+
     bool canFetchMore() const;
     int count() const;
-    bool combinedInbox() const;
-    void setCombinedInbox(bool c, bool forceUpdate = false);
+    int selectedMessageCount() const;
     uint limit() const;
     void setLimit(uint limit);
     uint searchLimit() const;
@@ -107,9 +111,10 @@ public:
     Q_INVOKABLE void notifyDateChanged();
 
 Q_SIGNALS:
+    void folderAccessorChanged();
     void canFetchMoreChanged();
     void countChanged();
-    void combinedInboxChanged();
+    void selectedMessageCountChanged();
     void limitChanged();
     void searchLimitChanged();
     void searchOnChanged();
@@ -122,27 +127,22 @@ Q_SIGNALS:
     void unreadMailsSelectedChanged();
 
 public:
-    Q_INVOKABLE void setFolderKey(int id, QMailMessageKey messageKey = QMailMessageKey());
-    Q_INVOKABLE void setAccountKey(int id, bool defaultInbox = true);
     Q_INVOKABLE void setSearch(const QString &search);
     Q_INVOKABLE void cancelSearch();
 
-    Q_INVOKABLE int accountIdForMessage(int messageId);
-    Q_INVOKABLE int folderIdForMessage(int messageId);
     Q_INVOKABLE int indexFromMessageId(int messageId);
 
     Q_INVOKABLE void selectAllMessages();
-    Q_INVOKABLE void deSelectAllMessages();
+    Q_INVOKABLE void deselectAllMessages();
     Q_INVOKABLE void selectMessage(int index);
-    Q_INVOKABLE void deSelectMessage(int index);
-    Q_INVOKABLE void moveSelectedMessageIds(int vFolderId);
-    Q_INVOKABLE void deleteSelectedMessageIds();
-    Q_INVOKABLE void markAsReadSelectedMessagesIds();
-    Q_INVOKABLE void markAsUnReadSelectedMessagesIds();
+    Q_INVOKABLE void deselectMessage(int index);
+    Q_INVOKABLE void moveSelectedMessages(int folderId);
+    Q_INVOKABLE void deleteSelectedMessages();
+    Q_INVOKABLE void markAsReadSelectedMessages();
+    Q_INVOKABLE void markAsUnReadSelectedMessages();
     Q_INVOKABLE void markAllMessagesAsRead();
 
 private slots:
-    void foldersAdded(const QMailFolderIdList &folderIds);
     void messagesAdded(const QMailMessageIdList &ids);
     void messagesRemoved(const QMailMessageIdList &ids);
     void searchOnline();
@@ -154,6 +154,7 @@ protected:
     virtual QHash<int, QByteArray> roleNames() const;
 
 private:
+    void useCombinedInbox();
     void sortByOrder(Qt::SortOrder order, EmailMessageListModel::Sort sortBy);
     void checkFetchMoreChanged();
     void setSearchRemainingOnRemote(int count);
@@ -162,7 +163,6 @@ private:
     bool m_combinedInbox;
     bool m_canFetchMore;
     int m_limit;
-    QMailFolderId m_currentFolderId;
     QMailAccountIdList m_mailAccountIds;
     QString m_search;
     QString m_remoteSearch;
@@ -176,12 +176,13 @@ private:
     int m_searchRemainingOnRemote;
     bool m_searchCanceled;
     QMailMessageKey m_searchKey;
-    QMailMessageKey m_key;                  // key set externally other than search
+    QMailMessageKey m_key;
     QMailMessageSortKey m_sortKey;
     EmailMessageListModel::Sort m_sortBy;
     QMap<int, QMailMessageId> m_selectedMsgIds;
     QList<int> m_selectedUnreadIdx;
     QTimer m_remoteSearchTimer;
+    FolderAccessor *m_folderAccessor;
 };
 
 #endif

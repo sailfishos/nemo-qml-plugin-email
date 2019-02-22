@@ -1,6 +1,6 @@
 Name:       nemo-qml-plugin-email-qt5-offline
 Summary:    Offline email plugin for Nemo Mobile
-Version:    0.1.41
+Version:    0.5.0
 Release:    1
 Group:      System/Libraries
 License:    BSD

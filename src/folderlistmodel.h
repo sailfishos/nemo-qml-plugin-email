@@ -9,18 +9,19 @@
 #ifndef FOLDERLISTMODEL_H
 #define FOLDERLISTMODEL_H
 
+#include "emailfolder.h"
+
 #include <qmailfolder.h>
 #include <qmailaccount.h>
 
 #include <QAbstractListModel>
 
+class FolderAccessor;
+
 class Q_DECL_EXPORT FolderListModel : public QAbstractListModel
 {
     Q_OBJECT
-    Q_ENUMS(FolderStandardType)
     Q_PROPERTY(int accountKey READ accountKey WRITE setAccountKey NOTIFY accountKeyChanged FINAL)
-    Q_PROPERTY(quint64 currentFolderIdx READ currentFolderIdx WRITE setCurrentFolderIdx NOTIFY currentFolderIdxChanged FINAL)
-    Q_PROPERTY(int currentFolderUnreadCount READ currentFolderUnreadCount NOTIFY currentFolderUnreadCountChanged FINAL)
     Q_PROPERTY(bool canCreateTopLevelFolders READ canCreateTopLevelFolders NOTIFY canCreateTopLevelFoldersChanged FINAL)
     Q_PROPERTY(bool supportsFolderActions READ supportsFolderActions NOTIFY supportsFolderActionsChanged FINAL)
 
@@ -34,7 +35,6 @@ public:
         FolderUnreadCount,
         FolderServerCount,
         FolderNestingLevel,
-        FolderMessageKey,
         FolderType,
         FolderRenamePermitted,
         FolderDeletionPermitted,
@@ -45,23 +45,8 @@ public:
         Index
     };
 
-    enum FolderStandardType {
-        NormalFolder = 0,
-        InboxFolder,
-        OutboxFolder,
-        SentFolder,
-        DraftsFolder,
-        TrashFolder,
-        JunkFolder
-    };
-
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role) const;
-
-    int currentFolderIdx() const;
-    void setCurrentFolderIdx(int folderIdx);
-
-    int currentFolderUnreadCount() const;
 
     bool canCreateTopLevelFolders() const;
     bool supportsFolderActions() const;
@@ -70,19 +55,12 @@ public:
     int accountKey() const;
 
     Q_INVOKABLE int folderId(int idx);
-    Q_INVOKABLE QVariant folderMessageKey(int idx);
-    Q_INVOKABLE QString folderName(int idx);
-    Q_INVOKABLE QVariant folderType(int idx);
-    Q_INVOKABLE int folderUnreadCount(int idx);
-    Q_INVOKABLE int folderServerCount(int folderId);
+    Q_INVOKABLE FolderAccessor *folderAccessor(int index);
     Q_INVOKABLE int indexFromFolderId(int folderId);
-    Q_INVOKABLE bool isOutgoingFolder(int idx);
-    Q_INVOKABLE int standardFolderIndex(FolderStandardType folderType);
+    Q_INVOKABLE int standardFolderIndex(EmailFolder::FolderType folderType);
     Q_INVOKABLE bool isFolderAncestorOf(int folderId, int ancestorFolderId);
 
 signals:
-    void currentFolderIdxChanged();
-    void currentFolderUnreadCountChanged();
     void canCreateTopLevelFoldersChanged();
     void supportsFolderActionsChanged();
     void resyncNeeded();
@@ -98,41 +76,31 @@ private slots:
     void updateUnreadCount(const QMailFolderIdList &folderIds);
 
 private:
-    int folderUnreadCount(const QMailFolderId &folderId, FolderStandardType folderType, QMailMessageKey folderMessageKey) const;
-
-private:
-    struct FolderItem {
-        QMailFolderId folderId;
-        FolderStandardType folderType;
-        QMailMessageKey messageKey;
-        int unreadCount;
-
-        FolderItem(QMailFolderId mailFolderId,
-                   FolderStandardType mailFolderType, QMailMessageKey folderMessageKey, int folderUnreadCount) :
-            folderId(mailFolderId), folderType(mailFolderType), messageKey(folderMessageKey),
-            unreadCount(folderUnreadCount) {}
-    };
-
-    int m_currentFolderIdx;
-    int m_currentFolderUnreadCount;
-    FolderStandardType m_currentFolderType;
-    QMailFolderId m_currentFolderId;
-    QHash<int, QByteArray> roles;
-    QMailAccountId m_accountId;
-    QMailAccount m_account;
-    QList<FolderItem*> m_folderList;
-
-    FolderStandardType folderTypeFromId(const QMailFolderId &id) const;
-    bool isStandardFolder(const QMailFolderId &id) const;
-    bool isAncestorFolder(const QMailFolderId &id, const QMailFolderId &ancestor) const;
-    void createAndAddFolderItem(const QMailFolderId &mailFolderId, FolderStandardType mailFolderType,
+    void createAndAddFolderItem(const QMailFolderId &mailFolderId, EmailFolder::FolderType mailFolderType,
                                 const QMailMessageKey &folderMessageKey);
-    QString localFolderName(const FolderStandardType folderType) const;
     void updateCurrentFolderIndex();
     void addFolderAndChildren(const QMailFolderId &folderId, QMailMessageKey messageKey, QList<QMailFolderId> &originalList);
     void resetModel();
     void doReloadModel();
     void checkResyncNeeded();
+
+private:
+    struct FolderItem {
+        QMailFolderId folderId;
+        EmailFolder::FolderType folderType;
+        QMailMessageKey messageKey;
+        int unreadCount;
+
+        FolderItem(QMailFolderId mailFolderId, EmailFolder::FolderType mailFolderType,
+                   QMailMessageKey folderMessageKey, int folderUnreadCount)
+            : folderId(mailFolderId), folderType(mailFolderType), messageKey(folderMessageKey)
+            , unreadCount(folderUnreadCount) {}
+    };
+
+    QHash<int, QByteArray> roles;
+    QMailAccountId m_accountId;
+    QMailAccount m_account;
+    QList<FolderItem*> m_folderList;
 };
 
 #endif

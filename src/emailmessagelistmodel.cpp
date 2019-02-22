@@ -30,7 +30,8 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
       m_searchSubject(true),
       m_searchBody(true),
       m_searchRemainingOnRemote(0),
-      m_searchCanceled(false)
+      m_searchCanceled(false),
+      m_folderAccessor(new FolderAccessor(this))
 {
     roles[QMailMessageModelBase::MessageAddressTextRole] = "sender";
     roles[QMailMessageModelBase::MessageSubjectTextRole] = "subject";
@@ -200,6 +201,7 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
 
         // The value of this property depends on the current date; if that changes, we need to notify the update
         QDate now(QDate::currentDate());
+        // FIXME: this only works when new data is fetched
         if (now != lastDate) {
             lastDate = now;
             QMetaObject::invokeMethod(const_cast<EmailMessageListModel *>(this), "notifyDateChanged");
@@ -250,22 +252,96 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
     return QMailMessageListModel::data(index, role);
 }
 
+FolderAccessor *EmailMessageListModel::folderAccessor() const
+{
+    return m_folderAccessor;
+}
+
+void EmailMessageListModel::setFolderAccessor(FolderAccessor *accessor)
+{
+    m_folderAccessor->readValues(accessor);
+
+    if (accessor) {
+        QMailFolderId mailFolder(accessor->folderId());
+
+        if (accessor->operationMode() == FolderAccessor::AccountWideSearch) {
+            QMailMessageListModel::setKey(QMailMessageKey::nonMatchingKey());
+
+            QMailMessageKey key = accessor->messageKey(); // used when search is active
+            QMailAccountId accountId = accessor->accountId();
+            if (accountId.isValid()) {
+                key = key & QMailMessageKey::parentAccountId(accountId);
+            } else {
+                qCWarning(lcEmail) << "No proper account given for search accessor";
+            }
+
+            m_key = key;
+        } else if (accessor->operationMode() == FolderAccessor::CombinedInbox) {
+            useCombinedInbox();
+        } else if (mailFolder.isValid()) {
+            QMailMessageKey messageKey = QMailMessageKey::parentFolderId(mailFolder);
+            QMailAccountId accountId = accessor->accountId();
+            // Local folders (e.g outbox) can have messages from several accounts.
+            if (accountId.isValid()) {
+                messageKey = messageKey & QMailMessageKey::parentAccountId(accountId);
+            }
+
+            QMailMessageListModel::setKey(messageKey & accessor->messageKey());
+            m_key = key();
+        } else {
+            QMailMessageListModel::setKey(QMailMessageKey());
+            m_key = key();
+        }
+
+        if (accessor->operationMode() != FolderAccessor::CombinedInbox)
+            m_combinedInbox = false;
+
+        QMailMessageListModel::setSortKey(m_sortKey);
+
+    } else {
+        m_combinedInbox = false;
+        QMailMessageListModel::setKey(QMailMessageKey());
+        m_key = key();
+    }
+
+    if (!m_selectedMsgIds.isEmpty()) {
+        m_selectedMsgIds.clear();
+        emit selectedMessageCountChanged();
+    }
+
+    if (!m_selectedUnreadIdx.isEmpty()) {
+        m_selectedUnreadIdx.clear();
+        emit unreadMailsSelectedChanged();
+    }
+
+    checkFetchMoreChanged();
+    emit folderAccessorChanged();
+}
+
 int EmailMessageListModel::count() const
 {
     return rowCount();
 }
 
+int EmailMessageListModel::selectedMessageCount() const
+{
+    return m_selectedMsgIds.size();
+}
+
 void EmailMessageListModel::setSearch(const QString &search)
 {
+    // TODO: could bail out if search string didn't change, but then changing search properties
+    // should retrigger search.
+
     if (search.isEmpty()) {
+        // TODO: this should return the model content to what it was before searching,
+        // so the feature could be used with any kind of folder access. Now this assumes
+        // account wide search mode.
         m_searchKey = QMailMessageKey::nonMatchingKey();
         setKey(m_searchKey);
         m_search = search;
         cancelSearch();
     } else {
-        if (m_search == search)
-            return;
-
         QMailMessageKey tempKey;
         if (m_searchFrom) {
             tempKey |= QMailMessageKey::sender(search, QMailDataComparator::Includes);
@@ -281,22 +357,33 @@ void EmailMessageListModel::setSearch(const QString &search)
         }
 
         m_searchCanceled = false;
+
         // All options are disabled, nothing to search
         if (tempKey.isEmpty()) {
             return;
         }
+
+        if (m_key.isNonMatching()) {
+            // This just for robustness now, TODO: fix messageserver crashing on imap plugin
+            qCWarning(lcEmail) << "EmailMessageListModel not having proper key set for searching";
+            return;
+        }
+
         m_searchKey = QMailMessageKey(m_key & tempKey);
         m_search = search;
         setSearchRemainingOnRemote(0);
 
         if (m_searchOn == EmailMessageListModel::Remote) {
             setKey(QMailMessageKey::nonMatchingKey());
-            EmailAgent::instance()->searchMessages(m_searchKey, m_search, QMailSearchAction::Remote, m_searchLimit, m_searchBody);
+            EmailAgent::instance()->searchMessages(m_searchKey, m_search, QMailSearchAction::Remote,
+                                                   m_searchLimit, m_searchBody);
         } else {
             setKey(m_searchKey);
-            // We have model filtering already via searchKey, so when doing body search we pass just the current model key plus body search,
-            // otherwise results will be merged and just entries with both, fields and body matches will be returned.
-            EmailAgent::instance()->searchMessages(m_searchBody ? m_key : m_searchKey, m_search, QMailSearchAction::Local, m_searchLimit, m_searchBody);
+            // We have model filtering already via searchKey, so when doing body search we pass just the
+            // current model key plus body search, otherwise results will be merged and just entries with both,
+            // fields and body matches will be returned.
+            EmailAgent::instance()->searchMessages(m_searchBody ? m_key : m_searchKey, m_search,
+                                                   QMailSearchAction::Local, m_searchLimit, m_searchBody);
         }
     }
 }
@@ -306,83 +393,6 @@ void EmailMessageListModel::cancelSearch()
     // Cancel also remote search since it can be trigger later by the timer
     m_searchCanceled = true;
     EmailAgent::instance()->cancelSearch();
-}
-
-void EmailMessageListModel::setFolderKey(int id, QMailMessageKey messageKey)
-{
-    m_currentFolderId = QMailFolderId(id);
-    if (!m_currentFolderId.isValid())
-        return;
-    // Local folders (e.g outbox) can have messages from several accounts.
-    QMailMessageKey accountKey = QMailMessageKey::parentAccountId(m_mailAccountIds);
-    QMailMessageKey folderKey = accountKey & QMailMessageKey::parentFolderId(m_currentFolderId);
-    QMailMessageListModel::setKey(folderKey & messageKey);
-    m_key = key();
-    QMailMessageListModel::setSortKey(m_sortKey);
-
-    if (combinedInbox())
-        setCombinedInbox(false);
-
-    emit countChanged();
-    checkFetchMoreChanged();
-}
-
-void EmailMessageListModel::setAccountKey(int id, bool defaultInbox)
-{
-    QMailAccountId accountId = QMailAccountId(id);
-    if (!accountId.isValid()) {
-        //If accountId is invalid, empty key will be set.
-        QMailMessageListModel::setKey(QMailMessageKey::nonMatchingKey());
-    } else {
-        m_mailAccountIds.clear();
-        m_mailAccountIds.append(accountId);
-
-        QMailMessageKey accountKey = QMailMessageKey::parentAccountId(accountId);
-        QMailMessageListModel::setKey(accountKey);
-        if (defaultInbox) {
-            QMailAccount account(accountId);
-            QMailFolderId folderId = account.standardFolder(QMailFolder::InboxFolder);
-            if (folderId.isValid()) {
-                // default to INBOX
-                QMailMessageKey folderKey = QMailMessageKey::parentFolderId(folderId);
-                QMailMessageListModel::setKey(folderKey);
-            } else {
-                QMailMessageListModel::setKey(QMailMessageKey::nonMatchingKey());
-                connect(QMailStore::instance(), SIGNAL(foldersAdded(const QMailFolderIdList &)),
-                        this, SLOT(foldersAdded(const QMailFolderIdList &)));
-            }
-        }
-    }
-    QMailMessageListModel::setSortKey(m_sortKey);
-
-    m_key = key();
-
-    if (combinedInbox())
-        setCombinedInbox(false);
-
-    emit countChanged();
-    checkFetchMoreChanged();
-}
-
-void EmailMessageListModel::foldersAdded(const QMailFolderIdList &folderIds)
-{
-    QMailFolderId folderId;
-    for (const QMailFolderId &mailFolderId : folderIds) {
-        QMailFolder folder(mailFolderId);
-        if (m_mailAccountIds.contains(folder.parentAccountId())) {
-            QMailAccount account(folder.parentAccountId());
-            folderId = account.standardFolder(QMailFolder::InboxFolder);
-            break;
-        }
-    }
-    if (folderId.isValid()) {
-        // default to INBOX
-        QMailMessageKey folderKey = QMailMessageKey::parentFolderId(folderId);
-        QMailMessageListModel::setKey(folderKey);
-        disconnect(QMailStore::instance(), SIGNAL(foldersAdded(const QMailFolderIdList &)),
-                   this, SLOT(foldersAdded(const QMailFolderIdList &)));
-        m_key = key();
-    }
 }
 
 EmailMessageListModel::Sort EmailMessageListModel::sortBy() const
@@ -416,7 +426,6 @@ void EmailMessageListModel::setSortBy(EmailMessageListModel::Sort sort)
     sortByOrder(order, sort);
 }
 
-// Always sorts by Qt::DescendingOrder
 void EmailMessageListModel::sortByOrder(Qt::SortOrder sortOrder, EmailMessageListModel::Sort sortBy)
 {
     switch (sortBy) {
@@ -464,20 +473,6 @@ void EmailMessageListModel::sortByOrder(Qt::SortOrder sortOrder, EmailMessageLis
     emit sortByChanged();
 }
 
-int EmailMessageListModel::accountIdForMessage(int messageId)
-{
-    QMailMessageId msgId(messageId);
-    QMailMessageMetaData metaData(msgId);
-    return metaData.parentAccountId().toULongLong();
-}
-
-int EmailMessageListModel::folderIdForMessage(int messageId)
-{
-    QMailMessageId msgId(messageId);
-    QMailMessageMetaData metaData(msgId);
-    return metaData.parentFolderId().toULongLong();
-}
-
 int EmailMessageListModel::indexFromMessageId(int messageId)
 {
     QMailMessageId msgId(messageId);
@@ -497,9 +492,9 @@ void EmailMessageListModel::selectAllMessages()
     }
 }
 
-void EmailMessageListModel::deSelectAllMessages()
+void EmailMessageListModel::deselectAllMessages()
 {
-    if (!m_selectedMsgIds.size())
+    if (m_selectedMsgIds.isEmpty())
         return;
 
     QMutableMapIterator<int, QMailMessageId> iter(m_selectedMsgIds);
@@ -511,6 +506,7 @@ void EmailMessageListModel::deSelectAllMessages()
     }
     m_selectedUnreadIdx.clear();
     emit unreadMailsSelectedChanged();
+    emit selectedMessageCountChanged();
 }
 
 void EmailMessageListModel::selectMessage(int idx)
@@ -520,6 +516,7 @@ void EmailMessageListModel::selectMessage(int idx)
     if (!m_selectedMsgIds.contains(idx)) {
         m_selectedMsgIds.insert(idx, msgId);
         dataChanged(index(idx), index(idx), QVector<int>() << MessageSelectModeRole);
+        emit selectedMessageCountChanged();
     }
 
     bool messageRead = data(index(idx), MessageReadStatusRole).toBool();
@@ -531,11 +528,12 @@ void EmailMessageListModel::selectMessage(int idx)
     }
 }
 
-void EmailMessageListModel::deSelectMessage(int idx)
+void EmailMessageListModel::deselectMessage(int idx)
 {
     if (m_selectedMsgIds.contains(idx)) {
         m_selectedMsgIds.remove(idx);
         dataChanged(index(idx), index(idx), QVector<int>() << MessageSelectModeRole);
+        emit selectedMessageCountChanged();
     }
 
     if (m_selectedUnreadIdx.contains(idx)) {
@@ -546,43 +544,43 @@ void EmailMessageListModel::deSelectMessage(int idx)
     }
 }
 
-void EmailMessageListModel::moveSelectedMessageIds(int vFolderId)
+void EmailMessageListModel::moveSelectedMessages(int folderId)
 {
     if (m_selectedMsgIds.empty())
         return;
 
-    const QMailFolderId id(vFolderId);
+    const QMailFolderId id(folderId);
     if (id.isValid()) {
         EmailAgent::instance()->moveMessages(m_selectedMsgIds.values(), id);
     }
-    deSelectAllMessages();
+    deselectAllMessages();
 }
 
-void EmailMessageListModel::deleteSelectedMessageIds()
+void EmailMessageListModel::deleteSelectedMessages()
 {
     if (m_selectedMsgIds.empty())
         return;
 
     EmailAgent::instance()->deleteMessages(m_selectedMsgIds.values());
-    deSelectAllMessages();
+    deselectAllMessages();
 }
 
-void EmailMessageListModel::markAsReadSelectedMessagesIds()
+void EmailMessageListModel::markAsReadSelectedMessages()
 {
     if (m_selectedMsgIds.empty())
         return;
 
     EmailAgent::instance()->setMessagesReadState(m_selectedMsgIds.values(), true);
-    deSelectAllMessages();
+    deselectAllMessages();
 }
 
-void EmailMessageListModel::markAsUnReadSelectedMessagesIds()
+void EmailMessageListModel::markAsUnReadSelectedMessages()
 {
     if (m_selectedMsgIds.empty())
         return;
 
     EmailAgent::instance()->setMessagesReadState(m_selectedMsgIds.values(), false);
-    deSelectAllMessages();
+    deselectAllMessages();
 }
 
 void EmailMessageListModel::markAllMessagesAsRead()
@@ -603,14 +601,14 @@ void EmailMessageListModel::markAllMessagesAsRead()
                 }
             }
         }
-        if (msgIds.size()) {
+        if (!msgIds.isEmpty()) {
             QMailStore::instance()->updateMessagesMetaData(QMailMessageKey::id(msgIds), status, true);
         }
         for (const QMailAccountId &accId : accountIdList) {
             EmailAgent::instance()->exportUpdates(QMailAccountIdList() << accId);
         }
 
-        if (m_selectedUnreadIdx.size()) {
+        if (!m_selectedUnreadIdx.isEmpty()) {
             m_selectedUnreadIdx.clear();
             emit unreadMailsSelectedChanged();
         }
@@ -622,54 +620,35 @@ bool EmailMessageListModel::canFetchMore() const
     return m_canFetchMore;
 }
 
-bool EmailMessageListModel::combinedInbox() const
+void EmailMessageListModel::useCombinedInbox()
 {
-    return m_combinedInbox;
-}
-
-void EmailMessageListModel::setCombinedInbox(bool c, bool forceUpdate)
-{
-    if (!forceUpdate && c == m_combinedInbox) {
+    if (m_combinedInbox) {
         return;
     }
 
     m_mailAccountIds = QMailStore::instance()->queryAccounts(QMailAccountKey::messageType(QMailMessage::Email)
                                                              & QMailAccountKey::status(QMailAccount::Enabled),
                                                              QMailAccountSortKey::name());
-    QMailMessageKey excludeRemovedKey = QMailMessageKey::status(QMailMessage::Removed,  QMailDataComparator::Excludes);
+    QMailMessageKey excludeRemovedKey = QMailMessageKey::status(QMailMessage::Removed, QMailDataComparator::Excludes);
     QMailMessageKey excludeReadKey = QMailMessageKey::status(QMailMessage::Read, QMailDataComparator::Excludes);
 
-    if (c) {
-        QMailFolderIdList folderIds;
-        for (const QMailAccountId &accountId : m_mailAccountIds) {
-            QMailAccount account(accountId);
-            QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
-            if (foldId.isValid())
-                folderIds << account.standardFolder(QMailFolder::InboxFolder);
-        }
-
-        QMailFolderKey inboxKey = QMailFolderKey::id(folderIds, QMailDataComparator::Includes);
-        QMailMessageKey messageKey = QMailMessageKey::parentFolderId(inboxKey) & excludeRemovedKey;
-
-        QMailMessageKey unreadKey = QMailMessageKey::parentFolderId(inboxKey)
-                & excludeReadKey
-                & excludeRemovedKey;
-        QMailMessageListModel::setKey(unreadKey);
-
-        m_combinedInbox = true;
-        m_key = key();
-    } else {
-        QMailMessageKey accountKey;
-
-        accountKey = QMailMessageKey::parentAccountId(m_mailAccountIds)
-                & excludeReadKey
-                & excludeRemovedKey;
-        QMailMessageListModel::setKey(accountKey);
-        m_key = key();
-        QMailMessageListModel::setSortKey(m_sortKey);
-        m_combinedInbox = false;
+    QMailFolderIdList folderIds;
+    for (const QMailAccountId &accountId : m_mailAccountIds) {
+        QMailAccount account(accountId);
+        QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
+        if (foldId.isValid())
+            folderIds << account.standardFolder(QMailFolder::InboxFolder);
     }
-    emit combinedInboxChanged();
+
+    QMailFolderKey inboxKey = QMailFolderKey::id(folderIds, QMailDataComparator::Includes);
+
+    QMailMessageKey unreadKey = QMailMessageKey::parentFolderId(inboxKey)
+            & excludeReadKey
+            & excludeRemovedKey;
+    QMailMessageListModel::setKey(unreadKey);
+    m_key = key();
+
+    m_combinedInbox = true;
 }
 
 uint EmailMessageListModel::limit() const
@@ -863,5 +842,5 @@ void EmailMessageListModel::accountsChanged()
         return;
     }
 
-    setCombinedInbox(true, true);
+    useCombinedInbox();
 }
