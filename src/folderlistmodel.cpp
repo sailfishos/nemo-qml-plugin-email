@@ -50,6 +50,8 @@ FolderListModel::FolderListModel(QObject *parent) :
 
 FolderListModel::~FolderListModel()
 {
+    qDeleteAll(m_folderList);
+    m_folderList.clear();
 }
 
 QHash<int, QByteArray> FolderListModel::roleNames() const
