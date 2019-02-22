@@ -44,12 +44,6 @@ int EmailFolder::parentFolderId() const
     return m_folder.parentFolderId().toULongLong();
 }
 
-void EmailFolder::setDisplayName(const QString &displayName)
-{
-    m_folder.setDisplayName(displayName);
-    emit displayNameChanged();
-}
-
 void EmailFolder::setFolderId(int folderId)
 {
     QMailFolderId foldId(folderId);

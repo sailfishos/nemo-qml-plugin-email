@@ -25,7 +25,6 @@ private slots:
     void cleanupTestCase();
 
     void displayName();
-    void setDisplayName();
     void folderId();
     void setFolderId();
     void parentAccountId();
@@ -86,22 +85,6 @@ void tst_EmailFolder::displayName()
     emailFolder->setFolderId(m_folder3.id().toULongLong());
     QCOMPARE(folderIdSpy.count(), 3);
     QCOMPARE(emailFolder->displayName(),QString(QLatin1String("TestFolder3")));
-}
-
-void tst_EmailFolder::setDisplayName()
-{
-    QScopedPointer<EmailFolder> emailFolder(new EmailFolder);
-    QSignalSpy displayNameSpy(emailFolder.data(), SIGNAL(displayNameChanged()));
-    QSignalSpy folderIdSpy(emailFolder.data(), SIGNAL(folderIdChanged()));
-
-    emailFolder->setFolderId(m_folder.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 1);
-    emailFolder->setDisplayName("Test1");
-    QCOMPARE(displayNameSpy.count(), 1);
-    QCOMPARE(emailFolder->displayName(),QString(QLatin1String("Test1")));
-    emailFolder->setDisplayName("TestFolder1");
-    QCOMPARE(displayNameSpy.count(), 2);
-    QCOMPARE(emailFolder->displayName(),QString(QLatin1String("TestFolder1")));
 }
 
 void tst_EmailFolder::folderId()

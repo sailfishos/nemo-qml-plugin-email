@@ -16,7 +16,7 @@
 class Q_DECL_EXPORT EmailFolder : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName NOTIFY displayNameChanged)
+    Q_PROPERTY(QString displayName READ displayName NOTIFY displayNameChanged)
     Q_PROPERTY(int folderId READ folderId WRITE setFolderId NOTIFY folderIdChanged)
     Q_PROPERTY(int parentAccountId READ parentAccountId NOTIFY folderIdChanged)
     Q_PROPERTY(int parentFolderId READ parentFolderId NOTIFY folderIdChanged)
@@ -33,7 +33,6 @@ public:
     int serverCount() const;
     int serverUndiscoveredCount() const;
     int serverUnreadCount() const;
-    void setDisplayName(const QString &displayName);
     void setFolderId(int folderId);
 
 signals:
