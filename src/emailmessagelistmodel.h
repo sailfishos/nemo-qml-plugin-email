@@ -31,7 +31,6 @@ class Q_DECL_EXPORT EmailMessageListModel : public QMailMessageListModel
     Q_PROPERTY(bool canFetchMore READ canFetchMore NOTIFY canFetchMoreChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool combinedInbox READ combinedInbox WRITE setCombinedInbox NOTIFY combinedInboxChanged)
-    Q_PROPERTY(bool filterUnread READ filterUnread WRITE setFilterUnread NOTIFY filterUnreadChanged)
     Q_PROPERTY(uint limit READ limit WRITE setLimit NOTIFY limitChanged)
     Q_PROPERTY(uint searchLimit READ searchLimit WRITE setSearchLimit NOTIFY searchLimitChanged)
     Q_PROPERTY(EmailMessageListModel::SearchOn searchOn READ searchOn WRITE setSearchOn NOTIFY searchOnChanged)
@@ -86,7 +85,6 @@ public:
     int count() const;
     bool combinedInbox() const;
     void setCombinedInbox(bool c, bool forceUpdate = false);
-    bool filterUnread() const;
     uint limit() const;
     void setLimit(uint limit);
     uint searchLimit() const;
@@ -102,7 +100,6 @@ public:
     bool searchBody() const;
     void setSearchBody(bool value);
     int searchRemainingOnRemote() const;
-    void setFilterUnread(bool u);
     void setSortBy(Sort sort);
     EmailMessageListModel::Sort sortBy() const;
     bool unreadMailsSelected() const;
@@ -113,7 +110,6 @@ Q_SIGNALS:
     void canFetchMoreChanged();
     void countChanged();
     void combinedInboxChanged();
-    void filterUnreadChanged();
     void limitChanged();
     void searchLimitChanged();
     void searchOnChanged();
@@ -164,7 +160,6 @@ private:
 
     QHash<int, QByteArray> roles;
     bool m_combinedInbox;
-    bool m_filterUnread;
     bool m_canFetchMore;
     int m_limit;
     QMailFolderId m_currentFolderId;

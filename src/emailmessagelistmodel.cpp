@@ -22,7 +22,6 @@
 EmailMessageListModel::EmailMessageListModel(QObject *parent)
     : QMailMessageListModel(parent),
       m_combinedInbox(false),
-      m_filterUnread(true),
       m_canFetchMore(false),
       m_searchLimit(100),
       m_searchOn(EmailMessageListModel::LocalAndRemote),
@@ -647,49 +646,25 @@ void EmailMessageListModel::setCombinedInbox(bool c, bool forceUpdate)
         QMailFolderKey inboxKey = QMailFolderKey::id(folderIds, QMailDataComparator::Includes);
         QMailMessageKey messageKey = QMailMessageKey::parentFolderId(inboxKey) & excludeRemovedKey;
 
-        if (m_filterUnread) {
-            QMailMessageKey unreadKey = QMailMessageKey::parentFolderId(inboxKey)
-                    & excludeReadKey
-                    & excludeRemovedKey;
-            QMailMessageListModel::setKey(unreadKey);
-        } else {
-            QMailMessageListModel::setKey(messageKey);
-        }
+        QMailMessageKey unreadKey = QMailMessageKey::parentFolderId(inboxKey)
+                & excludeReadKey
+                & excludeRemovedKey;
+        QMailMessageListModel::setKey(unreadKey);
 
         m_combinedInbox = true;
         m_key = key();
     } else {
         QMailMessageKey accountKey;
 
-        if (m_filterUnread) {
-            accountKey = QMailMessageKey::parentAccountId(m_mailAccountIds)
-                    & excludeReadKey
-                    & excludeRemovedKey;
-        } else {
-            accountKey = QMailMessageKey::parentAccountId(m_mailAccountIds)
-                    & excludeRemovedKey;
-        }
+        accountKey = QMailMessageKey::parentAccountId(m_mailAccountIds)
+                & excludeReadKey
+                & excludeRemovedKey;
         QMailMessageListModel::setKey(accountKey);
         m_key = key();
         QMailMessageListModel::setSortKey(m_sortKey);
         m_combinedInbox = false;
     }
     emit combinedInboxChanged();
-}
-
-bool EmailMessageListModel::filterUnread() const
-{
-    return m_filterUnread;
-}
-
-void EmailMessageListModel::setFilterUnread(bool u)
-{
-    if (u == m_filterUnread) {
-        return;
-    }
-
-    m_filterUnread = u;
-    emit filterUnreadChanged();
 }
 
 uint EmailMessageListModel::limit() const
