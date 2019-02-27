@@ -609,6 +609,11 @@ void EmailMessageListModel::markAllMessagesAsRead()
         for (const QMailAccountId &accId : accountIdList) {
             EmailAgent::instance()->exportUpdates(QMailAccountIdList() << accId);
         }
+
+        if (m_selectedUnreadIdx.size()) {
+            m_selectedUnreadIdx.clear();
+            emit unreadMailsSelectedChanged();
+        }
     }
 }
 
