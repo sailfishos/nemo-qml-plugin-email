@@ -1328,14 +1328,12 @@ void EmailAgent::reportError(const QMailAccountId &accountId, const QMailService
     switch (errorCode) {
     case QMailServiceAction::Status::ErrFrameworkFault:
     case QMailServiceAction::Status::ErrSystemError:
-    case QMailServiceAction::Status::ErrInternalServer:
-    case QMailServiceAction::Status::ErrUnknownResponse:
     case QMailServiceAction::Status::ErrEnqueueFailed:
-    case QMailServiceAction::Status::ErrNoConnection:
     case QMailServiceAction::Status::ErrConnectionInUse:
-    case QMailServiceAction::Status::ErrConnectionNotReady:
-    case QMailServiceAction::Status::ErrTimeout:
     case QMailServiceAction::Status::ErrInternalStateReset:
+    case QMailServiceAction::Status::ErrInvalidAddress:
+    case QMailServiceAction::Status::ErrInvalidData:
+    case QMailServiceAction::Status::ErrNotImplemented:
         if (sendFailed) {
             emit error(accountId.toULongLong(), SendFailed);
         } else {
@@ -1349,9 +1347,6 @@ void EmailAgent::reportError(const QMailAccountId &accountId, const QMailService
         emit error(accountId.toULongLong(), DiskFull);
         break;
     case QMailServiceAction::Status::ErrConfiguration:
-    case QMailServiceAction::Status::ErrInvalidAddress:
-    case QMailServiceAction::Status::ErrInvalidData:
-    case QMailServiceAction::Status::ErrNotImplemented:
     case QMailServiceAction::Status::ErrNoSslSupport:
         emit error(accountId.toULongLong(), InvalidConfiguration);
         break;
@@ -1360,6 +1355,17 @@ void EmailAgent::reportError(const QMailAccountId &accountId, const QMailService
         break;
     case QMailServiceAction::Status::ErrCancel:
         // The operation was cancelled by user intervention.
+        break;
+    case QMailServiceAction::Status::ErrTimeout:
+        emit error(accountId.toULongLong(), Timeout);
+        break;
+    case QMailServiceAction::Status::ErrUnknownResponse:
+    case QMailServiceAction::Status::ErrInternalServer:
+        emit error(accountId.toULongLong(), ServerError);
+        break;
+    case QMailServiceAction::Status::ErrNoConnection:
+    case QMailServiceAction::Status::ErrConnectionNotReady:
+        emit error(accountId.toULongLong(), NotConnected);
         break;
     default:
         emit error(accountId.toULongLong(), InternalError);

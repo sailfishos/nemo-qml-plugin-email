@@ -64,7 +64,10 @@ public:
         InvalidConfiguration,
         UntrustedCertificates,
         InternalError,
-        SendFailed
+        SendFailed,
+        Timeout,
+        ServerError,
+        NotConnected
     };
 
     enum SearchStatus {
