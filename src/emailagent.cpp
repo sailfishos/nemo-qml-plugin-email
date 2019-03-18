@@ -57,7 +57,6 @@ EmailAgent::EmailAgent(QObject *parent)
     , m_synchronizing(false)
     , m_enqueing(false)
     , m_backgroundProcess(false)
-    , m_sendFailed(false)
     , m_retrievalAction(new QMailRetrievalAction(this))
     , m_storageAction(new QMailStorageAction(this))
     , m_transmitAction(new QMailTransmitAction(this))
@@ -399,9 +398,11 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
         } else {
             // Report the error
             dequeue();
+            bool sendFailed = false;
+
             if (m_currentAction->type() == EmailAction::Transmit) {
                 m_transmitting = false;
-                m_sendFailed = true;
+                sendFailed = true;
                 emit sendCompleted(false);
                 qCWarning(lcEmail) << "Error: Send failed";
             }
@@ -448,7 +449,7 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
             } else if (m_currentAction->type() == EmailAction::OnlineMoveFolder) {
                 emit onlineFolderActionCompleted(ActionOnlineMoveFolder, false);
             } else if (status.errorCode != QMailServiceAction::Status::ErrUnknownResponse) {
-                reportError(status.accountId, status.errorCode);
+                reportError(status.accountId, status.errorCode, sendFailed);
             }
             processNextAction(true);
             break;
@@ -1322,21 +1323,18 @@ quint64 EmailAgent::newAction()
     return quint64(++m_actionCount);
 }
 
-void EmailAgent::reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode)
+void EmailAgent::reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode, bool sendFailed)
 {
     switch (errorCode) {
     case QMailServiceAction::Status::ErrFrameworkFault:
     case QMailServiceAction::Status::ErrSystemError:
-    case QMailServiceAction::Status::ErrInternalServer:
-    case QMailServiceAction::Status::ErrUnknownResponse:
     case QMailServiceAction::Status::ErrEnqueueFailed:
-    case QMailServiceAction::Status::ErrNoConnection:
     case QMailServiceAction::Status::ErrConnectionInUse:
-    case QMailServiceAction::Status::ErrConnectionNotReady:
-    case QMailServiceAction::Status::ErrTimeout:
     case QMailServiceAction::Status::ErrInternalStateReset:
-        if (m_sendFailed) {
-            m_sendFailed = false;
+    case QMailServiceAction::Status::ErrInvalidAddress:
+    case QMailServiceAction::Status::ErrInvalidData:
+    case QMailServiceAction::Status::ErrNotImplemented:
+        if (sendFailed) {
             emit error(accountId.toULongLong(), SendFailed);
         } else {
             emit error(accountId.toULongLong(), SyncFailed);
@@ -1349,9 +1347,6 @@ void EmailAgent::reportError(const QMailAccountId &accountId, const QMailService
         emit error(accountId.toULongLong(), DiskFull);
         break;
     case QMailServiceAction::Status::ErrConfiguration:
-    case QMailServiceAction::Status::ErrInvalidAddress:
-    case QMailServiceAction::Status::ErrInvalidData:
-    case QMailServiceAction::Status::ErrNotImplemented:
     case QMailServiceAction::Status::ErrNoSslSupport:
         emit error(accountId.toULongLong(), InvalidConfiguration);
         break;
@@ -1360,6 +1355,17 @@ void EmailAgent::reportError(const QMailAccountId &accountId, const QMailService
         break;
     case QMailServiceAction::Status::ErrCancel:
         // The operation was cancelled by user intervention.
+        break;
+    case QMailServiceAction::Status::ErrTimeout:
+        emit error(accountId.toULongLong(), Timeout);
+        break;
+    case QMailServiceAction::Status::ErrUnknownResponse:
+    case QMailServiceAction::Status::ErrInternalServer:
+        emit error(accountId.toULongLong(), ServerError);
+        break;
+    case QMailServiceAction::Status::ErrNoConnection:
+    case QMailServiceAction::Status::ErrConnectionNotReady:
+        emit error(accountId.toULongLong(), NotConnected);
         break;
     default:
         emit error(accountId.toULongLong(), InternalError);

@@ -64,7 +64,10 @@ public:
         InvalidConfiguration,
         UntrustedCertificates,
         InternalError,
-        SendFailed
+        SendFailed,
+        Timeout,
+        ServerError,
+        NotConnected
     };
 
     enum SearchStatus {
@@ -188,7 +191,6 @@ private:
     bool m_enqueing;
     bool m_backgroundProcess;
     bool m_waitForIpc;
-    bool m_sendFailed;
 
     QMailAccountIdList m_enabledAccounts;
 
@@ -227,7 +229,7 @@ private:
     QSharedPointer<EmailAction> getNext();
     void processNextAction(bool error = false);
     quint64 newAction();
-    void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode);
+    void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode, bool sendFailed);
     void removeAction(quint64 actionId);
     bool saveAttachmentToDownloads(const QMailMessageId &messageId, const QString &attachmentLocation);
     void updateAttachmentDowloadStatus(const QString &attachmentLocation, AttachmentStatus status);
