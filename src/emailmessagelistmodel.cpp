@@ -243,7 +243,7 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
     } else if (role == MessageParsedSubject) {
         // Filter <img> and <ahref> html tags to make the text suitable to be displayed in a qml
         // label using StyledText(allows only small subset of html)
-        QString subject = data(index, QMailMessageModelBase::MessageSubjectTextRole).toString();
+        QString subject = QMailMessageListModel::data(index, QMailMessageModelBase::MessageSubjectTextRole).toString();
         subject.replace(QRegExp("<\\s*img", Qt::CaseInsensitive), "<no-img");
         subject.replace(QRegExp("<\\s*a", Qt::CaseInsensitive), "<no-a");
         return subject;
