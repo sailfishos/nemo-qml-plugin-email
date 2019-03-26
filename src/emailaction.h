@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Valerio Valerio <valerio.valerio@jollamobile.com>
+ * Copyright (C) 2013-2019 Jolla Ltd.
+ * Contact: Pekka Vuorela <pekka.vuorela@jolla.com>
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at
@@ -11,7 +11,6 @@
 #define EMAILACTION_H
 
 #include <QObject>
-#include <qmailserviceaction.h>
 #include <qmailserviceaction.h>
 
 class Q_DECL_EXPORT EmailAction : public QObject

@@ -1,6 +1,6 @@
 /*
  * Copyright 2011 Intel Corporation.
- * Copyright (C) 2012-2015 Jolla Ltd.
+ * Copyright (C) 2012-2019 Jolla Ltd.
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at 	
@@ -8,17 +8,14 @@
  */
 
 
-#include <QTimer>
 #include <QDBusInterface>
 #include <QDBusObjectPath>
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
-#include <QDir>
-#include <QUrl>
 #include <QFile>
 #include <QMap>
-#include <QProcess>
 #include <QStandardPaths>
+#include <QNetworkConfigurationManager>
 
 #include <qmailnamespace.h>
 #include <qmailaccount.h>
@@ -27,6 +24,8 @@
 
 #include "emailagent.h"
 #include "emailaction.h"
+#include "folderutils.h"
+#include "folderaccessor.h"
 #include "logging_p.h"
 
 namespace {
@@ -63,7 +62,6 @@ EmailAgent::EmailAgent(QObject *parent)
     , m_searchAction(new QMailSearchAction(this))
     , m_protocolAction(new QMailProtocolAction(this))
     , m_nmanager(new QNetworkConfigurationManager(this))
-    , m_networkSession(0)
 {
     connect(QMailStore::instance(), SIGNAL(ipcConnectionEstablished()),
             this, SLOT(onIpcConnectionEstablished()));
@@ -99,7 +97,6 @@ EmailAgent::EmailAgent(QObject *parent)
 
     m_waitForIpc = !QMailStore::instance()->isIpcConnectionEstablished();
     m_instance = this;
-
 }
 
 EmailAgent::~EmailAgent()
@@ -148,7 +145,7 @@ bool EmailAgent::backgroundProcess() const
     return m_backgroundProcess;
 }
 
-void EmailAgent::setBackgroundProcess(const bool isBackgroundProcess)
+void EmailAgent::setBackgroundProcess(bool isBackgroundProcess)
 {
     m_backgroundProcess = isBackgroundProcess;
 }
@@ -321,7 +318,7 @@ void EmailAgent::sendMessage(const QMailMessageId &messageId)
 void EmailAgent::sendMessages(const QMailAccountId &accountId)
 {
     if (accountId.isValid()) {
-        enqueue(new TransmitMessages(m_transmitAction.data(),accountId));
+        enqueue(new TransmitMessages(m_transmitAction.data(), accountId));
     }
 }
 
@@ -582,7 +579,7 @@ void EmailAgent::progressChanged(uint value, uint total)
 // ############# Invokable API ########################
 
 // Sync all accounts (both ways)
-void EmailAgent::accountsSync(const bool syncOnlyInbox, const uint minimum)
+void EmailAgent::accountsSync(bool syncOnlyInbox, uint minimum)
 {
     m_enabledAccounts.clear();
     m_enabledAccounts = QMailStore::instance()->queryAccounts(QMailAccountKey::messageType(QMailMessage::Email)
@@ -634,7 +631,7 @@ void EmailAgent::deleteMessage(int messageId)
     QMailMessageId msgId(messageId);
     QMailMessageIdList msgIdList;
     msgIdList << msgId;
-    deleteMessages (msgIdList);
+    deleteMessages(msgIdList);
 }
 
 void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
@@ -903,23 +900,23 @@ void EmailAgent::renameFolder(int folderId, const QString &name)
     }
 }
 
-void EmailAgent::retrieveFolderList(int accountId, int folderId, const bool descending)
+void EmailAgent::retrieveFolderList(int accountId, int folderId, bool descending)
 {
     QMailAccountId acctId(accountId);
     QMailFolderId foldId(folderId);
 
     if (acctId.isValid()) {
-        enqueue(new RetrieveFolderList(m_retrievalAction.data(),acctId, foldId, descending));
+        enqueue(new RetrieveFolderList(m_retrievalAction.data(), acctId, foldId, descending));
     }
 }
 
-void EmailAgent::retrieveMessageList(int accountId, int folderId, const uint minimum)
+void EmailAgent::retrieveMessageList(int accountId, int folderId, uint minimum)
 {
     QMailAccountId acctId(accountId);
     QMailFolderId foldId(folderId);
 
     if (acctId.isValid()) {
-        enqueue(new RetrieveMessageList(m_retrievalAction.data(),acctId, foldId, minimum));
+        enqueue(new RetrieveMessageList(m_retrievalAction.data(), acctId, foldId, minimum));
     }
 }
 
@@ -929,7 +926,7 @@ void EmailAgent::retrieveMessageRange(int messageId, uint minimum)
     enqueue(new RetrieveMessageRange(m_retrievalAction.data(), id, minimum));
 }
 
-void EmailAgent::purgeSendingQueue(int accountId)
+void EmailAgent::processSendingQueue(int accountId)
 {
     QMailAccountId acctId(accountId);
     if (hasMessagesInOutbox(acctId)) {
@@ -937,7 +934,7 @@ void EmailAgent::purgeSendingQueue(int accountId)
     }
 }
 
-void EmailAgent::synchronize(int accountId, const uint minimum)
+void EmailAgent::synchronize(int accountId, uint minimum)
 {
     QMailAccountId acctId(accountId);
 
@@ -956,7 +953,7 @@ void EmailAgent::synchronize(int accountId, const uint minimum)
     }
 }
 
-void EmailAgent::synchronizeInbox(int accountId, const uint minimum)
+void EmailAgent::synchronizeInbox(int accountId, uint minimum)
 {
     QMailAccountId acctId(accountId);
 
@@ -965,7 +962,7 @@ void EmailAgent::synchronizeInbox(int accountId, const uint minimum)
     if (foldId.isValid()) {
         bool messagesToSend = hasMessagesInOutbox(acctId);
         m_enqueing = true;
-        enqueue(new ExportUpdates(m_retrievalAction.data(),acctId));
+        enqueue(new ExportUpdates(m_retrievalAction.data(), acctId));
         enqueue(new RetrieveFolderList(m_retrievalAction.data(), acctId, QMailFolderId(), true));
         if (!messagesToSend) {
             m_enqueing = false;
@@ -1009,6 +1006,47 @@ void EmailAgent::respondToCalendarInvitation(int messageId, CalendarInvitationRe
 
     // Add handling of other accounts here
     qCWarning(lcEmail) << "Invitation response is not supported for message's email account";
+}
+
+int EmailAgent::accountIdForMessage(int messageId)
+{
+    QMailMessageId msgId(messageId);
+    QMailMessageMetaData metaData(msgId);
+    return metaData.parentAccountId().toULongLong();
+}
+
+int EmailAgent::folderIdForMessage(int messageId)
+{
+    QMailMessageId msgId(messageId);
+    QMailMessageMetaData metaData(msgId);
+    return metaData.parentFolderId().toULongLong();
+}
+
+FolderAccessor *EmailAgent::accessorFromFolderId(int folderId)
+{
+    QMailFolderId id(folderId);
+    // just the basic key, emaillistmodel takes care of filtering with folder id
+    QMailMessageKey excludeRemovedKey = QMailMessageKey::status(QMailMessage::Removed, QMailDataComparator::Excludes);
+
+    return new FolderAccessor(id, FolderUtils::folderTypeFromId(id), excludeRemovedKey);
+}
+
+FolderAccessor *EmailAgent::accountWideSearchAccessor(int accountId)
+{
+    QMailFolderId invalidId;
+    QMailMessageKey excludeRemovedKey = QMailMessageKey::status(QMailMessage::Removed, QMailDataComparator::Excludes);
+    FolderAccessor *accessor = new FolderAccessor(invalidId, EmailFolder::InvalidFolder, excludeRemovedKey);
+    accessor->setOperationMode(FolderAccessor::AccountWideSearch);
+    accessor->setAccountId(QMailAccountId(accountId));
+    return accessor;
+}
+
+FolderAccessor *EmailAgent::combinedInboxAccessor()
+{
+    QMailFolderId invalidId;
+    FolderAccessor *accessor = new FolderAccessor(invalidId, EmailFolder::InvalidFolder, QMailMessageKey());
+    accessor->setOperationMode(FolderAccessor::CombinedInbox);
+    return accessor;
 }
 
 bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,
@@ -1075,7 +1113,7 @@ bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,
 }
 
 // Sync accounts list (both ways)
-void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, const bool syncOnlyInbox, const uint minimum)
+void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, bool syncOnlyInbox, uint minimum)
 {
     if (accountIdList.isEmpty()) {
         qCDebug(lcEmail) << Q_FUNC_INFO << "No enabled accounts, nothing to do.";
@@ -1223,7 +1261,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
     }
 
     if (!foundAction) {
-         return action->id();
+        return action->id();
     } else {
         qCDebug(lcEmail) << "This request already exists in the queue:" << action->description();
         qCDebug(lcEmail) << "Number of actions in the queue:" << m_actionQueue.size();

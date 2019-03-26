@@ -1,6 +1,6 @@
 Name:       nemo-qml-plugin-email-qt5-offline
 Summary:    Offline email plugin for Nemo Mobile
-Version:    0.1.41
+Version:    0.5.0
 Release:    1
 Group:      System/Libraries
 License:    BSD
@@ -9,13 +9,13 @@ Source0:    %{name}-%{version}.tar.bz2
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 BuildRequires:  pkgconfig(Qt5Core)
+BuildRequires:  pkgconfig(Qt5Gui)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Network)
 BuildRequires:  pkgconfig(Qt5Test)
 BuildRequires:  pkgconfig(QmfClient)
 BuildRequires:  pkgconfig(QmfMessageServer)
-BuildRequires:  pkgconfig(mlocale5)
 Conflicts: nemo-qml-plugin-email-qt5
 Provides: nemo-qml-plugin-email-qt5
 

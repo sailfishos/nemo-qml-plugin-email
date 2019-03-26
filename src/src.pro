@@ -1,15 +1,16 @@
 TEMPLATE = lib
 QT += network dbus
-Qt -= gui
 CONFIG += link_pkgconfig qt hide_symbols create_pc create_prl
 TARGET = nemoemail-qt5
-PKGCONFIG += QmfMessageServer QmfClient mlocale5
+PKGCONFIG += QmfMessageServer QmfClient
 
 SOURCES += \
     $$PWD/emailaccountlistmodel.cpp \
     $$PWD/emailmessagelistmodel.cpp \
+    $$PWD/folderaccessor.cpp \
     $$PWD/folderlistmodel.cpp \
     $$PWD/folderlistproxymodel.cpp \
+    $$PWD/folderutils.cpp \
     $$PWD/emailagent.cpp \
     $$PWD/emailmessage.cpp \
     $$PWD/emailaccountsettingsmodel.cpp \
@@ -19,21 +20,24 @@ SOURCES += \
     $$PWD/attachmentlistmodel.cpp \
     $$PWD/logging.cpp
 
+# could make more of these private?
 PUBLIC_HEADERS += \
-    $$PWD/emailaccountlistmodel.h \
-    $$PWD/emailmessagelistmodel.h \
-    $$PWD/folderlistmodel.h \
-    $$PWD/folderlistproxymodel.h \
+    $$PWD/emailaction.h \
     $$PWD/emailagent.h \
     $$PWD/emailmessage.h \
     $$PWD/emailaccountsettingsmodel.h \
     $$PWD/emailaccount.h \
-    $$PWD/emailaction.h \
-    $$PWD/emailfolder.h \
-    $$PWD/attachmentlistmodel.h
 
 PRIVATE_HEADERS += \
-    $$PWD/logging_p.h
+    $$PWD/attachmentlistmodel.h \
+    $$PWD/emailaccountlistmodel.h \
+    $$PWD/emailfolder.h \
+    $$PWD/emailmessagelistmodel.h \
+    $$PWD/folderaccessor.h \
+    $$PWD/folderlistmodel.h \
+    $$PWD/folderlistproxymodel.h \
+    $$PWD/folderutils.h \
+    $$PWD/logging_p.h \
 
 HEADERS += \
     $$PUBLIC_HEADERS \

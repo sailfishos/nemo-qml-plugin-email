@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Valerio Valerio <valerio.valerio@jollamobile.com>
+ * Copyright (C) 2013-2019 Jolla Ltd.
+ * Contact: Pekka Vuorela <pekka.vuorela@jolla.com>
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at
@@ -13,22 +13,38 @@
 #include <QObject>
 #include <qmailfolder.h>
 
+class FolderAccessor;
+
 class Q_DECL_EXPORT EmailFolder : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName NOTIFY displayNameChanged)
-    Q_PROPERTY(int folderId READ folderId WRITE setFolderId NOTIFY folderIdChanged)
-    Q_PROPERTY(int parentAccountId READ parentAccountId NOTIFY folderIdChanged)
-    Q_PROPERTY(int parentFolderId READ parentFolderId NOTIFY folderIdChanged)
-    Q_PROPERTY(QString path READ path NOTIFY folderIdChanged)
-    Q_PROPERTY(int serverCount READ serverCount NOTIFY folderIdChanged)
-    Q_PROPERTY(int serverUndiscoveredCount READ serverUndiscoveredCount NOTIFY folderIdChanged)
-    Q_PROPERTY(int serverUnreadCount READ serverUnreadCount NOTIFY folderIdChanged)
+    Q_ENUMS(FolderType)
+    Q_PROPERTY(FolderAccessor* folderAccessor READ folderAccessor WRITE setFolderAccessor NOTIFY folderAccessorChanged)
+    Q_PROPERTY(QString displayName READ displayName NOTIFY displayNameChanged)
+    Q_PROPERTY(int folderId READ folderId NOTIFY folderAccessorChanged)
+    Q_PROPERTY(int parentAccountId READ parentAccountId NOTIFY folderAccessorChanged)
+    Q_PROPERTY(int parentFolderId READ parentFolderId NOTIFY folderAccessorChanged)
+    Q_PROPERTY(FolderType folderType READ folderType NOTIFY folderAccessorChanged)
+    Q_PROPERTY(bool isOutgoingFolder READ isOutgoingFolder NOTIFY folderAccessorChanged)
+    Q_PROPERTY(int folderUnreadCount READ folderUnreadCount NOTIFY folderUnreadCountChanged)
 
 public:
+    enum FolderType {
+        InvalidFolder,
+        NormalFolder,
+        InboxFolder,
+        OutboxFolder,
+        SentFolder,
+        DraftsFolder,
+        TrashFolder,
+        JunkFolder
+    };
+
     explicit EmailFolder(QObject *parent = 0);
      ~EmailFolder();
 
+    FolderAccessor *folderAccessor() const;
+    void setFolderAccessor(FolderAccessor *accessor);
     QString displayName() const;
     int folderId() const;
     int parentAccountId() const;
@@ -37,18 +53,22 @@ public:
     int serverCount() const;
     int serverUndiscoveredCount() const;
     int serverUnreadCount() const;
-    void setDisplayName(const QString &displayName);
-    void setFolderId(int folderId);
+    FolderType folderType() const;
+    int folderUnreadCount() const;
+    bool isOutgoingFolder() const;
 
 signals:
+    void folderAccessorChanged();
     void displayNameChanged();
-    void folderIdChanged();
+    void folderUnreadCountChanged();
 
 private slots:
     void onFoldersUpdated(const QMailFolderIdList &);
+    void checkUnreadCount(const QMailFolderIdList &);
     
 private:
     QMailFolder m_folder;
+    FolderAccessor *m_accessor;
 };
 
 #endif // EMAILFOLDER_H

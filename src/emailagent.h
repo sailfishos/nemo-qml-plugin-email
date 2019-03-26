@@ -1,5 +1,6 @@
 /*
  * Copyright 2011 Intel Corporation.
+ * Copyright (C) 2012-2019 Jolla Ltd.
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at 	
@@ -10,16 +11,15 @@
 #define EMAILAGENT_H
 
 #include <QSharedPointer>
-#include <QProcess>
-#include <QTimer>
 #include <QNetworkConfigurationManager>
-#include <QNetworkSession>
 
 #include <qmailaccount.h>
 #include <qmailstore.h>
 #include <qmailserviceaction.h>
 
 #include "emailaction.h"
+
+class FolderAccessor;
 
 class Q_DECL_EXPORT EmailAgent : public QObject
 {
@@ -96,7 +96,7 @@ public:
     QString attachmentName(const QMailMessagePart &part) const;
     QString bodyPlainText(const QMailMessage &mailMsg) const;
     bool backgroundProcess() const;
-    void setBackgroundProcess(const bool isBackgroundProcess);
+    void setBackgroundProcess(bool isBackgroundProcess);
     void cancelAction(quint64 actionId);
     quint64 downloadMessages(const QMailMessageIdList &messageIds, QMailRetrievalAction::RetrievalSpecification spec);
     quint64 downloadMessagePart(const QMailMessagePartContainer::Location &location);
@@ -117,9 +117,9 @@ public:
 
     void setupAccountFlags();
     int standardFolderId(int accountId, QMailFolder::StandardFolder folder) const;
-    void syncAccounts(const QMailAccountIdList &accountIdList, const bool syncOnlyInbox = true, const uint minimum = 20);
+    void syncAccounts(const QMailAccountIdList &accountIdList, bool syncOnlyInbox = true, uint minimum = 20);
 
-    Q_INVOKABLE void accountsSync(const bool syncOnlyInbox = false, const uint minimum = 20);
+    Q_INVOKABLE void accountsSync(bool syncOnlyInbox = false, uint minimum = 20);
     Q_INVOKABLE void cancelSync();
     Q_INVOKABLE void createFolder(const QString &name, int mailAccountId, int parentFolderId);
     Q_INVOKABLE void deleteFolder(int folderId);
@@ -144,14 +144,21 @@ public:
     Q_INVOKABLE void moveFolder(int folderId, int parentFolderId);
     Q_INVOKABLE void moveMessage(int messageId, int destinationId);
     Q_INVOKABLE void renameFolder(int folderId, const QString &name);
-    Q_INVOKABLE void retrieveFolderList(int accountId, int folderId = 0, const bool descending = true);
-    Q_INVOKABLE void retrieveMessageList(int accountId, int folderId, const uint minimum = 20);
+    Q_INVOKABLE void retrieveFolderList(int accountId, int folderId = 0, bool descending = true);
+    Q_INVOKABLE void retrieveMessageList(int accountId, int folderId, uint minimum = 20);
     Q_INVOKABLE void retrieveMessageRange(int messageId, uint minimum);
-    Q_INVOKABLE void purgeSendingQueue(int accountId);
-    Q_INVOKABLE void synchronize(int accountId, const uint minimum = 20);
-    Q_INVOKABLE void synchronizeInbox(int accountId, const uint minimum = 20);
+    Q_INVOKABLE void processSendingQueue(int accountId);
+    Q_INVOKABLE void synchronize(int accountId, uint minimum = 20);
+    Q_INVOKABLE void synchronizeInbox(int accountId, uint minimum = 20);
     Q_INVOKABLE void respondToCalendarInvitation(int messageId, CalendarInvitationResponse response,
                                                  const QString &responseSubject);
+
+    Q_INVOKABLE int accountIdForMessage(int messageId);
+    Q_INVOKABLE int folderIdForMessage(int messageId);
+
+    Q_INVOKABLE FolderAccessor *accessorFromFolderId(int folderId);
+    Q_INVOKABLE FolderAccessor *accountWideSearchAccessor(int accountId);
+    Q_INVOKABLE FolderAccessor *combinedInboxAccessor();
 
 signals:
     void currentSynchronizingAccountIdChanged();
@@ -201,9 +208,7 @@ private:
     QScopedPointer<QMailProtocolAction> const m_protocolAction;
     QMailRetrievalAction *m_attachmentRetrievalAction;
 
-    QProcess* m_messageServerProcess;
     QNetworkConfigurationManager *m_nmanager;
-    QNetworkSession *m_networkSession;
 
     QList<QSharedPointer<EmailAction> > m_actionQueue;
     QSharedPointer<EmailAction> m_currentAction;
@@ -236,7 +241,6 @@ private:
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);
     bool easCalendarInvitationResponse(const QMailMessage &message, CalendarInvitationResponse response,
                                        const QString &responseSubject);
-
 };
 
 #endif

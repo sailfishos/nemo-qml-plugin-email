@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Valerio Valerio <valerio.valerio@jollamobile.com>
+ * Copyright (C) 2013-2019 Jolla Ltd.
+ * Contact: Pekka Vuorela <pekka.vuorela@jolla.com>
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at
@@ -8,20 +8,46 @@
  */
 
 #include "emailfolder.h"
+#include "folderutils.h"
+#include "folderaccessor.h"
 #include "logging_p.h"
 
 #include <qmailstore.h>
+#include <QDebug>
 
-EmailFolder::EmailFolder(QObject *parent) :
-    QObject(parent)
-  , m_folder(QMailFolder())
+EmailFolder::EmailFolder(QObject *parent)
+    : QObject(parent)
+    , m_folder(QMailFolder())
+    , m_accessor(new FolderAccessor(this))
 {
     connect(QMailStore::instance(), SIGNAL(foldersUpdated(const QMailFolderIdList &)),
             this, SLOT(onFoldersUpdated(const QMailFolderIdList &)));
+    connect(QMailStore::instance(), SIGNAL(folderContentsModified(const QMailFolderIdList&)),
+            this, SLOT(checkUnreadCount(const QMailFolderIdList&)));
 }
 
 EmailFolder::~EmailFolder()
 {
+}
+
+FolderAccessor *EmailFolder::folderAccessor() const
+{
+    return m_accessor;
+}
+
+void EmailFolder::setFolderAccessor(FolderAccessor *accessor)
+{
+    m_accessor->readValues(accessor);
+
+    if (accessor && accessor->folderId().isValid()) {
+        m_folder = QMailFolder(accessor->folderId());
+    } else {
+        m_folder = QMailFolder();
+    }
+
+    emit folderUnreadCountChanged();
+    emit displayNameChanged();
+    emit folderAccessorChanged();
 }
 
 QString EmailFolder::displayName() const
@@ -36,6 +62,11 @@ int EmailFolder::folderId() const
 
 int EmailFolder::parentAccountId() const
 {
+    QMailAccountId id = m_accessor->accountId();
+    if (id.isValid()) {
+        return id.toULongLong();
+    }
+
     return m_folder.parentAccountId().toULongLong();
 }
 
@@ -44,46 +75,20 @@ int EmailFolder::parentFolderId() const
     return m_folder.parentFolderId().toULongLong();
 }
 
-QString EmailFolder::path() const
+EmailFolder::FolderType EmailFolder::folderType() const
 {
-    return m_folder.path();
+    return m_accessor->folderType();
 }
 
-int EmailFolder::serverCount() const
+int EmailFolder::folderUnreadCount() const
 {
-    return m_folder.serverCount();
+    return FolderUtils::folderUnreadCount(m_accessor->folderId(), m_accessor->folderType(),
+                                          m_accessor->messageKey(), m_accessor->accountId());
 }
 
-int EmailFolder::serverUndiscoveredCount() const
+bool EmailFolder::isOutgoingFolder() const
 {
-    return m_folder.serverUndiscoveredCount();
-}
-
-int EmailFolder::serverUnreadCount() const
-{
-    return m_folder.serverUnreadCount();
-}
-
-void EmailFolder::setDisplayName(const QString &displayName)
-{
-    m_folder.setDisplayName(displayName);
-    emit displayNameChanged();
-}
-
-void EmailFolder::setFolderId(int folderId)
-{
-    QMailFolderId foldId(folderId);
-    if (foldId != m_folder.id()) {
-        if (foldId.isValid()) {
-            m_folder = QMailFolder(foldId);
-        } else {
-            m_folder = QMailFolder();
-            qCWarning(lcEmail) << "Invalid folder id" << foldId.toULongLong();
-        }
-
-        // Folder loaded from the store (or a empty folder), all properties changes
-        emit folderIdChanged();
-    }
+    return FolderUtils::isOutgoingFolderType(m_accessor->folderType());
 }
 
 void EmailFolder::onFoldersUpdated(const QMailFolderIdList &ids)
@@ -92,6 +97,16 @@ void EmailFolder::onFoldersUpdated(const QMailFolderIdList &ids)
         if (folderId == m_folder.id()) {
             m_folder = QMailFolder(folderId);
             emit displayNameChanged();
+            return;
+        }
+    }
+}
+
+void EmailFolder::checkUnreadCount(const QMailFolderIdList &ids)
+{
+    for (const QMailFolderId &folderId : ids) {
+        if (folderId == m_folder.id()) {
+            emit folderUnreadCountChanged();
             return;
         }
     }

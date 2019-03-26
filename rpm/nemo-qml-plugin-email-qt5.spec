@@ -1,6 +1,6 @@
 Name:       nemo-qml-plugin-email-qt5
 Summary:    Email plugin for Nemo Mobile
-Version:    0.4.6
+Version:    0.5.0
 Release:    1
 Group:      System/Libraries
 License:    BSD
@@ -9,11 +9,11 @@ Source0:    %{name}-%{version}.tar.bz2
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 BuildRequires:  pkgconfig(Qt5Core)
+BuildRequires:  pkgconfig(Qt5Gui)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Network)
 BuildRequires:  pkgconfig(Qt5Test)
-BuildRequires:  pkgconfig(mlocale5)
 BuildRequires:  pkgconfig(QmfMessageServer)
 BuildRequires:  pkgconfig(QmfClient)
 Conflicts: nemo-qml-plugin-email-qt5-offline
@@ -32,7 +32,6 @@ Requires:   %{name} = %{version}-%{release}
 %package tests
 Summary:    QML email plugin tests
 Group:      System/Libraries
-Requires:   qmf-qt5-tests >= 4.0.4+git16
 Requires:   %{name} = %{version}-%{release}
 
 %description tests

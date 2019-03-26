@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
+#include "folderaccessor.h"
 #include "folderlistmodel.h"
 #include "folderlistproxymodel.h"
 #include "emailaccountlistmodel.h"
@@ -76,6 +77,8 @@ public:
         qmlRegisterType<EmailAccount>(uri, 0, 1, "EmailAccount");
         qmlRegisterType<EmailFolder>(uri, 0, 1, "EmailFolder");
         qmlRegisterType<AttachmentListModel>(uri, 0, 1, "AttachmentListModel");
+        qmlRegisterUncreatableType<FolderAccessor>(uri, 0, 1, "FolderAccessor",
+                                                   "FolderAccessor is created via FolderListModel or similar");
     }
 };
 

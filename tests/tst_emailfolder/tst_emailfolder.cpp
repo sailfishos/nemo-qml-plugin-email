@@ -10,12 +10,14 @@
 #include <QObject>
 #include <QTest>
 #include <QSignalSpy>
+#include <QPointer>
+
 #include <qmailstore.h>
 
 #include "emailfolder.h"
-/*
-    Unit test for EmailFolder class.
-*/
+#include "emailagent.h"
+#include "folderaccessor.h"
+
 class tst_EmailFolder : public QObject
 {
     Q_OBJECT
@@ -24,13 +26,7 @@ private slots:
     void initTestCase();
     void cleanupTestCase();
 
-    void displayName();
-    void setDisplayName();
-    void folderId();
-    void setFolderId();
-    void parentAccountId();
-    void parentFolderId();
-    void path();
+    void setFolderAccessor();
 
 private:
     QMailAccount m_account;
@@ -71,91 +67,30 @@ void tst_EmailFolder::cleanupTestCase()
     QMailStore::instance()->removeAccount(m_account.id());
 }
 
-void tst_EmailFolder::displayName()
+void tst_EmailFolder::setFolderAccessor()
 {
     QScopedPointer<EmailFolder> emailFolder(new EmailFolder);
-    QSignalSpy folderIdSpy(emailFolder.data(), SIGNAL(folderIdChanged()));
+    QSignalSpy folderChangeSpy(emailFolder.data(), SIGNAL(folderAccessorChanged()));
 
-    emailFolder->setFolderId(m_folder.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 1);
+    QPointer<FolderAccessor> accessor = EmailAgent::instance()->accessorFromFolderId(m_folder.id().toULongLong());
+    emailFolder->setFolderAccessor(accessor.data());
+    QCOMPARE(folderChangeSpy.count(), 1);
     QCOMPARE(emailFolder->displayName(),QString(QLatin1String("TestFolder1")));
+    QCOMPARE(emailFolder->folderId(), static_cast<int>(m_folder.id().toULongLong()));
+    QCOMPARE(emailFolder->parentAccountId(), static_cast<int>(m_account.id().toULongLong()));
 
-    emailFolder->setFolderId(m_folder2.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 2);
+    accessor = EmailAgent::instance()->accessorFromFolderId(m_folder2.id().toULongLong());
+    emailFolder->setFolderAccessor(accessor.data());
+    QCOMPARE(folderChangeSpy.count(), 2);
     QCOMPARE(emailFolder->displayName(),QString(QLatin1String("TestFolder2")));
+    QCOMPARE(emailFolder->folderId(), static_cast<int>(m_folder2.id().toULongLong()));
 
-    emailFolder->setFolderId(m_folder3.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 3);
+    accessor = EmailAgent::instance()->accessorFromFolderId(m_folder3.id().toULongLong());
+    emailFolder->setFolderAccessor(accessor.data());
+    QCOMPARE(folderChangeSpy.count(), 3);
     QCOMPARE(emailFolder->displayName(),QString(QLatin1String("TestFolder3")));
-}
-
-void tst_EmailFolder::setDisplayName()
-{
-    QScopedPointer<EmailFolder> emailFolder(new EmailFolder);
-    QSignalSpy displayNameSpy(emailFolder.data(), SIGNAL(displayNameChanged()));
-    QSignalSpy folderIdSpy(emailFolder.data(), SIGNAL(folderIdChanged()));
-
-    emailFolder->setFolderId(m_folder.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 1);
-    emailFolder->setDisplayName("Test1");
-    QCOMPARE(displayNameSpy.count(), 1);
-    QCOMPARE(emailFolder->displayName(),QString(QLatin1String("Test1")));
-    emailFolder->setDisplayName("TestFolder1");
-    QCOMPARE(displayNameSpy.count(), 2);
-    QCOMPARE(emailFolder->displayName(),QString(QLatin1String("TestFolder1")));
-}
-
-void tst_EmailFolder::folderId()
-{
-    QScopedPointer<EmailFolder> emailFolder(new EmailFolder);
-    QSignalSpy folderIdSpy(emailFolder.data(), SIGNAL(folderIdChanged()));
-
-    emailFolder->setFolderId(m_folder.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 1);
-    QCOMPARE(emailFolder->folderId(),static_cast<int>(m_folder.id().toULongLong()));
-
-    emailFolder->setFolderId(m_folder2.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 2);
-    QCOMPARE(emailFolder->folderId(),static_cast<int>(m_folder2.id().toULongLong()));
-
-    emailFolder->setFolderId(m_folder3.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 3);
-    QCOMPARE(emailFolder->folderId(),static_cast<int>(m_folder3.id().toULongLong()));
-}
-
-void tst_EmailFolder::setFolderId()
-{
-    // Tested by: folderId()
-}
-
-void tst_EmailFolder::parentAccountId()
-{
-    QScopedPointer<EmailFolder> emailFolder(new EmailFolder);
-    QSignalSpy folderIdSpy(emailFolder.data(), SIGNAL(folderIdChanged()));
-
-    emailFolder->setFolderId(m_folder.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 1);
-    QCOMPARE(emailFolder->parentAccountId(),static_cast<int>(m_account.id().toULongLong()));
-}
-
-void tst_EmailFolder::parentFolderId()
-{
-    QScopedPointer<EmailFolder> emailFolder(new EmailFolder);
-    QSignalSpy folderIdSpy(emailFolder.data(), SIGNAL(folderIdChanged()));
-
-    emailFolder->setFolderId(m_folder3.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 1);
+    QCOMPARE(emailFolder->folderId(), static_cast<int>(m_folder3.id().toULongLong()));
     QCOMPARE(emailFolder->parentFolderId(),static_cast<int>(m_folder.id().toULongLong()));
-}
-
-void tst_EmailFolder::path()
-{
-    QScopedPointer<EmailFolder> emailFolder(new EmailFolder);
-    QSignalSpy folderIdSpy(emailFolder.data(), SIGNAL(folderIdChanged()));
-
-    emailFolder->setFolderId(m_folder3.id().toULongLong());
-    QCOMPARE(folderIdSpy.count(), 1);
-    QCOMPARE(emailFolder->path(),QString(QLatin1String("TestFolder3")));
 }
 
 #include "tst_emailfolder.moc"

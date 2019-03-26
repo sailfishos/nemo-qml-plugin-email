@@ -100,7 +100,6 @@ void tst_FolderListModel::sortModel()
     FolderListModel model;
 
     model.setAccountKey(m_account.id().toULongLong());
-    QCOMPARE(model.numberOfFolders(), 9);
     // Inbox folder and children with standard folder removed.
     QCOMPARE(model.folderId(0), int(m_folder2.id().toULongLong()));
     QCOMPARE(model.folderId(1), int(m_folder2_2.id().toULongLong()));
