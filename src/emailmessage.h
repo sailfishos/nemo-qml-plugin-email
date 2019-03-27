@@ -41,6 +41,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(bool calendarInvitationSupportsEmailResponses READ calendarInvitationSupportsEmailResponses NOTIFY calendarInvitationSupportsEmailResponsesChanged)
     Q_PROPERTY(QStringList cc READ cc WRITE setCc NOTIFY ccChanged)
     Q_PROPERTY(ContentType contentType READ contentType NOTIFY storedMessageChanged FINAL)
+    Q_PROPERTY(bool autoVerifySignature READ autoVerifySignature WRITE setAutoVerifySignature NOTIFY autoVerifySignatureChanged)
     Q_PROPERTY(CryptoProtocol cryptoProtocol READ cryptoProtocol NOTIFY cryptoProtocolChanged)
     Q_PROPERTY(SignatureStatus signatureStatus READ signatureStatus NOTIFY signatureStatusChanged FINAL)
     Q_PROPERTY(QDateTime date READ date NOTIFY storedMessageChanged)
@@ -104,6 +105,7 @@ public:
         SignedInvalid,
         SignedExpired,
         SignedMissing,
+        SignedUnchecked,
         SignedFailure
     };
 
@@ -136,6 +138,7 @@ public:
     bool calendarInvitationSupportsEmailResponses() const;
     QStringList cc() const;
     ContentType contentType() const;
+    bool autoVerifySignature() const;
     CryptoProtocol cryptoProtocol() const;
     SignatureStatus signatureStatus() const;
     QDateTime date() const;
@@ -176,6 +179,7 @@ public:
     void setRequestReadReceipt(bool requestReadReceipt);
     void setSubject(const QString &subject);
     void setTo(const QStringList &toList);
+    void setAutoVerifySignature(bool autoVerify);
     int size();
     QString subject();
     QStringList to();
@@ -195,6 +199,7 @@ signals:
     void calendarInvitationBodyChanged();
     bool calendarInvitationSupportsEmailResponsesChanged();
     void ccChanged();
+    void autoVerifySignatureChanged();
     void cryptoProtocolChanged();
     void signatureStatusChanged();
     void dateChanged();
@@ -269,6 +274,7 @@ private:
     bool m_htmlBodyConstructed;
     QString m_calendarInvitationUrl;
     AttachedDataStatus m_calendarStatus;
+    bool m_autoVerifySignature;
     SignatureStatus m_signatureStatus;
     QMailCryptoFwd::VerificationResult m_cryptoResult;
     QString m_signatureLocation;

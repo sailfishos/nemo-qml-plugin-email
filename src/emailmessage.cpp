@@ -60,6 +60,7 @@ EmailMessage::EmailMessage(QObject *parent)
     , m_downloadActionId(0)
     , m_htmlBodyConstructed(false)
     , m_calendarStatus(Unknown)
+    , m_autoVerifySignature(false)
     , m_signatureStatus(NoDigitalSignature)
 {
     setPriority(NormalPriority);
@@ -581,6 +582,11 @@ EmailMessage::ContentType EmailMessage::contentType() const
     return EmailMessage::HTML;
 }
 
+bool EmailMessage::autoVerifySignature() const
+{
+    return m_autoVerifySignature;
+}
+
 EmailMessage::SignatureStatus EmailMessage::signatureStatus() const
 {
     return m_signatureStatus;
@@ -1030,6 +1036,19 @@ void EmailMessage::setTo(const QStringList &toList)
     }
 }
 
+void EmailMessage::setAutoVerifySignature(bool autoVerify)
+{
+    if (autoVerify != m_autoVerifySignature) {
+        m_autoVerifySignature = autoVerify;
+        emit autoVerifySignatureChanged();
+
+        if (m_autoVerifySignature
+            && m_signatureStatus == EmailMessage::SignedUnchecked) {
+            verifySignature();
+        }
+    }
+}
+
 void EmailMessage::setSignatureStatus(SignatureStatus status)
 {
     if (status != m_signatureStatus) {
@@ -1171,7 +1190,13 @@ void EmailMessage::emitMessageReloadedSignals()
     emit quotedBodyChanged();
 
     // Update and emit cryptography status.
-    verifySignature();
+    if (m_autoVerifySignature) {
+        verifySignature();
+    } else if (m_msg.status() & QMailMessageMetaData::HasSignature) {
+        setSignatureStatus(EmailMessage::SignedUnchecked);
+    } else {
+        setSignatureStatus(EmailMessage::NoDigitalSignature);
+    }
 }
 
 void EmailMessage::requestMessageDownload()
