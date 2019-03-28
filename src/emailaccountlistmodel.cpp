@@ -16,7 +16,7 @@
 
 EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     QMailAccountListModel(parent),
-    m_hasPersistentConnection(false)
+    m_persistentConnectionActive(false)
 {
     roles.insert(DisplayName, "displayName");
     roles.insert(EmailAddress, "emailAddress");
@@ -41,7 +41,7 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
 
     QMailAccountListModel::setSynchronizeEnabled(true);
     QMailAccountListModel::setKey(QMailAccountKey::status(QMailAccount::Enabled));
-    m_canTransmitAccounts = false;
+    m_onlyTransmitAccounts = false;
 
     for (int row = 0; row < rowCount(); row++) {
         if ((data(index(row), EmailAccountListModel::LastSynchronized)).toDateTime() > m_lastUpdateTime) {
@@ -52,8 +52,8 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
         m_unreadCountCache.insert(accountId, accountUnreadCount(accountId));
 
         // Check if any account has a persistent connection to the server(always online)
-        if (!m_hasPersistentConnection && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
-            m_hasPersistentConnection = true;
+        if (!m_persistentConnectionActive && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
+            m_persistentConnectionActive = true;
         }
     }
 }
@@ -173,14 +173,15 @@ void EmailAccountListModel::onAccountsAdded(const QModelIndex &parent, int start
         }
 
         // Check if any of the new accounts has a persistent connection to the server(always online)
-        if (!m_hasPersistentConnection && (data(index(i), EmailAccountListModel::HasPersistentConnection)).toBool()) {
-            m_hasPersistentConnection = true;
-            emit hasPersistentConnectionChanged();
+        if (!m_persistentConnectionActive && (data(index(i), EmailAccountListModel::HasPersistentConnection)).toBool()) {
+            m_persistentConnectionActive = true;
+            emit persistentConnectionActiveChanged();
         }
     }
 
     emit accountsAdded();
     emit numberOfAccountsChanged();
+    emit numberOfTransmitAccountsChanged();
 
     if (updateTimeChanged) {
         emit lastUpdateTimeChanged();
@@ -195,21 +196,21 @@ void EmailAccountListModel::onAccountsRemoved(const QModelIndex &parent, int sta
 
     if (rowCount()) {
         m_lastUpdateTime = QDateTime();
-        bool hadPersistentConnection = m_hasPersistentConnection;
-        m_hasPersistentConnection = false;
+        bool persistentConnectionActivePrevious = m_persistentConnectionActive;
+        m_persistentConnectionActive = false;
         for (int row = 0; row < rowCount(); row++) {
             if ((data(index(row), EmailAccountListModel::LastSynchronized)).toDateTime() > m_lastUpdateTime) {
                 m_lastUpdateTime = (data(index(row), EmailAccountListModel::LastSynchronized)).toDateTime();
             }
             // Check if any of the remaining accounts has a persistent connection to the server(always online)
-            if (!m_hasPersistentConnection && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
-                m_hasPersistentConnection = true;
+            if (!m_persistentConnectionActive && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
+                m_persistentConnectionActive = true;
             }
         }
 
-        if (hadPersistentConnection != m_hasPersistentConnection) {
-            qCDebug(lcEmail) << Q_FUNC_INFO << "HasPersistentConnection changed to" << m_hasPersistentConnection;
-            emit hasPersistentConnectionChanged();
+        if (persistentConnectionActivePrevious != m_persistentConnectionActive) {
+            qCDebug(lcEmail) << Q_FUNC_INFO << "persistentConnectionActive changed to" << m_persistentConnectionActive;
+            emit persistentConnectionActiveChanged();
         }
 
         emit lastUpdateTimeChanged();
@@ -217,6 +218,7 @@ void EmailAccountListModel::onAccountsRemoved(const QModelIndex &parent, int sta
 
     emit accountsRemoved();
     emit numberOfAccountsChanged();
+    emit numberOfTransmitAccountsChanged();
 }
 
 void EmailAccountListModel::onAccountContentsModified(const QMailAccountIdList &ids)
@@ -245,8 +247,8 @@ void EmailAccountListModel::onAccountsUpdated(const QMailAccountIdList &ids)
 
     // Global lastSyncTime and persistent connection(all accounts)
     bool emitSignal = false;
-    bool hadPersistentConnection = m_hasPersistentConnection;
-    m_hasPersistentConnection = false;
+    bool persistentConnectionActivePrevious = m_persistentConnectionActive;
+    m_persistentConnectionActive = false;
     for (int row = 0; row < rowCount(); row++) {
         if ((data(index(row), EmailAccountListModel::LastSynchronized)).toDateTime() > m_lastUpdateTime) {
             emitSignal = true;
@@ -254,19 +256,21 @@ void EmailAccountListModel::onAccountsUpdated(const QMailAccountIdList &ids)
         }
 
         // Check if any account has a persistent connection to the server(always online)
-        if (!m_hasPersistentConnection && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
-            m_hasPersistentConnection = true;
+        if (!m_persistentConnectionActive && (data(index(row), EmailAccountListModel::HasPersistentConnection)).toBool()) {
+            m_persistentConnectionActive = true;
         }
     }
 
-    if (hadPersistentConnection != m_hasPersistentConnection) {
-        qCDebug(lcEmail) << Q_FUNC_INFO << "HasPersistentConnection changed to" << m_hasPersistentConnection;
-        emit hasPersistentConnectionChanged();
+    if (persistentConnectionActivePrevious != m_persistentConnectionActive) {
+        qCDebug(lcEmail) << Q_FUNC_INFO << "persistentConnectionActive changed to" << m_persistentConnectionActive;
+        emit persistentConnectionActiveChanged();
     }
 
     if (emitSignal) {
         emit lastUpdateTimeChanged();
     }
+
+    emit numberOfTransmitAccountsChanged();
 }
 
 int EmailAccountListModel::numberOfAccounts() const
@@ -274,19 +278,35 @@ int EmailAccountListModel::numberOfAccounts() const
     return rowCount();
 }
 
+int EmailAccountListModel::numberOfTransmitAccounts() const
+{
+    int transmitAccounts = 0;
+
+    for (int row = 0; row < rowCount(); row++) {
+        QMailAccountId accountId = QMailAccountListModel::idFromIndex(index(row));
+        QMailAccount account(accountId);
+        if ((account.status() & (QMailAccount::CanTransmit | QMailAccount::Enabled))
+                == (QMailAccount::CanTransmit | QMailAccount::Enabled)) {
+            transmitAccounts++;
+        }
+    }
+
+    return transmitAccounts;
+}
+
 QDateTime EmailAccountListModel::lastUpdateTime() const
 {
     return m_lastUpdateTime;
 }
 
-bool EmailAccountListModel::canTransmitAccounts() const
+bool EmailAccountListModel::onlyTransmitAccounts() const
 {
-    return m_canTransmitAccounts;
+    return m_onlyTransmitAccounts;
 }
 
-void EmailAccountListModel::setCanTransmitAccounts(bool value)
+void EmailAccountListModel::setOnlyTransmitAccounts(bool value)
 {
-    if (value != m_canTransmitAccounts) {
+    if (value != m_onlyTransmitAccounts) {
         if (value) {
             QMailAccountKey transmitKey = QMailAccountKey::status(QMailAccount::Enabled)  &
                     QMailAccountKey::status(QMailAccount::CanTransmit);
@@ -295,13 +315,13 @@ void EmailAccountListModel::setCanTransmitAccounts(bool value)
             QMailAccountListModel::setKey(QMailAccountKey::status(QMailAccount::Enabled));
         }
         emit numberOfAccountsChanged();
-        emit canTransmitAccountsChanged();
+        emit onlyTransmitAccountsChanged();
     }
 }
 
-bool EmailAccountListModel::hasPersistentConnection() const
+bool EmailAccountListModel::persistentConnectionActive() const
 {
-    return m_hasPersistentConnection;
+    return m_persistentConnectionActive;
 }
 
 // ########### Invokable API ###################

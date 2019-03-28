@@ -19,9 +19,10 @@ class Q_DECL_EXPORT EmailAccountListModel : public QMailAccountListModel
 {
     Q_OBJECT
     Q_PROPERTY(int numberOfAccounts READ numberOfAccounts NOTIFY numberOfAccountsChanged)
+    Q_PROPERTY(int numberOfTransmitAccounts READ numberOfTransmitAccounts NOTIFY numberOfTransmitAccountsChanged)
     Q_PROPERTY(QDateTime lastUpdateTime READ lastUpdateTime NOTIFY lastUpdateTimeChanged)
-    Q_PROPERTY(bool canTransmitAccounts READ canTransmitAccounts WRITE setCanTransmitAccounts NOTIFY canTransmitAccountsChanged)
-    Q_PROPERTY(bool hasPersistentConnection READ hasPersistentConnection NOTIFY hasPersistentConnectionChanged)
+    Q_PROPERTY(bool onlyTransmitAccounts READ onlyTransmitAccounts WRITE setOnlyTransmitAccounts NOTIFY onlyTransmitAccountsChanged)
+    Q_PROPERTY(bool persistentConnectionActive READ persistentConnectionActive NOTIFY persistentConnectionActiveChanged)
 
 public:
     explicit EmailAccountListModel(QObject *parent = 0);
@@ -47,10 +48,11 @@ public:
 
 public:
     int numberOfAccounts() const;
+    int numberOfTransmitAccounts() const;
     QDateTime lastUpdateTime() const;
-    bool canTransmitAccounts() const;
-    void setCanTransmitAccounts(bool value);
-    bool hasPersistentConnection() const;
+    bool onlyTransmitAccounts() const;
+    void setOnlyTransmitAccounts(bool value);
+    bool persistentConnectionActive() const;
 
     Q_INVOKABLE int accountId(int idx);
     Q_INVOKABLE QStringList allDisplayNames();
@@ -73,8 +75,9 @@ signals:
     void lastUpdateTimeChanged();
     void modelReset();
     void numberOfAccountsChanged();
-    void canTransmitAccountsChanged();
-    void hasPersistentConnectionChanged();
+    void numberOfTransmitAccountsChanged();
+    void onlyTransmitAccountsChanged();
+    void persistentConnectionActiveChanged();
 
 private slots:
     void onAccountsAdded(const QModelIndex &parent, int start, int end);
@@ -89,8 +92,8 @@ private:
     QHash<int, QByteArray> roles;
     QHash<QMailAccountId, int> m_unreadCountCache;
     QDateTime m_lastUpdateTime;
-    bool m_canTransmitAccounts;
-    bool m_hasPersistentConnection;
+    bool m_onlyTransmitAccounts;
+    bool m_persistentConnectionActive;
 
     int accountUnreadCount(const QMailAccountId &accountId);
 
