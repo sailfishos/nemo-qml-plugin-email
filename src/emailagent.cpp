@@ -288,8 +288,7 @@ bool EmailAgent::synchronizing() const
     return m_synchronizing;
 }
 
-void EmailAgent::flagMessages(const QMailMessageIdList &ids, quint64 setMask,
-        quint64 unsetMask)
+void EmailAgent::flagMessages(const QMailMessageIdList &ids, quint64 setMask, quint64 unsetMask)
 {
     Q_ASSERT(!ids.empty());
 
@@ -550,6 +549,7 @@ void EmailAgent::onOnlineStateChanged(bool isOnline)
             executeCurrent();
         }
     } else if (!m_currentAction.isNull() && m_currentAction->needsNetworkConnection() && m_currentAction->serviceAction()->isRunning()) {
+        // TODO: should this be responsibility of the backend? cancelOperation is kind of hinted being a user initiated action.
         m_currentAction->serviceAction()->cancelOperation();
     }
 }
@@ -1392,7 +1392,6 @@ void EmailAgent::reportError(const QMailAccountId &accountId, const QMailService
         emit error(accountId.toULongLong(), UntrustedCertificates);
         break;
     case QMailServiceAction::Status::ErrCancel:
-        // The operation was cancelled by user intervention.
         break;
     case QMailServiceAction::Status::ErrTimeout:
         emit error(accountId.toULongLong(), Timeout);

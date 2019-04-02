@@ -83,7 +83,7 @@ void EmailAction::setId(const quint64 id)
   CreateStandardFolders
 */
 CreateStandardFolders::CreateStandardFolders(QMailRetrievalAction *retrievalAction, const QMailAccountId &id)
-    :EmailAction()
+    : EmailAction()
     , _retrievalAction(retrievalAction)
     , _accountId(id)
 {
