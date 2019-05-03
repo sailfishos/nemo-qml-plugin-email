@@ -112,16 +112,6 @@ Module {
             Parameter { name: "emailAdress"; type: "string" }
         }
         Method { name: "clear" }
-        Method {
-            name: "toBase64"
-            type: "string"
-            Parameter { name: "value"; type: "string" }
-        }
-        Method {
-            name: "fromBase64"
-            type: "string"
-            Parameter { name: "value"; type: "string" }
-        }
     }
     Component {
         name: "EmailAccountListModel"
@@ -129,9 +119,10 @@ Module {
         exports: ["Nemo.Email/EmailAccountListModel 0.1"]
         exportMetaObjectRevisions: [0]
         Property { name: "numberOfAccounts"; type: "int"; isReadonly: true }
+        Property { name: "numberOfTransmitAccounts"; type: "int"; isReadonly: true }
         Property { name: "lastUpdateTime"; type: "QDateTime"; isReadonly: true }
-        Property { name: "canTransmitAccounts"; type: "bool" }
-        Property { name: "hasPersistentConnection"; type: "bool"; isReadonly: true }
+        Property { name: "onlyTransmitAccounts"; type: "bool" }
+        Property { name: "persistentConnectionActive"; type: "bool"; isReadonly: true }
         Signal { name: "accountsAdded" }
         Signal { name: "accountsRemoved" }
         Signal { name: "accountsUpdated" }
@@ -282,7 +273,10 @@ Module {
                 "InvalidConfiguration": 3,
                 "UntrustedCertificates": 4,
                 "InternalError": 5,
-                "SendFailed": 6
+                "SendFailed": 6,
+                "Timeout": 7,
+                "ServerError": 8,
+                "NotConnected": 9
             }
         }
         Enum {
@@ -540,7 +534,7 @@ Module {
             Parameter { name: "minimum"; type: "uint" }
         }
         Method {
-            name: "purgeSendingQueue"
+            name: "processSendingQueue"
             Parameter { name: "accountId"; type: "int" }
         }
         Method {
@@ -567,20 +561,54 @@ Module {
             Parameter { name: "response"; type: "CalendarInvitationResponse" }
             Parameter { name: "responseSubject"; type: "string" }
         }
+        Method {
+            name: "accountIdForMessage"
+            type: "int"
+            Parameter { name: "messageId"; type: "int" }
+        }
+        Method {
+            name: "folderIdForMessage"
+            type: "int"
+            Parameter { name: "messageId"; type: "int" }
+        }
+        Method {
+            name: "accessorFromFolderId"
+            type: "FolderAccessor*"
+            Parameter { name: "folderId"; type: "int" }
+        }
+        Method {
+            name: "accountWideSearchAccessor"
+            type: "FolderAccessor*"
+            Parameter { name: "accountId"; type: "int" }
+        }
+        Method { name: "combinedInboxAccessor"; type: "FolderAccessor*" }
     }
     Component {
         name: "EmailFolder"
         prototype: "QObject"
         exports: ["Nemo.Email/EmailFolder 0.1"]
         exportMetaObjectRevisions: [0]
-        Property { name: "displayName"; type: "string" }
-        Property { name: "folderId"; type: "int" }
+        Enum {
+            name: "FolderType"
+            values: {
+                "InvalidFolder": 0,
+                "NormalFolder": 1,
+                "InboxFolder": 2,
+                "OutboxFolder": 3,
+                "SentFolder": 4,
+                "DraftsFolder": 5,
+                "TrashFolder": 6,
+                "JunkFolder": 7
+            }
+        }
+        Property { name: "folderAccessor"; type: "FolderAccessor"; isPointer: true }
+        Property { name: "displayName"; type: "string"; isReadonly: true }
+        Property { name: "folderId"; type: "int"; isReadonly: true }
         Property { name: "parentAccountId"; type: "int"; isReadonly: true }
         Property { name: "parentFolderId"; type: "int"; isReadonly: true }
-        Property { name: "path"; type: "string"; isReadonly: true }
-        Property { name: "serverCount"; type: "int"; isReadonly: true }
-        Property { name: "serverUndiscoveredCount"; type: "int"; isReadonly: true }
-        Property { name: "serverUnreadCount"; type: "int"; isReadonly: true }
+        Property { name: "folderType"; type: "FolderType"; isReadonly: true }
+        Property { name: "isOutgoingFolder"; type: "bool"; isReadonly: true }
+        Property { name: "folderUnreadCount"; type: "int"; isReadonly: true }
     }
     Component {
         name: "EmailMessage"
@@ -715,10 +743,10 @@ Module {
                 "Remote": 2
             }
         }
+        Property { name: "folderAccessor"; type: "FolderAccessor"; isPointer: true }
         Property { name: "canFetchMore"; type: "bool"; isReadonly: true }
         Property { name: "count"; type: "int"; isReadonly: true }
-        Property { name: "combinedInbox"; type: "bool" }
-        Property { name: "filterUnread"; type: "bool" }
+        Property { name: "selectedMessageCount"; type: "int"; isReadonly: true }
         Property { name: "limit"; type: "uint" }
         Property { name: "searchLimit"; type: "uint" }
         Property { name: "searchOn"; type: "EmailMessageListModel::SearchOn" }
@@ -727,226 +755,51 @@ Module {
         Property { name: "searchSubject"; type: "bool" }
         Property { name: "searchBody"; type: "bool" }
         Property { name: "searchRemainingOnRemote"; type: "int"; isReadonly: true }
-        Property { name: "sortBy"; type: "EmailMessageListModel::Sort"; isReadonly: true }
+        Property { name: "sortBy"; type: "EmailMessageListModel::Sort" }
         Property { name: "unreadMailsSelected"; type: "bool"; isReadonly: true }
-        Signal { name: "messageDownloadCompleted" }
         Method { name: "notifyDateChanged" }
-        Method {
-            name: "setFolderKey"
-            Parameter { name: "id"; type: "int" }
-            Parameter { name: "messageKey"; type: "QMailMessageKey" }
-        }
-        Method {
-            name: "setFolderKey"
-            Parameter { name: "id"; type: "int" }
-        }
-        Method {
-            name: "setAccountKey"
-            Parameter { name: "id"; type: "int" }
-            Parameter { name: "defaultInbox"; type: "bool" }
-        }
-        Method {
-            name: "setAccountKey"
-            Parameter { name: "id"; type: "int" }
-        }
-        Method {
-            name: "sortBySender"
-            Parameter { name: "order"; type: "int" }
-        }
-        Method { name: "sortBySender" }
-        Method {
-            name: "sortByRecipients"
-            Parameter { name: "order"; type: "int" }
-        }
-        Method { name: "sortByRecipients" }
-        Method {
-            name: "sortBySubject"
-            Parameter { name: "order"; type: "int" }
-        }
-        Method { name: "sortBySubject" }
-        Method {
-            name: "sortByDate"
-            Parameter { name: "order"; type: "int" }
-        }
-        Method { name: "sortByDate" }
-        Method {
-            name: "sortByAttachment"
-            Parameter { name: "order"; type: "int" }
-        }
-        Method { name: "sortByAttachment" }
-        Method {
-            name: "sortByReadStatus"
-            Parameter { name: "order"; type: "int" }
-        }
-        Method { name: "sortByReadStatus" }
-        Method {
-            name: "sortByPriority"
-            Parameter { name: "order"; type: "int" }
-        }
-        Method { name: "sortByPriority" }
-        Method {
-            name: "sortBySize"
-            Parameter { name: "order"; type: "int" }
-        }
-        Method { name: "sortBySize" }
-        Method {
-            name: "sortByTime"
-            Parameter { name: "order"; type: "int" }
-            Parameter { name: "sortBy"; type: "EmailMessageListModel::Sort" }
-        }
         Method {
             name: "setSearch"
             Parameter { name: "search"; type: "string" }
         }
         Method { name: "cancelSearch" }
         Method {
-            name: "accountIdForMessage"
-            type: "int"
-            Parameter { name: "messageId"; type: "int" }
-        }
-        Method {
-            name: "folderIdForMessage"
-            type: "int"
-            Parameter { name: "messageId"; type: "int" }
-        }
-        Method {
             name: "indexFromMessageId"
             type: "int"
             Parameter { name: "messageId"; type: "int" }
         }
-        Method {
-            name: "messageId"
-            type: "int"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "subject"
-            type: "string"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "mailSender"
-            type: "string"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "senderDisplayName"
-            type: "string"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "senderEmailAddress"
-            type: "string"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "timeStamp"
-            type: "QDateTime"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "body"
-            type: "string"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "htmlBody"
-            type: "string"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "quotedBody"
-            type: "string"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "attachments"
-            type: "QStringList"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "numberOfAttachments"
-            type: "int"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "recipients"
-            type: "QStringList"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "ccList"
-            type: "QStringList"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "bccList"
-            type: "QStringList"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "toList"
-            type: "QStringList"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "messageRead"
-            type: "bool"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "size"
-            type: "string"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "accountId"
-            type: "int"
-            Parameter { name: "index"; type: "int" }
-        }
-        Method {
-            name: "priority"
-            type: "QVariant"
-            Parameter { name: "index"; type: "int" }
-        }
         Method { name: "selectAllMessages" }
-        Method { name: "deSelectAllMessages" }
+        Method { name: "deselectAllMessages" }
         Method {
             name: "selectMessage"
             Parameter { name: "index"; type: "int" }
         }
         Method {
-            name: "deSelectMessage"
+            name: "deselectMessage"
             Parameter { name: "index"; type: "int" }
         }
         Method {
-            name: "moveSelectedMessageIds"
-            Parameter { name: "vFolderId"; type: "int" }
+            name: "moveSelectedMessages"
+            Parameter { name: "folderId"; type: "int" }
         }
-        Method { name: "deleteSelectedMessageIds" }
-        Method { name: "markAsReadSelectedMessagesIds" }
-        Method { name: "markAsUnReadSelectedMessagesIds" }
+        Method { name: "deleteSelectedMessages" }
+        Method { name: "markAsReadSelectedMessages" }
+        Method { name: "markAsUnReadSelectedMessages" }
         Method { name: "markAllMessagesAsRead" }
+    }
+    Component {
+        name: "FolderAccessor"
+        prototype: "QObject"
+        exports: ["Nemo.Email/FolderAccessor 0.1"]
+        isCreatable: false
+        exportMetaObjectRevisions: [0]
     }
     Component {
         name: "FolderListModel"
         prototype: "QAbstractListModel"
         exports: ["Nemo.Email/FolderListModel 0.1"]
         exportMetaObjectRevisions: [0]
-        Enum {
-            name: "FolderStandardType"
-            values: {
-                "NormalFolder": 0,
-                "InboxFolder": 1,
-                "OutboxFolder": 2,
-                "SentFolder": 3,
-                "DraftsFolder": 4,
-                "TrashFolder": 5,
-                "JunkFolder": 6
-            }
-        }
-        Property { name: "currentFolderIdx"; type: "qulonglong" }
-        Property { name: "currentFolderUnreadCount"; type: "int"; isReadonly: true }
+        Property { name: "accountKey"; type: "int" }
         Property { name: "canCreateTopLevelFolders"; type: "bool"; isReadonly: true }
         Property { name: "supportsFolderActions"; type: "bool"; isReadonly: true }
         Signal { name: "resyncNeeded" }
@@ -956,29 +809,9 @@ Module {
             Parameter { name: "idx"; type: "int" }
         }
         Method {
-            name: "folderMessageKey"
-            type: "QVariant"
-            Parameter { name: "idx"; type: "int" }
-        }
-        Method {
-            name: "folderName"
-            type: "string"
-            Parameter { name: "idx"; type: "int" }
-        }
-        Method {
-            name: "folderType"
-            type: "QVariant"
-            Parameter { name: "idx"; type: "int" }
-        }
-        Method {
-            name: "folderUnreadCount"
-            type: "int"
-            Parameter { name: "idx"; type: "int" }
-        }
-        Method {
-            name: "folderServerCount"
-            type: "int"
-            Parameter { name: "folderId"; type: "int" }
+            name: "folderAccessor"
+            type: "FolderAccessor*"
+            Parameter { name: "index"; type: "int" }
         }
         Method {
             name: "indexFromFolderId"
@@ -986,19 +819,9 @@ Module {
             Parameter { name: "folderId"; type: "int" }
         }
         Method {
-            name: "isOutgoingFolder"
-            type: "bool"
-            Parameter { name: "idx"; type: "int" }
-        }
-        Method { name: "numberOfFolders"; type: "int" }
-        Method {
-            name: "setAccountKey"
-            Parameter { name: "id"; type: "int" }
-        }
-        Method {
             name: "standardFolderIndex"
             type: "int"
-            Parameter { name: "folderType"; type: "FolderStandardType" }
+            Parameter { name: "folderType"; type: "EmailFolder::FolderType" }
         }
         Method {
             name: "isFolderAncestorOf"
