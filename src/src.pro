@@ -1,5 +1,5 @@
 TEMPLATE = lib
-QT += network dbus
+QT += network dbus concurrent
 CONFIG += link_pkgconfig qt hide_symbols create_pc create_prl
 TARGET = nemoemail-qt5
 PKGCONFIG += QmfMessageServer QmfClient

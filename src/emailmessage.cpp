@@ -13,15 +13,18 @@
 #include <qmailaccount.h>
 #include <qmailstore.h>
 
-#include "emailagent.h"
 #include "emailmessage.h"
 #include "logging_p.h"
 #include <qmailnamespace.h>
+#include <qmailcrypto.h>
 #include <qmaildisconnected.h>
 #include <QTextDocument>
 #include <QTemporaryFile>
 #include <QStandardPaths>
 #include <QDir>
+#include <QtConcurrent>
+#include <QFuture>
+#include <QFutureWatcher>
 
 namespace {
 
@@ -57,6 +60,8 @@ EmailMessage::EmailMessage(QObject *parent)
     , m_downloadActionId(0)
     , m_htmlBodyConstructed(false)
     , m_calendarStatus(Unknown)
+    , m_autoVerifySignature(false)
+    , m_signatureStatus(NoDigitalSignature)
 {
     setPriority(NormalPriority);
 }
@@ -214,6 +219,18 @@ void EmailMessage::getCalendarInvitation()
    }
 }
 
+typedef QPair<QSharedPointer<QMailMessage>, QMailCryptoFwd::SignatureResult> ThreadedSignedMessage;
+
+static ThreadedSignedMessage signatureHelper(QMailMessage *msg,
+                                              const QString &engine,
+                                              const QStringList &keys)
+{
+    // Encapsulate msg pointer into a QSharedPointer to ensure
+    // that it will be deleted when not needed anymore.
+    return ThreadedSignedMessage(QSharedPointer<QMailMessage>(msg),
+                                 QMailCryptographicServiceFactory::sign(*msg, engine, keys));
+}
+
 void EmailMessage::send()
 {
     //setting header here to make sure that used email address in a header is the latest one set for email message
@@ -245,8 +262,38 @@ void EmailMessage::send()
         m_id = QMailMessageId();
     }
 
-    buildMessage();
+    buildMessage(&m_msg);
 
+    // We may delay sending after asynchronous actions
+    // have been done, otherwise, we send immediately.
+    if (!m_signingKeys.isEmpty() && !m_signingPlugin.isEmpty()) {
+        // Ensure that the CryptographicServiceFactory object
+        // is created in the main thread.
+        QMailCryptographicServiceFactory::instance();
+
+        // Execute signature in a thread, using a copy of the message.
+        QMailMessage *signedCopy = new QMailMessage(m_msg);
+        QFutureWatcher<ThreadedSignedMessage> *signingWatcher
+            = new QFutureWatcher<ThreadedSignedMessage>(this);
+        connect(signingWatcher,
+                &QFutureWatcher<ThreadedSignedMessage>::finished,
+                this,
+                [=] {
+                    signingWatcher->deleteLater();
+                    m_msg = *signingWatcher->result().first;
+                    onSignCompleted(signingWatcher->result().second);
+                });
+        QFuture<ThreadedSignedMessage> future
+            = QtConcurrent::run(signatureHelper, signedCopy,
+                                m_signingPlugin, m_signingKeys);
+        signingWatcher->setFuture(future);
+    } else {
+        sendBuiltMessage();
+    }
+}
+
+void EmailMessage::sendBuiltMessage()
+{
     bool stored = false;
 
     // Message present only on the local device until we externalise or send it
@@ -266,6 +313,22 @@ void EmailMessage::send()
         emitSignals();
     } else {
        qCWarning(lcEmail) << "Error: queuing message, stored:" << stored;
+    }
+
+    emit sendEnqueued(stored);
+}
+
+void EmailMessage::onSignCompleted(QMailCryptoFwd::SignatureResult result)
+{
+    if (result != QMailCryptoFwd::SignatureValid) {
+        qCWarning(lcEmail) << "Error: cannot sign message, SignatureResult: " << result;
+        setSignatureStatus(EmailMessage::SignedInvalid);
+
+        emit sendEnqueued(false);
+    } else {
+        setSignatureStatus(EmailMessage::SignedValid);
+
+        sendBuiltMessage();
     }
 }
 
@@ -354,7 +417,7 @@ bool EmailMessage::sendReadReceipt(const QString &subjectPrefix, const QString &
 
 void EmailMessage::saveDraft()
 {
-    buildMessage();
+    buildMessage(&m_msg);
 
     QMailAccount account(m_msg.parentAccountId());
     QMailFolderId draftFolderId = account.standardFolder(QMailFolder::DraftsFolder);
@@ -519,6 +582,16 @@ EmailMessage::ContentType EmailMessage::contentType() const
     return EmailMessage::HTML;
 }
 
+bool EmailMessage::autoVerifySignature() const
+{
+    return m_autoVerifySignature;
+}
+
+EmailMessage::SignatureStatus EmailMessage::signatureStatus() const
+{
+    return m_signatureStatus;
+}
+
 QDateTime EmailMessage::date() const
 {
     return m_msg.date().toLocalTime();
@@ -599,6 +672,16 @@ QString EmailMessage::htmlBody()
 QString EmailMessage::inReplyTo() const
 {
     return m_msg.inReplyTo();
+}
+
+QString EmailMessage::signingPlugin() const
+{
+    return m_signingPlugin;
+}
+
+QStringList EmailMessage::signingKeys() const
+{
+    return m_signingKeys;
 }
 
 int EmailMessage::messageId() const
@@ -797,6 +880,26 @@ void EmailMessage::setInReplyTo(const QString &messageId)
     }
 }
 
+void EmailMessage::setSigningPlugin(const QString &cryptoType)
+{
+    if (cryptoType == m_signingPlugin)
+        return;
+
+    m_signingPlugin = cryptoType;
+    emit signingPluginChanged();
+    emit cryptoProtocolChanged();
+}
+
+void EmailMessage::setSigningKeys(const QStringList &fingerPrints)
+{
+    if (fingerPrints == m_signingKeys)
+        return;
+
+    m_signingKeys = fingerPrints;
+    emit signingKeysChanged();
+    emit cryptoProtocolChanged();
+}
+
 void EmailMessage::setMessageId(int messageId)
 {
     QMailMessageId msgId(messageId);
@@ -933,6 +1036,27 @@ void EmailMessage::setTo(const QStringList &toList)
     }
 }
 
+void EmailMessage::setAutoVerifySignature(bool autoVerify)
+{
+    if (autoVerify != m_autoVerifySignature) {
+        m_autoVerifySignature = autoVerify;
+        emit autoVerifySignatureChanged();
+
+        if (m_autoVerifySignature
+            && m_signatureStatus == EmailMessage::SignedUnchecked) {
+            verifySignature();
+        }
+    }
+}
+
+void EmailMessage::setSignatureStatus(SignatureStatus status)
+{
+    if (status != m_signatureStatus) {
+        m_signatureStatus = status;
+        emit signatureStatusChanged();
+    }
+}
+
 int EmailMessage::size()
 {
     return m_msg.size();
@@ -949,16 +1073,16 @@ QStringList EmailMessage::to()
 }
 
 // ############## Private API #########################
-void EmailMessage::buildMessage()
+void EmailMessage::buildMessage(QMailMessage *msg)
 {
     // remove all existent message parts if there's any
-    m_msg.clearParts();
+    msg->clearParts();
 
-    if (m_msg.responseType() == QMailMessage::Reply || m_msg.responseType() == QMailMessage::ReplyToAll ||
-            m_msg.responseType() == QMailMessage::Forward) {
+    if (msg->responseType() == QMailMessage::Reply || msg->responseType() == QMailMessage::ReplyToAll ||
+            msg->responseType() == QMailMessage::Forward) {
         // Needed for conversations support
         if (m_originalMessageId.isValid()) {
-            m_msg.setInResponseTo(m_originalMessageId);
+            msg->setInResponseTo(m_originalMessageId);
             QMailMessage originalMessage(m_originalMessageId);
             updateReferences(m_msg, originalMessage);
         }
@@ -974,31 +1098,39 @@ void EmailMessage::buildMessage()
     */
     // This should be improved to use QuotedPrintable when appending parts and inline references are implemented
     if (m_attachments.size() == 0) {
-        m_msg.setBody(QMailMessageBody::fromData(m_bodyText, type, QMailMessageBody::Base64));
+        msg->setBody(QMailMessageBody::fromData(m_bodyText, type, QMailMessageBody::Base64));
     } else {
         QMailMessagePart body;
         body.setBody(QMailMessageBody::fromData(m_bodyText.toUtf8(), type, QMailMessageBody::Base64));
-        m_msg.setMultipartType(QMailMessagePartContainer::MultipartMixed);
-        m_msg.appendPart(body);
+        msg->setMultipartType(QMailMessagePartContainer::MultipartMixed);
+        msg->appendPart(body);
     }
 
     // Include attachments into the message
     if (m_attachments.size()) {
-        processAttachments();
+        QStringList attachments;
+        for (QString attachment : m_attachments) {
+            // Attaching a file
+            if (attachment.startsWith("file://")) {
+                attachment.remove(0, 7);
+            }
+            attachments.append(attachment);
+        }
+        msg->setAttachments(attachments);
     }
 
     // set message basic attributes
-    m_msg.setDate(QMailTimeStamp::currentDateTime());
-    m_msg.setStatus(QMailMessage::Outgoing, true);
-    m_msg.setStatus(QMailMessage::ContentAvailable, true);
-    m_msg.setStatus(QMailMessage::PartialContentAvailable, true);
-    m_msg.setStatus(QMailMessage::Read, true);
-    m_msg.setStatus((QMailMessage::Outbox | QMailMessage::Draft), true);
+    msg->setDate(QMailTimeStamp::currentDateTime());
+    msg->setStatus(QMailMessage::Outgoing, true);
+    msg->setStatus(QMailMessage::ContentAvailable, true);
+    msg->setStatus(QMailMessage::PartialContentAvailable, true);
+    msg->setStatus(QMailMessage::Read, true);
+    msg->setStatus((QMailMessage::Outbox | QMailMessage::Draft), true);
 
-    m_msg.setParentFolderId(QMailFolder::LocalStorageFolderId);
+    msg->setParentFolderId(QMailFolder::LocalStorageFolderId);
 
-    m_msg.setMessageType(QMailMessage::Email);
-    m_msg.setSize(m_msg.indicativeSize() * 1024);
+    msg->setMessageType(QMailMessage::Email);
+    msg->setSize(msg->indicativeSize() * 1024);
 }
 
 void EmailMessage::emitSignals()
@@ -1056,19 +1188,15 @@ void EmailMessage::emitMessageReloadedSignals()
     emit storedMessageChanged();
     emit toChanged();
     emit quotedBodyChanged();
-}
 
-void EmailMessage::processAttachments()
-{
-    QStringList attachments;
-    for (QString attachment : m_attachments) {
-        // Attaching a file
-        if (attachment.startsWith("file://")) {
-            attachment.remove(0, 7);
-        }
-        attachments.append(attachment);
+    // Update and emit cryptography status.
+    if (m_autoVerifySignature) {
+        verifySignature();
+    } else if (m_msg.status() & QMailMessageMetaData::HasSignature) {
+        setSignatureStatus(EmailMessage::SignedUnchecked);
+    } else {
+        setSignatureStatus(EmailMessage::NoDigitalSignature);
     }
-    m_msg.setAttachments(attachments);
 }
 
 void EmailMessage::requestMessageDownload()
@@ -1238,4 +1366,152 @@ QString EmailMessage::readReceiptRequestEmail() const
     }
     const QMailMessageHeaderField &header = m_msg.headerField(READ_RECEIPT_HEADER_ID);
     return header.isNull() ? QString() : header.content();
+}
+
+void EmailMessage::onAttachmentDownloadStatusChanged(const QString &attachmentLocation,
+                                                     EmailAgent::AttachmentStatus status)
+{
+    if (attachmentLocation != m_signatureLocation)
+        return;
+
+    if (status != EmailAgent::Downloaded && status != EmailAgent::Failed)
+        return;
+
+    disconnect(EmailAgent::instance(),
+               &EmailAgent::attachmentDownloadStatusChanged,
+               this, &EmailMessage::onAttachmentDownloadStatusChanged);
+    if (status == EmailAgent::Downloaded) {
+        verifySignature();
+    } else {
+        m_signatureLocation.clear();
+        setSignatureStatus(EmailMessage::SignatureMissing);
+    }
+}
+
+static EmailMessage::SignatureStatus toSignatureStatus(QMailCryptoFwd::SignatureResult result)
+{
+    switch (result) {
+    case QMailCryptoFwd::SignatureValid:
+        return EmailMessage::SignedValid;
+    case QMailCryptoFwd::SignatureExpired:
+    case QMailCryptoFwd::KeyExpired:
+    case QMailCryptoFwd::CertificateRevoked:
+        return EmailMessage::SignedExpired;
+    case QMailCryptoFwd::BadSignature:
+        return EmailMessage::SignedInvalid;
+    case QMailCryptoFwd::MissingKey:
+        return EmailMessage::SignedMissing;
+    case QMailCryptoFwd::MissingSignature:
+        return EmailMessage::NoDigitalSignature;
+    default:
+        return EmailMessage::SignedFailure;
+    }
+}
+
+void EmailMessage::onVerifyCompleted(QMailCryptoFwd::VerificationResult result)
+{
+    m_cryptoResult = result;
+
+    // Status is unchecked as long as some parts are missing.
+    EmailMessage::SignatureStatus signatureStatus = toSignatureStatus(m_cryptoResult.summary);
+
+    if (signatureStatus == m_signatureStatus)
+        return;
+    setSignatureStatus(signatureStatus);
+
+    if (m_signingPlugin != m_cryptoResult.engine) {
+        m_signingPlugin = m_cryptoResult.engine;
+        emit signingPluginChanged();
+    }
+
+    m_signingKeys.clear();
+    for (int i = 0; i < m_cryptoResult.keyResults.length(); i++)
+        m_signingKeys.append(m_cryptoResult.keyResults.at(i).key);
+    emit signingKeysChanged();
+    emit cryptoProtocolChanged();
+}
+
+EmailMessage::SignatureStatus EmailMessage::getSignatureStatusForKey(const QString &keyIdentifier) const
+{
+    foreach (const QMailCryptoFwd::KeyResult &result, m_cryptoResult.keyResults) {
+        if (result.key == keyIdentifier)
+            return toSignatureStatus(result.status);
+    }
+    return EmailMessage::SignedMissing;
+}
+
+static QMailCryptoFwd::VerificationResult verificationHelper(QMailMessage *message)
+{
+    QMailCryptographicServiceInterface *engine = 0;
+    const QMailMessagePartContainer *cryptoContainer
+        = QMailCryptographicServiceFactory::findSignedContainer(message, &engine);
+    QMailCryptoFwd::VerificationResult result = (cryptoContainer && engine)
+        ? engine->verifySignature(*cryptoContainer)
+        : QMailCryptoFwd::VerificationResult(QMailCryptoFwd::MissingSignature);
+    delete message;
+    return result;
+}
+
+void EmailMessage::verifySignature()
+{
+    if (m_msg.status() & QMailMessageMetaData::HasSignature) {
+        const QMailMessagePartContainer *cryptoContainer
+            = QMailCryptographicServiceFactory::findSignedContainer(&m_msg);
+        if (cryptoContainer && cryptoContainer->partCount() > 1) {
+            const QMailMessagePart &signature = cryptoContainer->partAt(1);
+            if (!signature.contentAvailable() && m_signatureLocation.isEmpty()) {
+                m_signatureLocation = signature.location().toString(true);
+                setSignatureStatus(EmailMessage::SignatureDownloading);
+
+                connect(EmailAgent::instance(),
+                        &EmailAgent::attachmentDownloadStatusChanged,
+                        this, &EmailMessage::onAttachmentDownloadStatusChanged);
+                EmailAgent::instance()->downloadAttachment(m_msg.id().toULongLong(),
+                                                           m_signatureLocation);
+                return;
+            } else if (!signature.contentAvailable()) {
+                return;
+            }
+        }
+        setSignatureStatus(EmailMessage::SignatureChecking);
+
+        // Execute verification in a thread, using a copy of the message.
+        QFutureWatcher<QMailCryptoFwd::VerificationResult> *verifyingWatcher
+          = new QFutureWatcher<QMailCryptoFwd::VerificationResult>(this);
+        connect(verifyingWatcher,
+                &QFutureWatcher<QMailCryptoFwd::VerificationResult>::finished,
+                this,
+                [=] {
+                    verifyingWatcher->deleteLater();
+                    onVerifyCompleted(verifyingWatcher->result());
+                });
+        // Delegate the ownership to the thread later.
+        QMailMessage *verificationCopy = new QMailMessage(m_msg.id());
+        QFuture<QMailCryptoFwd::VerificationResult> future =
+            QtConcurrent::run(verificationHelper, verificationCopy);
+        verifyingWatcher->setFuture(future);
+    } else {
+        setSignatureStatus(EmailMessage::NoDigitalSignature);
+    }
+}
+
+EmailMessage::CryptoProtocol EmailMessage::cryptoProtocolForKey(const QString &pluginName,
+                                                                const QString &keyIdentifier) const
+{
+    Q_UNUSED(keyIdentifier); // Will be used when plugin is multi-protocol,
+                             // like a sailfish-secret based QMF plugin.
+
+    // These are QMF plugin names.
+    if (pluginName.compare("libgpgme.so") == 0) {
+        return EmailMessage::OpenPGP;
+    } else if (pluginName.compare("libsmime.so") == 0) {
+        return EmailMessage::SecureMIME;
+    } else {
+        return EmailMessage::UnknownProtocol;
+    }
+}
+
+EmailMessage::CryptoProtocol EmailMessage::cryptoProtocol() const
+{
+    return cryptoProtocolForKey(m_signingPlugin, m_signingKeys.value(0, QString()));
 }

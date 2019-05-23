@@ -14,6 +14,9 @@
 
 #include <qmailaccount.h>
 #include <qmailstore.h>
+#include <qmailcryptofwd.h>
+
+#include "emailagent.h"
 
 class Q_DECL_EXPORT EmailMessage : public QObject
 {
@@ -22,6 +25,9 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_ENUMS(ContentType)
     Q_ENUMS(ResponseType)
     Q_ENUMS(AttachedDataStatus)
+    Q_ENUMS(CryptoProtocol)
+    Q_ENUMS(SignatureStatus)
+
     Q_PROPERTY(int accountId READ accountId NOTIFY accountIdChanged)
     Q_PROPERTY(QString accountAddress READ accountAddress NOTIFY accountAddressChanged)
     Q_PROPERTY(int folderId READ folderId NOTIFY folderIdChanged)
@@ -35,12 +41,17 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(bool calendarInvitationSupportsEmailResponses READ calendarInvitationSupportsEmailResponses NOTIFY calendarInvitationSupportsEmailResponsesChanged)
     Q_PROPERTY(QStringList cc READ cc WRITE setCc NOTIFY ccChanged)
     Q_PROPERTY(ContentType contentType READ contentType NOTIFY storedMessageChanged FINAL)
+    Q_PROPERTY(bool autoVerifySignature READ autoVerifySignature WRITE setAutoVerifySignature NOTIFY autoVerifySignatureChanged)
+    Q_PROPERTY(CryptoProtocol cryptoProtocol READ cryptoProtocol NOTIFY cryptoProtocolChanged)
+    Q_PROPERTY(SignatureStatus signatureStatus READ signatureStatus NOTIFY signatureStatusChanged FINAL)
     Q_PROPERTY(QDateTime date READ date NOTIFY storedMessageChanged)
     Q_PROPERTY(QString from READ from WRITE setFrom NOTIFY fromChanged)
     Q_PROPERTY(QString fromAddress READ fromAddress NOTIFY fromChanged)
     Q_PROPERTY(QString fromDisplayName READ fromDisplayName NOTIFY fromChanged)
     Q_PROPERTY(QString htmlBody READ htmlBody NOTIFY htmlBodyChanged FINAL)
     Q_PROPERTY(QString inReplyTo READ inReplyTo WRITE setInReplyTo NOTIFY inReplyToChanged)
+    Q_PROPERTY(QString signingPlugin READ signingPlugin WRITE setSigningPlugin NOTIFY signingPluginChanged)
+    Q_PROPERTY(QStringList signingKeys READ signingKeys WRITE setSigningKeys NOTIFY signingKeysChanged)
     Q_PROPERTY(int messageId READ messageId WRITE setMessageId NOTIFY messageIdChanged)
     Q_PROPERTY(bool multipleRecipients READ multipleRecipients NOTIFY multipleRecipientsChanged)
     Q_PROPERTY(int numberOfAttachments READ numberOfAttachments NOTIFY attachmentsChanged)
@@ -85,12 +96,34 @@ public:
         Saved
     };
 
+    enum SignatureStatus {
+        NoDigitalSignature,
+        SignatureDownloading,
+        SignatureMissing,
+        SignatureChecking,
+        SignedValid,
+        SignedInvalid,
+        SignedExpired,
+        SignedMissing,
+        SignedUnchecked,
+        SignedFailure
+    };
+
+    enum CryptoProtocol {
+        UnknownProtocol,
+        OpenPGP,
+        SecureMIME
+    };
+
     Q_INVOKABLE void cancelMessageDownload();
     Q_INVOKABLE void downloadMessage();
     Q_INVOKABLE void getCalendarInvitation();
     Q_INVOKABLE void send();
     Q_INVOKABLE bool sendReadReceipt(const QString &subjectPrefix, const QString &readReceiptBodyText);
     Q_INVOKABLE void saveDraft();
+    Q_INVOKABLE void verifySignature();
+    Q_INVOKABLE SignatureStatus getSignatureStatusForKey(const QString &keyIdentifier) const;
+    Q_INVOKABLE CryptoProtocol cryptoProtocolForKey(const QString &pluginName, const QString &keyIdentifier) const;
 
     int accountId() const;
     QString accountAddress() const;
@@ -105,12 +138,17 @@ public:
     bool calendarInvitationSupportsEmailResponses() const;
     QStringList cc() const;
     ContentType contentType() const;
+    bool autoVerifySignature() const;
+    CryptoProtocol cryptoProtocol() const;
+    SignatureStatus signatureStatus() const;
     QDateTime date() const;
     QString from() const;
     QString fromAddress() const;
     QString fromDisplayName() const;
     QString htmlBody();
     QString inReplyTo() const;
+    QString signingPlugin() const;
+    QStringList signingKeys() const;
     int messageId() const;
     bool multipleRecipients() const;
     int numberOfAttachments() const;
@@ -130,6 +168,8 @@ public:
     void setCc(const QStringList &ccList);
     void setFrom(const QString &sender);
     void setInReplyTo(const QString &messageId);
+    void setSigningPlugin(const QString &cryptoPlugin);
+    void setSigningKeys(const QStringList &fingerPrints);
     void setMessageId(int messageId);
     void setOriginalMessageId(int messageId);
     void setPriority(Priority priority);
@@ -139,11 +179,13 @@ public:
     void setRequestReadReceipt(bool requestReadReceipt);
     void setSubject(const QString &subject);
     void setTo(const QStringList &toList);
+    void setAutoVerifySignature(bool autoVerify);
     int size();
     QString subject();
     QStringList to();
 
 signals:
+    void sendEnqueued(bool success);
     void sendCompleted(bool success);
 
     void accountIdChanged();
@@ -157,10 +199,15 @@ signals:
     void calendarInvitationBodyChanged();
     bool calendarInvitationSupportsEmailResponsesChanged();
     void ccChanged();
+    void autoVerifySignatureChanged();
+    void cryptoProtocolChanged();
+    void signatureStatusChanged();
     void dateChanged();
     void fromChanged();
     void htmlBodyChanged();
     void inReplyToChanged();
+    void signingPluginChanged();
+    void signingKeysChanged();
     void messageIdChanged();
     void messageDownloaded();
     void messageDownloadFailed();
@@ -184,15 +231,18 @@ private slots:
     void onMessagesDownloaded(const QMailMessageIdList &ids, bool success);
     void onMessagePartDownloaded(const QMailMessageId &messageId, const QString &partLocation, bool success);
     void onInlinePartDownloaded(const QMailMessageId &messageId, const QString &partLocation, bool success);
+    void onAttachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status);
+    void onSignCompleted(QMailCryptoFwd::SignatureResult result);
+    void onVerifyCompleted(QMailCryptoFwd::VerificationResult result);
     void onSendCompleted(bool success);
 
 private:
     friend class tst_EmailMessage;
 
-    void buildMessage();
+    void buildMessage(QMailMessage *msg);
+    void sendBuiltMessage();
     void emitSignals();
     void emitMessageReloadedSignals();
-    void processAttachments();
     void requestMessageDownload();
     void requestMessagePartDownload(const QMailMessagePartContainer *container);
     void requestInlinePartsDownload(const QMap<QString, QMailMessagePart::Location> &inlineParts);
@@ -205,11 +255,14 @@ private:
     void saveTempCalendarInvitation(const QMailMessagePart &calendarPart);
     void updateReadReceiptHeader();
     QString readReceiptRequestEmail() const;
+    void setSignatureStatus(SignatureStatus status);
 
     QMailAccount m_account;
     QStringList m_attachments;
     QString m_bodyText;
     QString m_htmlText;
+    QString m_signingPlugin;
+    QStringList m_signingKeys;
     QMailMessageId m_id;
     QMailMessageId m_originalMessageId;
     QMailMessageId m_idToRemove;
@@ -221,6 +274,10 @@ private:
     bool m_htmlBodyConstructed;
     QString m_calendarInvitationUrl;
     AttachedDataStatus m_calendarStatus;
+    bool m_autoVerifySignature;
+    SignatureStatus m_signatureStatus;
+    QMailCryptoFwd::VerificationResult m_cryptoResult;
+    QString m_signatureLocation;
 };
 
 #endif

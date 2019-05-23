@@ -29,6 +29,9 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     roles.insert(AppendSignature, "appendSignature");
     roles.insert(IconPath, "iconPath");
     roles.insert(HasPersistentConnection, "hasPersistentConnection");
+    roles.insert(CryptoSignatureType, "cryptoSignatureType");
+    roles.insert(CryptoSignatureIds, "cryptoSignatureIds");
+    roles.insert(UseCryptoSignatureByDefault, "useCryptoSignatureByDefault");
 
     connect(this, SIGNAL(rowsInserted(QModelIndex,int,int)),
             this,SLOT(onAccountsAdded(QModelIndex,int,int)));
@@ -146,6 +149,18 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
 
     if (role == HasPersistentConnection) {
         return (account.status() & QMailAccount::HasPersistentConnection) != 0;
+    }
+
+    if (role == CryptoSignatureType) {
+        return account.cryptoSignatureType();
+    }
+
+    if (role == CryptoSignatureIds) {
+        return account.cryptoSignatureIds();
+    }
+
+    if (role == UseCryptoSignatureByDefault) {
+        return (account.status() & QMailAccount::UseCryptoSignatureByDefault) != 0;
     }
 
     return QVariant();
@@ -439,4 +454,34 @@ QString EmailAccountListModel::signature(int accountId)
         return QString();
 
     return data(index(accountIndex), EmailAccountListModel::Signature).toString();
+}
+
+bool EmailAccountListModel::useCryptoSignatureByDefault(int accountId)
+{
+    int accountIndex = indexFromAccountId(accountId);
+
+    if (accountIndex < 0)
+        return false;
+
+    return data(index(accountIndex), EmailAccountListModel::UseCryptoSignatureByDefault).toBool();
+}
+
+QString EmailAccountListModel::cryptoSignatureType(int accountId)
+{
+    int accountIndex = indexFromAccountId(accountId);
+
+    if (accountIndex < 0)
+        return QString();
+
+    return data(index(accountIndex), EmailAccountListModel::CryptoSignatureType).toString();
+}
+
+QStringList EmailAccountListModel::cryptoSignatureIds(int accountId)
+{
+    int accountIndex = indexFromAccountId(accountId);
+
+    if (accountIndex < 0)
+        return QStringList();
+
+    return data(index(accountIndex), EmailAccountListModel::CryptoSignatureIds).toStringList();
 }
