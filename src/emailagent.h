@@ -124,7 +124,8 @@ public:
     Q_INVOKABLE void createFolder(const QString &name, int mailAccountId, int parentFolderId);
     Q_INVOKABLE void deleteFolder(int folderId);
     Q_INVOKABLE void deleteMessage(int messageId);
-    Q_INVOKABLE void deleteMessages(const QMailMessageIdList &ids);
+    Q_INVOKABLE void deleteMessagesFromVariantList(const QVariantList &ids);
+    void deleteMessages(const QMailMessageIdList &ids);
     Q_INVOKABLE void expungeMessages(const QMailMessageIdList &ids);
     Q_INVOKABLE bool downloadAttachment(int messageId, const QString &attachmentLocation);
     Q_INVOKABLE void cancelAttachmentDownload(const QString &attachmentLocation);

@@ -634,6 +634,24 @@ void EmailAgent::deleteMessage(int messageId)
     deleteMessages(msgIdList);
 }
 
+void EmailAgent::deleteMessagesFromVariantList(const QVariantList &ids)
+{
+    QMailMessageIdList msgIdList;
+    for (const QVariant &msgId : ids) {
+        bool ok = false;
+        quint64 msgIdInt = msgId.toULongLong(&ok);
+        if (ok) {
+            msgIdList << QMailMessageId(msgIdInt);
+        } else {
+            qWarning() << "Cannot delete, ignoring invalid message id:" << msgId;
+        }
+    }
+
+    if (msgIdList.count() > 0) {
+        deleteMessages(msgIdList);
+    }
+}
+
 void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
 {
     Q_ASSERT(!ids.isEmpty());
