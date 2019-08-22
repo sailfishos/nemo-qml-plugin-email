@@ -43,6 +43,7 @@ class Q_DECL_EXPORT EmailMessageListModel : public QMailMessageListModel
     Q_PROPERTY(int searchRemainingOnRemote READ searchRemainingOnRemote NOTIFY searchRemainingOnRemoteChanged FINAL)
     Q_PROPERTY(EmailMessageListModel::Sort sortBy READ sortBy WRITE setSortBy NOTIFY sortByChanged)
     Q_PROPERTY(bool unreadMailsSelected READ unreadMailsSelected NOTIFY unreadMailsSelectedChanged FINAL)
+    Q_PROPERTY(QDate currentDate READ currentDate WRITE setCurrentDate NOTIFY currentDateChanged)
 
 public:
     enum Roles {
@@ -108,6 +109,8 @@ public:
     void setSortBy(Sort sort);
     EmailMessageListModel::Sort sortBy() const;
     bool unreadMailsSelected() const;
+    void setCurrentDate(const QDate &dt);
+    QDate currentDate() const;
 
     Q_INVOKABLE void notifyDateChanged();
 
@@ -126,6 +129,7 @@ Q_SIGNALS:
     void searchRemainingOnRemoteChanged();
     void sortByChanged();
     void unreadMailsSelectedChanged();
+    void currentDateChanged();
 
 public:
     Q_INVOKABLE void setSearch(const QString &search);
@@ -184,6 +188,7 @@ private:
     QList<int> m_selectedUnreadIdx;
     QTimer m_remoteSearchTimer;
     FolderAccessor *m_folderAccessor;
+    QDate m_currentDate;
 };
 
 #endif

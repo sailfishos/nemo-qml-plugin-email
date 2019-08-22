@@ -31,7 +31,8 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
       m_searchBody(true),
       m_searchRemainingOnRemote(0),
       m_searchCanceled(false),
-      m_folderAccessor(new FolderAccessor(this))
+      m_folderAccessor(new FolderAccessor(this)),
+      m_currentDate(QDate::currentDate())
 {
     roles[QMailMessageModelBase::MessageAddressTextRole] = "sender";
     roles[QMailMessageModelBase::MessageSubjectTextRole] = "subject";
@@ -198,17 +199,7 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
     } else if (role == MessagePreviewRole) {
         return messageMetaData.preview().simplified();
     } else if (role == MessageTimeSectionRole) {
-        static QDate lastDate(QDate::currentDate());
-
-        // The value of this property depends on the current date; if that changes, we need to notify the update
-        QDate now(QDate::currentDate());
-        // FIXME: this only works when new data is fetched
-        if (now != lastDate) {
-            lastDate = now;
-            QMetaObject::invokeMethod(const_cast<EmailMessageListModel *>(this), "notifyDateChanged");
-        }
-
-        const int daysDiff = now.toJulianDay() - (messageMetaData.date().toLocalTime()).date().toJulianDay();
+        const int daysDiff = m_currentDate.toJulianDay() - (messageMetaData.date().toLocalTime()).date().toJulianDay();
         if (daysDiff < 7) {
             return (messageMetaData.date().toLocalTime()).date();
         } else {
@@ -411,6 +402,20 @@ bool EmailMessageListModel::unreadMailsSelected() const
 void EmailMessageListModel::notifyDateChanged()
 {
     dataChanged(index(0), index(rowCount() - 1), QVector<int>() << MessageTimeSectionRole);
+}
+
+void EmailMessageListModel::setCurrentDate(const QDate &dt)
+{
+    if (m_currentDate != dt) {
+        m_currentDate = dt;
+        emit currentDateChanged();
+        emit dataChanged(index(0), index(rowCount() - 1), QVector<int>() << MessageTimeSectionRole);
+    }
+}
+
+QDate EmailMessageListModel::currentDate() const
+{
+    return m_currentDate;
 }
 
 void EmailMessageListModel::setSortBy(EmailMessageListModel::Sort sort)
