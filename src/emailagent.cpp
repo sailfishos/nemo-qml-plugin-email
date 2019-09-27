@@ -1223,18 +1223,11 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
     QSharedPointer<EmailAction> action(actionPointer);
     bool foundAction = actionInQueue(action);
 
-    // Check if action neeeds connectivity and if we are not running from a background process
+    // Check if action needs connectivity and if we are not running from a background process
     if (action->needsNetworkConnection() && !backgroundProcess() && !isOnline()) {
-        if (m_backgroundProcess) {
-            qCDebug(lcEmail) << "Network not available to execute background action, exiting...";
-            m_synchronizing = false;
-            emit synchronizingChanged(EmailAgent::Error);
-            return quint64(0);
-        } else {
-            // Request connection. Expecting the application to handle this.
-            // Actions will be resumed on onlineStateChanged signal.
-            emit networkConnectionRequested();
-        }
+        // Request connection. Expecting the application to handle this.
+        // Actions will be resumed on onlineStateChanged signal.
+        emit networkConnectionRequested();
     }
 
     if (!foundAction) {
