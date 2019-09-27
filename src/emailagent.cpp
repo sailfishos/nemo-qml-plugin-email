@@ -158,7 +158,6 @@ void EmailAgent::cancelAction(quint64 actionId)
             m_cancellingSingleAction = true;
             m_currentAction->serviceAction()->cancelOperation();
         } else {
-            m_currentAction.reset();
             processNextAction();
         }
     } else {
@@ -268,7 +267,6 @@ void EmailAgent::cancelSearch()
             m_cancellingSingleAction = true;
             m_currentAction->serviceAction()->cancelOperation();
         } else {
-            m_currentAction.reset();
             processNextAction();
         }
     }
@@ -376,20 +374,9 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
                 emitSearchStatusChanges(m_currentAction, EmailAgent::SearchCanceled);
             }
             dequeue();
-            m_currentAction.clear();
             qCDebug(lcEmail) << "Single action canceled by the user";
             m_cancellingSingleAction = false;
-            m_accountSynchronizing = -1;
-            emit currentSynchronizingAccountIdChanged();
-            if (m_actionQueue.empty()) {
-                m_synchronizing = false;
-                m_accountSynchronizing = -1;
-                emit currentSynchronizingAccountIdChanged();
-                emit synchronizingChanged(EmailAgent::Completed);
-                qCDebug(lcEmail) << "Sync completed.";
-            } else {
-                processNextAction();
-            }
+            processNextAction();
             break;
         } else {
             // Report the error
@@ -1347,7 +1334,7 @@ QSharedPointer<EmailAction> EmailAgent::getNext()
         for (int i = 1; i < m_actionQueue.size(); i++) {
             QSharedPointer<EmailAction> action = m_actionQueue.at(i);
             if (!action->needsNetworkConnection()) {
-                m_actionQueue.move(i,0);
+                m_actionQueue.move(i, 0);
                 return action;
             }
         }
