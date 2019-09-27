@@ -120,7 +120,6 @@ public:
     void syncAccounts(const QMailAccountIdList &accountIdList, bool syncOnlyInbox = true, uint minimum = 20);
 
     Q_INVOKABLE void accountsSync(bool syncOnlyInbox = false, uint minimum = 20);
-    Q_INVOKABLE void cancelSync();
     Q_INVOKABLE void createFolder(const QString &name, int mailAccountId, int parentFolderId);
     Q_INVOKABLE void deleteFolder(int folderId);
     Q_INVOKABLE void deleteMessage(int messageId);
@@ -193,7 +192,6 @@ private:
     uint m_actionCount;
     uint m_accountSynchronizing;
     bool m_transmitting;
-    bool m_cancelling;
     bool m_cancellingSingleAction;
     bool m_synchronizing;
     bool m_enqueing;

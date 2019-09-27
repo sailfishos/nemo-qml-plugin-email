@@ -51,7 +51,6 @@ EmailAgent::EmailAgent(QObject *parent)
     , m_actionCount(0)
     , m_accountSynchronizing(-1)
     , m_transmitting(false)
-    , m_cancelling(false)
     , m_cancellingSingleAction(false)
     , m_synchronizing(false)
     , m_enqueing(false)
@@ -357,18 +356,7 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
         qCWarning(lcEmail) << Q_FUNC_INFO << "operation failed error code:" << status.errorCode << "error text:" << status.text << "account:" << status.accountId
                            << "connection status:" << action->connectivity() << "sender:" << sender();
 
-        if (m_cancelling) {
-            m_synchronizing = false;
-            m_accountSynchronizing = -1;
-            emit currentSynchronizingAccountIdChanged();
-            emit synchronizingChanged(EmailAgent::Error);
-            m_transmitting = false;
-            m_cancelling = false;
-            m_actionQueue.clear();
-            // Cancel by the user skip error reporting
-            qCDebug(lcEmail) << "Canceled by the user";
-            break;
-        } else if (m_cancellingSingleAction) {
+        if (m_cancellingSingleAction) {
             if (m_currentAction->type() == EmailAction::Search) {
                 qCDebug(lcEmail) << "Search canceled by the user";
                 emitSearchStatusChanges(m_currentAction, EmailAgent::SearchCanceled);
@@ -574,20 +562,6 @@ void EmailAgent::accountsSync(bool syncOnlyInbox, uint minimum)
     qCDebug(lcEmail) << "Enabled accounts size is:" << m_enabledAccounts.count();
 
     syncAccounts(m_enabledAccounts, syncOnlyInbox, minimum);
-}
-
-void EmailAgent::cancelSync()
-{
-    if (!m_synchronizing)
-        return;
-
-    m_cancelling = true;
-    m_actionQueue.clear();
-
-    // cancel running action
-    if (!m_currentAction.isNull() && m_currentAction->serviceAction()->isRunning()) {
-        m_currentAction->serviceAction()->cancelOperation();
-    }
 }
 
 void EmailAgent::createFolder(const QString &name, int mailAccountId, int parentFolderId)
