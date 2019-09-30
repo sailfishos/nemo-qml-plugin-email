@@ -1,9 +1,10 @@
 /*
  * Copyright 2011 Intel Corporation.
  * Copyright (C) 2012-2019 Jolla Ltd.
+ * Copyright (c) 2019 Open Mobile Platform LLC.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
@@ -49,12 +50,11 @@ EmailAgent *EmailAgent::instance()
 EmailAgent::EmailAgent(QObject *parent)
     : QObject(parent)
     , m_actionCount(0)
-    , m_accountSynchronizing(-1)
+    , m_accountSynchronizing(0)
     , m_transmitting(false)
     , m_cancellingSingleAction(false)
     , m_synchronizing(false)
     , m_enqueing(false)
-    , m_backgroundProcess(false)
     , m_retrievalAction(new QMailRetrievalAction(this))
     , m_storageAction(new QMailStorageAction(this))
     , m_transmitAction(new QMailTransmitAction(this))
@@ -139,16 +139,6 @@ QString EmailAgent::bodyPlainText(const QMailMessage &mailMsg) const
     return QString();
 }
 
-bool EmailAgent::backgroundProcess() const
-{
-    return m_backgroundProcess;
-}
-
-void EmailAgent::setBackgroundProcess(bool isBackgroundProcess)
-{
-    m_backgroundProcess = isBackgroundProcess;
-}
-
 void EmailAgent::cancelAction(quint64 actionId)
 {
     // cancel running action
@@ -166,7 +156,7 @@ void EmailAgent::cancelAction(quint64 actionId)
 
 quint64 EmailAgent::downloadMessages(const QMailMessageIdList &messageIds, QMailRetrievalAction::RetrievalSpecification spec)
 {
-     return enqueue(new RetrieveMessages(m_retrievalAction.data(), messageIds, spec));
+    return enqueue(new RetrieveMessages(m_retrievalAction.data(), messageIds, spec));
 }
 
 quint64 EmailAgent::downloadMessagePart(const QMailMessagePart::Location &location)
@@ -217,8 +207,8 @@ void EmailAgent::initMailServer()
     // We ignore the dependencies here because we want messageserver to start even if there are
     // no accounts in the system (e.g if this plugin is initiated to test account credentials during creation)
     QDBusPendingCall startUnit = systemd.asyncCall(QStringLiteral("StartUnit"),
-                                                          QStringLiteral("messageserver5.service"),
-                                                          QStringLiteral("ignore-dependencies"));
+                                                   QStringLiteral("messageserver5.service"),
+                                                   QStringLiteral("ignore-dependencies"));
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(startUnit, this);
     QObject::connect(watcher, &QDBusPendingCallWatcher::finished,
                      this, [this](QDBusPendingCallWatcher *watcher) {
@@ -226,9 +216,14 @@ void EmailAgent::initMailServer()
             QDBusPendingReply<QDBusObjectPath> reply = *watcher;
             if (reply.isError()) {
                 QDBusError error = reply.error();
-                qCWarning(lcEmail) << Q_FUNC_INFO << "Failed to start messageserver:" << error.name() << error.message() << error.type();
-                m_synchronizing = false;
-                emit synchronizingChanged(EmailAgent::Error);
+                qCWarning(lcEmail) << Q_FUNC_INFO << "Failed to start messageserver:"
+                                   << error.name() << error.message() << error.type();
+
+                // shouldn't really happen ever?
+                if (m_synchronizing) {
+                    m_synchronizing = false;
+                    emit synchronizingChanged();
+                }
             }
         }
         watcher->deleteLater();
@@ -280,6 +275,19 @@ void EmailAgent::cancelSearch()
     }
 }
 
+void EmailAgent::cancelAll()
+{
+    m_actionQueue.clear();
+    if (m_currentAction) {
+        if (m_currentAction->serviceAction()->isRunning()) {
+            m_cancellingSingleAction = true;
+            m_currentAction->serviceAction()->cancelOperation();
+        } else {
+            processNextAction();
+        }
+    }
+}
+
 bool EmailAgent::synchronizing() const
 {
     return m_synchronizing;
@@ -324,10 +332,10 @@ void EmailAgent::setMessagesReadState(const QMailMessageIdList &ids, bool state)
     QMailAccountIdList accountIdList;
     // Messages can be from several accounts
     for (const QMailMessageId &id : ids) {
-       QMailAccountId accountId = accountForMessageId(id);
-       if (!accountIdList.contains(accountId)) {
-           accountIdList.append(accountId);
-       }
+        QMailAccountId accountId = accountForMessageId(id);
+        if (!accountIdList.contains(accountId)) {
+            accountIdList.append(accountId);
+        }
     }
 
     QMailStore::instance()->updateMessagesMetaData(QMailMessageKey::id(ids), QMailMessage::Read, state);
@@ -348,123 +356,116 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
     const QMailServiceAction::Status status(action->status());
 
     switch (activity) {
-    case QMailServiceAction::Failed:
-        // TODO: coordinate with stop logic
-        // don't try to synchronise extra accounts if the user cancelled the sync
-
-        // See qmailserviceaction.h for ErrorCodes
-        qCWarning(lcEmail) << Q_FUNC_INFO << "operation failed error code:" << status.errorCode << "error text:" << status.text << "account:" << status.accountId
-                           << "connection status:" << action->connectivity() << "sender:" << sender();
-
+    case QMailServiceAction::Failed: {
         if (m_cancellingSingleAction) {
-            if (m_currentAction->type() == EmailAction::Search) {
+            qDebug(lcEmail) << Q_FUNC_INFO << "operation finished as failed while canceling. sender:" << sender();
+        } else {
+            // See qmailserviceaction.h for ErrorCodes
+            qCWarning(lcEmail) << Q_FUNC_INFO << "operation failed error code:" << status.errorCode
+                               << "error text:" << status.text << "account:" << status.accountId
+                               << "connection status:" << action->connectivity() << "sender:" << sender();
+        }
+
+        dequeue();
+
+        bool sendFailed = false;
+
+        // TODO: need to handle some more cancel cases without warnings?
+        if (m_currentAction->type() == EmailAction::Transmit) {
+            m_transmitting = false;
+            sendFailed = true;
+            emit sendCompleted(false);
+            qCWarning(lcEmail) << "Error: Send failed";
+
+        } else if (m_currentAction->type() == EmailAction::Search) {
+            if (m_cancellingSingleAction) {
                 qCDebug(lcEmail) << "Search canceled by the user";
                 emitSearchStatusChanges(m_currentAction, EmailAgent::SearchCanceled);
-            }
-            dequeue();
-            qCDebug(lcEmail) << "Single action canceled by the user";
-            m_cancellingSingleAction = false;
-            processNextAction();
-            break;
-        } else {
-            // Report the error
-            dequeue();
-            bool sendFailed = false;
-
-            if (m_currentAction->type() == EmailAction::Transmit) {
-                m_transmitting = false;
-                sendFailed = true;
-                emit sendCompleted(false);
-                qCWarning(lcEmail) << "Error: Send failed";
-            }
-
-            if (m_currentAction->type() == EmailAction::Search) {
+            } else {
                 qCWarning(lcEmail) << "Error: Search failed";
                 emitSearchStatusChanges(m_currentAction, EmailAgent::SearchFailed);
             }
 
-            if (m_currentAction->type() == EmailAction::RetrieveMessagePart) {
-                RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(m_currentAction.data());
-                if (messagePartAction->isAttachment()) {
+        } else if (m_currentAction->type() == EmailAction::RetrieveMessagePart) {
+            RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(m_currentAction.data());
+            if (messagePartAction->isAttachment()) {
+                // we assume cancelAttachmentDownload() does the status change signal
+                if (!m_cancellingSingleAction) {
                     updateAttachmentDownloadStatus(messagePartAction->partLocation(), Failed);
                     qCWarning(lcEmail) << "Attachment download failed for " << messagePartAction->partLocation();
-                } else {
-                    emit messagePartDownloaded(messagePartAction->messageId(), messagePartAction->partLocation(), false);
-                    qCWarning(lcEmail) << "Failed to download message part!!";
                 }
+            } else {
+                emit messagePartDownloaded(messagePartAction->messageId(), messagePartAction->partLocation(), false);
+                qCWarning(lcEmail) << "Failed to download message part!!";
             }
 
-            if (m_currentAction->type() == EmailAction::RetrieveMessages) {
-                RetrieveMessages* retrieveMessagesAction = static_cast<RetrieveMessages *>(m_currentAction.data());
-                emit messagesDownloaded(retrieveMessagesAction->messageIds(), false);
-                qCWarning(lcEmail) << "Failed to download messages";
-            }
+        } else if (m_currentAction->type() == EmailAction::RetrieveMessages) {
+            RetrieveMessages* retrieveMessagesAction = static_cast<RetrieveMessages *>(m_currentAction.data());
+            emit messagesDownloaded(retrieveMessagesAction->messageIds(), false);
+            qCWarning(lcEmail) << "Failed to download messages";
 
-            if (m_currentAction->type() == EmailAction::CalendarInvitationResponse) {
-                if (m_currentAction->description().startsWith("eas-invitation-response")) {
-                    EasInvitationResponse* responseAction = static_cast<EasInvitationResponse *>(m_currentAction.data());
-                    if (responseAction) {
-                        emit calendarInvitationResponded(
-                                    (CalendarInvitationResponse) responseAction->response(), false);
-                    }
-                } else {
-                    emit calendarInvitationResponded(InvitationResponseUnspecified, false);
+        } else if (m_currentAction->type() == EmailAction::CalendarInvitationResponse) {
+            if (m_currentAction->description().startsWith("eas-invitation-response")) {
+                EasInvitationResponse* responseAction = static_cast<EasInvitationResponse *>(m_currentAction.data());
+                if (responseAction) {
+                    emit calendarInvitationResponded(
+                                (CalendarInvitationResponse) responseAction->response(), false);
                 }
+            } else {
+                emit calendarInvitationResponded(InvitationResponseUnspecified, false);
             }
-            if (m_currentAction->type() == EmailAction::OnlineCreateFolder) {
-                emit onlineFolderActionCompleted(ActionOnlineCreateFolder, false);
-            } else if (m_currentAction->type() == EmailAction::OnlineDeleteFolder) {
-                emit onlineFolderActionCompleted(ActionOnlineDeleteFolder, false);
-            } else if (m_currentAction->type() == EmailAction::OnlineRenameFolder) {
-                emit onlineFolderActionCompleted(ActionOnlineRenameFolder, false);
-            } else if (m_currentAction->type() == EmailAction::OnlineMoveFolder) {
-                emit onlineFolderActionCompleted(ActionOnlineMoveFolder, false);
-            } else if (status.errorCode != QMailServiceAction::Status::ErrUnknownResponse) {
-                reportError(status.accountId, status.errorCode, sendFailed);
-            }
-            processNextAction(true);
-            break;
         }
 
+        if (m_currentAction->type() == EmailAction::OnlineCreateFolder) {
+            emit onlineFolderActionCompleted(ActionOnlineCreateFolder, false);
+        } else if (m_currentAction->type() == EmailAction::OnlineDeleteFolder) {
+            emit onlineFolderActionCompleted(ActionOnlineDeleteFolder, false);
+        } else if (m_currentAction->type() == EmailAction::OnlineRenameFolder) {
+            emit onlineFolderActionCompleted(ActionOnlineRenameFolder, false);
+        } else if (m_currentAction->type() == EmailAction::OnlineMoveFolder) {
+            emit onlineFolderActionCompleted(ActionOnlineMoveFolder, false);
+        } else if (!m_cancellingSingleAction && status.errorCode != QMailServiceAction::Status::ErrUnknownResponse) {
+            reportError(status.accountId, status.errorCode, sendFailed);
+        }
+
+        m_cancellingSingleAction = false;
+        processNextAction();
+        break;
+    }
     case QMailServiceAction::Successful:
         dequeue();
+
         if (m_currentAction->type() == EmailAction::Transmit) {
             qCDebug(lcEmail) << "Finished sending for accountId:" << m_currentAction->accountId();
             m_transmitting = false;
             emit sendCompleted(true);
-        }
 
-        if (m_currentAction->type() == EmailAction::Search) {
+        } else if (m_currentAction->type() == EmailAction::Search) {
             qCDebug(lcEmail) << "Search done";
             emitSearchStatusChanges(m_currentAction, EmailAgent::SearchDone);
-        }
 
-        if (m_currentAction->type() == EmailAction::StandardFolders) {
+        } else if (m_currentAction->type() == EmailAction::StandardFolders) {
             QMailAccount *account = new QMailAccount(m_currentAction->accountId());
             account->setStatus(QMailAccount::statusMask("StandardFoldersRetrieved"), true);
             QMailStore::instance()->updateAccount(account);
             emit standardFoldersCreated(m_currentAction->accountId());
-        }
 
-        if (m_currentAction->type() == EmailAction::RetrieveFolderList) {
+        } else if (m_currentAction->type() == EmailAction::RetrieveFolderList) {
             emit folderRetrievalCompleted(m_currentAction->accountId());
-        }
 
-        if (m_currentAction->type() == EmailAction::RetrieveMessagePart) {
+        } else if (m_currentAction->type() == EmailAction::RetrieveMessagePart) {
             RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(m_currentAction.data());
             if (messagePartAction->isAttachment()) {
                 saveAttachmentToDownloads(messagePartAction->messageId(), messagePartAction->partLocation());
             } else {
                 emit messagePartDownloaded(messagePartAction->messageId(), messagePartAction->partLocation(), true);
             }
-        }
 
-        if (m_currentAction->type() == EmailAction::RetrieveMessages) {
+        } else if (m_currentAction->type() == EmailAction::RetrieveMessages) {
             RetrieveMessages* retrieveMessagesAction = static_cast<RetrieveMessages *>(m_currentAction.data());
             emit messagesDownloaded(retrieveMessagesAction->messageIds(), true);
-        }
 
-        if (m_currentAction->type() == EmailAction::CalendarInvitationResponse) {
+        } else if (m_currentAction->type() == EmailAction::CalendarInvitationResponse) {
             if (m_currentAction->description().startsWith("eas-invitation-response")) {
                 EasInvitationResponse* responseAction = static_cast<EasInvitationResponse *>(m_currentAction.data());
                 if (responseAction) {
@@ -474,8 +475,8 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
             } else {
                 emit calendarInvitationResponded(InvitationResponseUnspecified, true);
             }
-        }
-        if (m_currentAction->type() == EmailAction::OnlineCreateFolder) {
+
+        } else if (m_currentAction->type() == EmailAction::OnlineCreateFolder) {
             emit onlineFolderActionCompleted(ActionOnlineCreateFolder, true);
         } else if (m_currentAction->type() == EmailAction::OnlineDeleteFolder) {
             emit onlineFolderActionCompleted(ActionOnlineDeleteFolder, true);
@@ -631,14 +632,14 @@ void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
     QMap<QMailAccountId, QMailMessageIdList> accountMap;
     // Messages can be from several accounts
     for (const QMailMessageId &id : ids) {
-       QMailAccountId accountId = accountForMessageId(id);
-       if (accountMap.contains(accountId)) {
-           QMailMessageIdList idList = accountMap.value(accountId);
-           idList.append(id);
-           accountMap.insert(accountId, idList);
-       } else {
-           accountMap.insert(accountId, QMailMessageIdList() << id);
-       }
+        QMailAccountId accountId = accountForMessageId(id);
+        if (accountMap.contains(accountId)) {
+            QMailMessageIdList idList = accountMap.value(accountId);
+            idList.append(id);
+            accountMap.insert(accountId, idList);
+        } else {
+            accountMap.insert(accountId, QMailMessageIdList() << id);
+        }
     }
 
     // If any of these messages are not yet trash, then we're only moved to trash
@@ -1096,9 +1097,6 @@ void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, bool sync
 {
     if (accountIdList.isEmpty()) {
         qCDebug(lcEmail) << Q_FUNC_INFO << "No enabled accounts, nothing to do.";
-        m_synchronizing = false;
-        emit synchronizingChanged(EmailAgent::Error);
-        return;
     } else {
         for (const QMailAccountId &accountId : accountIdList) {
             if (syncOnlyInbox) {
@@ -1136,31 +1134,24 @@ quint64 EmailAgent::actionInQueueId(QSharedPointer<EmailAction> action) const
 
 void EmailAgent::dequeue()
 {
-    if (m_actionQueue.isEmpty()) {
-        qCWarning(lcEmail) << "Error: can't dequeue a empty list";
-    } else {
+    if (!m_actionQueue.isEmpty()) {
         m_actionQueue.removeFirst();
     }
 }
 
 quint64 EmailAgent::enqueue(EmailAction *actionPointer)
 {
-#ifdef OFFLINE
     Q_ASSERT(actionPointer);
     QSharedPointer<EmailAction> action(actionPointer);
     bool foundAction = actionInQueue(action);
 
+#ifdef OFFLINE
     if (!foundAction) {
-
-        // Check if action neeeds connectivity and if we are not running from a background process
         if (action->needsNetworkConnection()) {
             //discard action in this case
-            m_synchronizing = false;
             qCDebug(lcEmail) << "Discarding online action!!";
-            emit synchronizingChanged(EmailAgent::Completed);
             return quint64(0);
         } else {
-
             // It's a new action.
             action->setId(newAction());
 
@@ -1186,19 +1177,14 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
             }
         }
         return action->id();
-    }
-    else {
+    } else {
         qCDebug(lcEmail) << "This request already exists in the queue:" << action->description();
         qCDebug(lcEmail) << "Number of actions in the queue:" << m_actionQueue.size();
         return actionInQueueId(action);
     }
 #else
-    Q_ASSERT(actionPointer);
-    QSharedPointer<EmailAction> action(actionPointer);
-    bool foundAction = actionInQueue(action);
 
-    // Check if action needs connectivity and if we are not running from a background process
-    if (action->needsNetworkConnection() && !backgroundProcess() && !isOnline()) {
+    if (action->needsNetworkConnection() && !isOnline()) {
         // Request connection. Expecting the application to handle this.
         // Actions will be resumed on onlineStateChanged signal.
         emit networkConnectionRequested();
@@ -1239,7 +1225,6 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
         qCDebug(lcEmail) << "Number of actions in the queue:" << m_actionQueue.size();
         return actionInQueueId(action);
     }
-
 #endif
 }
 
@@ -1248,25 +1233,14 @@ void EmailAgent::executeCurrent()
     Q_ASSERT (!m_currentAction.isNull());
 
     if (!QMailStore::instance()->isIpcConnectionEstablished()) {
-        if (m_backgroundProcess) {
-            qCWarning(lcEmail) << "IPC not connected to execute background action, exiting...";
-            m_synchronizing = false;
-            emit synchronizingChanged(EmailAgent::Error);
-        } else {
-            qCWarning(lcEmail) << "Ipc connection not established, can't execute service action";
-            m_waitForIpc = true;
-        }
+        qCWarning(lcEmail) << "Ipc connection not established, can't execute service action";
+        m_waitForIpc = true;
     } else if (m_currentAction->needsNetworkConnection() && !isOnline()) {
         qCDebug(lcEmail) << "Current action not executed, waiting for network";
-        if (m_backgroundProcess) {
-            qCWarning(lcEmail) << "Network not available to execute background action, exiting...";
-            m_synchronizing = false;
-            emit synchronizingChanged(EmailAgent::Error);
-        }
     } else {
         if (!m_synchronizing) {
             m_synchronizing = true;
-            emit synchronizingChanged(EmailAgent::Synchronizing);
+            emit synchronizingChanged();
         }
 
         QMailAccountId aId = m_currentAction->accountId();
@@ -1309,20 +1283,19 @@ QSharedPointer<EmailAction> EmailAgent::getNext()
     return firstAction;
 }
 
-void EmailAgent::processNextAction(bool error)
+void EmailAgent::processNextAction()
 {
     m_currentAction = getNext();
     if (m_currentAction.isNull()) {
+        qCDebug(lcEmail) << "Sync completed.";
+        bool wasSynchronizing = m_synchronizing;
         m_synchronizing = false;
-        m_accountSynchronizing = -1;
-        emit currentSynchronizingAccountIdChanged();
-        if (error) {
-            emit synchronizingChanged(EmailAgent::Error);
-            qCDebug(lcEmail) << "Sync completed with Errors!!!.";
-        } else {
-            emit synchronizingChanged(EmailAgent::Completed);
-            qCDebug(lcEmail) << "Sync completed.";
+        if (m_accountSynchronizing != 0) {
+            m_accountSynchronizing = 0;
+            emit currentSynchronizingAccountIdChanged();
         }
+        if (wasSynchronizing)
+            emit synchronizingChanged();
     } else {
         executeCurrent();
     }
