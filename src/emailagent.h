@@ -97,7 +97,7 @@ public:
     bool hasMessagesInOutbox(const QMailAccountId &accountId);
     void initMailServer();
     bool ipcConnected();
-    bool isOnline();
+    Q_INVOKABLE bool isOnline();
     void searchMessages(const QMailMessageKey &filter, const QString &bodyText, QMailSearchAction::SearchSpecification spec,
                         quint64 limit, bool searchBody, const QMailMessageSortKey &sort = QMailMessageSortKey());
     void cancelSearch();
