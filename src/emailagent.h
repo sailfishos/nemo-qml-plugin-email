@@ -224,7 +224,7 @@ private:
         double progress;
         quint64 actionId;
     };
-    // Holds a list of the attachments currently dowloading or queued for download
+    // Holds a list of the attachments currently downloading or queued for download
     QHash<QString, AttachmentInfo> m_attachmentDownloadQueue;
 
     bool actionInQueue(QSharedPointer<EmailAction> action) const;
@@ -238,7 +238,7 @@ private:
     void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode, bool sendFailed);
     void removeAction(quint64 actionId);
     bool saveAttachmentToDownloads(const QMailMessageId &messageId, const QString &attachmentLocation);
-    void updateAttachmentDowloadStatus(const QString &attachmentLocation, AttachmentStatus status);
+    void updateAttachmentDownloadStatus(const QString &attachmentLocation, AttachmentStatus status);
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);
     bool easCalendarInvitationResponse(const QMailMessage &message, CalendarInvitationResponse response,
                                        const QString &responseSubject);

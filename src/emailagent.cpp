@@ -411,11 +411,11 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
             if (m_currentAction->type() == EmailAction::RetrieveMessagePart) {
                 RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(m_currentAction.data());
                 if (messagePartAction->isAttachment()) {
-                    updateAttachmentDowloadStatus(messagePartAction->partLocation(), Failed);
-                    qCWarning(lcEmail) << "Attachment dowload failed for " << messagePartAction->partLocation();
+                    updateAttachmentDownloadStatus(messagePartAction->partLocation(), Failed);
+                    qCWarning(lcEmail) << "Attachment download failed for " << messagePartAction->partLocation();
                 } else {
                     emit messagePartDownloaded(messagePartAction->messageId(), messagePartAction->partLocation(), false);
-                    qCWarning(lcEmail) << "Failed to dowload message part!!";
+                    qCWarning(lcEmail) << "Failed to download message part!!";
                 }
             }
 
@@ -776,7 +776,7 @@ void EmailAgent::cancelAttachmentDownload(const QString &attachmentLocation)
 {
     if (m_attachmentDownloadQueue.contains(attachmentLocation)) {
         cancelAction(m_attachmentDownloadQueue.value(attachmentLocation).actionId);
-        updateAttachmentDowloadStatus(attachmentLocation, Canceled);
+        updateAttachmentDownloadStatus(attachmentLocation, Canceled);
     }
 }
 
@@ -1203,7 +1203,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
             // It's a new action.
             action->setId(newAction());
 
-            // Attachment dowload
+            // Attachment download
             if (action->type() == EmailAction::RetrieveMessagePart) {
                 RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(action.data());
                 if (messagePartAction->isAttachment()) {
@@ -1254,7 +1254,7 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
         // It's a new action.
         action->setId(newAction());
 
-        // Attachment dowload
+        // Attachment download
         if (action->type() == EmailAction::RetrieveMessagePart) {
             RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(action.data());
             if (messagePartAction->isAttachment()) {
@@ -1303,7 +1303,7 @@ void EmailAgent::executeCurrent()
             m_waitForIpc = true;
         }
     } else if (m_currentAction->needsNetworkConnection() && !isOnline()) {
-        qCDebug(lcEmail) << "Current action not executed, waiting for newtwork";
+        qCDebug(lcEmail) << "Current action not executed, waiting for network";
         if (m_backgroundProcess) {
             qCWarning(lcEmail) << "Network not available to execute background action, exiting...";
             m_synchronizing = false;
@@ -1327,7 +1327,7 @@ void EmailAgent::executeCurrent()
         if (m_currentAction->type() == EmailAction::RetrieveMessagePart) {
             RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(m_currentAction.data());
             if (messagePartAction->isAttachment()) {
-                updateAttachmentDowloadStatus(messagePartAction->partLocation(), Downloading);
+                updateAttachmentDownloadStatus(messagePartAction->partLocation(), Downloading);
             }
         } else if (m_currentAction->type() == EmailAction::Transmit) {
             m_transmitting = true;
@@ -1456,17 +1456,17 @@ bool EmailAgent::saveAttachmentToDownloads(const QMailMessageId &messageId, cons
         QFile attachmentFile(attachmentPath);
         if (attachmentFile.exists()) {
             emit attachmentUrlChanged(attachmentLocation, attachmentPath);
-            updateAttachmentDowloadStatus(attachmentLocation, Downloaded);
+            updateAttachmentDownloadStatus(attachmentLocation, Downloaded);
             return true;
         } else {
             QString path = attachmentPart.writeBodyTo(attachmentDownloadFolder);
             if (!path.isEmpty()) {
                 emit attachmentUrlChanged(attachmentLocation, path);
-                updateAttachmentDowloadStatus(attachmentLocation, Downloaded);
+                updateAttachmentDownloadStatus(attachmentLocation, Downloaded);
                 return true;
             } else {
                 qCDebug(lcEmail) << "ERROR: Failed to save attachment file to location:" << attachmentDownloadFolder;
-                updateAttachmentDowloadStatus(attachmentLocation, FailedToSave);
+                updateAttachmentDownloadStatus(attachmentLocation, FailedToSave);
             }
         }
     } else {
@@ -1475,7 +1475,7 @@ bool EmailAgent::saveAttachmentToDownloads(const QMailMessageId &messageId, cons
     return false;
 }
 
-void EmailAgent::updateAttachmentDowloadStatus(const QString &attachmentLocation, AttachmentStatus status)
+void EmailAgent::updateAttachmentDownloadStatus(const QString &attachmentLocation, AttachmentStatus status)
 {
     if (status == Failed || status == Canceled || status == Downloaded) {
         emit attachmentDownloadStatusChanged(attachmentLocation, status);
@@ -1486,9 +1486,9 @@ void EmailAgent::updateAttachmentDowloadStatus(const QString &attachmentLocation
         m_attachmentDownloadQueue.insert(attachmentLocation, attInfo);
         emit attachmentDownloadStatusChanged(attachmentLocation, status);
     } else {
-        updateAttachmentDowloadStatus(attachmentLocation, Failed);
+        updateAttachmentDownloadStatus(attachmentLocation, Failed);
         qCDebug(lcEmail) << "ERROR: Can't update attachment download status for items outside of the download queue, part location:"
-                           << attachmentLocation;
+                         << attachmentLocation;
     }
 }
 
