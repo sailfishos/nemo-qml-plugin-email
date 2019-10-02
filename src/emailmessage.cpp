@@ -523,6 +523,7 @@ QString EmailMessage::body()
         return m_bodyText;
     }
 }
+
 QString EmailMessage::calendarInvitationUrl()
 {
     return m_calendarInvitationUrl;
@@ -1109,16 +1110,49 @@ void EmailMessage::buildMessage(QMailMessage *msg)
 
     // Include attachments into the message
     if (m_attachments.size()) {
+        // Attachments by file
         QStringList attachments;
+        // Attachments by message part
+        QList<QMailMessagePart> messageParts;
+        QList<const QMailMessagePart *> messagePartPointers;
+
         for (QString attachment : m_attachments) {
+            // Attaching referenced emails
+            if (attachment.startsWith("id://")) {
+                QMailMessageId msgId(attachment.midRef(5).toULongLong());
+                if (!msgId.isValid()) {
+                    qCWarning(lcEmail) << "Invalid message id on attachment:" << msgId << "Can not add attachment";
+                    continue;
+                }
+
+                QMailMessage msg(msgId);
+                auto content = msg.toRfc2822();
+                auto filename = QMailMessageContentDisposition::encodeParameter(QString(msg.subject()).append(".eml"), "UTF-8");
+
+                QMailMessageContentType contentType("message/rfc822");
+
+                QMailMessageContentDisposition disposition(QMailMessageContentDisposition::Attachment);
+                disposition.setSize(content.size());
+
+                contentType.setParameter("name*", filename);
+                disposition.setParameter("filename*", filename);
+
+                // Note: if the account / server supports message references correctly,
+                // we could instead create this message part from reference instead
+                auto part = QMailMessagePart::fromData(content, disposition, contentType, QMailMessageBody::EightBit);
+                messageParts.push_back(part);
+                messagePartPointers.push_back(&part);
+
             // Attaching a file
-            if (attachment.startsWith("file://")) {
+            } else if (attachment.startsWith("file://")) {
                 attachments.append(QUrl(attachment).toLocalFile());
             } else {
                 attachments.append(attachment);
             }
         }
-        msg->setAttachments(attachments);
+
+        msg->setAttachments(messagePartPointers);
+        msg->addAttachments(attachments);
     }
 
     // set message basic attributes
