@@ -143,12 +143,7 @@ void EmailAgent::cancelAction(quint64 actionId)
 {
     // cancel running action
     if (m_currentAction && (m_currentAction->id() == actionId)) {
-        if (m_currentAction->serviceAction()->isRunning()) {
-            m_cancellingSingleAction = true;
-            m_currentAction->serviceAction()->cancelOperation();
-        } else {
-            processNextAction();
-        }
+        cancelCurrentAction();
     } else {
         removeAction(actionId);
     }
@@ -257,12 +252,7 @@ void EmailAgent::cancelSearch()
 {
     // cancel running action if is search
     if (m_currentAction && (m_currentAction->type() == EmailAction::Search)) {
-        if (m_currentAction->serviceAction()->isRunning()) {
-            m_cancellingSingleAction = true;
-            m_currentAction->serviceAction()->cancelOperation();
-        } else {
-            processNextAction();
-        }
+        cancelCurrentAction();
     }
     // Starts from 1 since top of the queue will be removed if above conditions are met.
     for (int i = 1; i < m_actionQueue.size();) {
@@ -279,12 +269,7 @@ void EmailAgent::cancelAll()
 {
     m_actionQueue.clear();
     if (m_currentAction) {
-        if (m_currentAction->serviceAction()->isRunning()) {
-            m_cancellingSingleAction = true;
-            m_currentAction->serviceAction()->cancelOperation();
-        } else {
-            processNextAction();
-        }
+        cancelCurrentAction();
     }
 }
 
@@ -1281,6 +1266,16 @@ QSharedPointer<EmailAction> EmailAgent::getNext()
         }
     }
     return firstAction;
+}
+
+void EmailAgent::cancelCurrentAction()
+{
+    if (m_currentAction->serviceAction()->isRunning()) {
+        m_cancellingSingleAction = true;
+        m_currentAction->serviceAction()->cancelOperation();
+    } else {
+        processNextAction();
+    }
 }
 
 void EmailAgent::processNextAction()

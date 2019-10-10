@@ -224,6 +224,7 @@ private:
     quint64 enqueue(EmailAction *action);
     void executeCurrent();
     QSharedPointer<EmailAction> getNext();
+    void cancelCurrentAction();
     void processNextAction();
     quint64 newAction();
     void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode, bool sendFailed);
