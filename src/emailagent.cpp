@@ -241,27 +241,25 @@ void EmailAgent::searchMessages(const QMailMessageKey &filter,
 {
     // Only one search action should be running at time,
     // cancel any running or queued
-    m_enqueing = true;
     cancelSearch();
     qCDebug(lcEmail) << "Enqueuing new search:" << bodyText;
-    m_enqueing = false;
     enqueue(new SearchMessages(m_searchAction.data(), filter, bodyText, spec, limit, searchBody, sort));
 }
 
 void EmailAgent::cancelSearch()
 {
-    // cancel running action if is search
-    if (m_currentAction && (m_currentAction->type() == EmailAction::Search)) {
-        cancelCurrentAction();
-    }
-    // Starts from 1 since top of the queue will be removed if above conditions are met.
+    // Starts from 1 since top of the queue will be removed separately
     for (int i = 1; i < m_actionQueue.size();) {
-         if (m_actionQueue.at(i).data()->type() == EmailAction::Search) {
+        if (m_actionQueue.at(i).data()->type() == EmailAction::Search) {
             m_actionQueue.removeAt(i);
             qCDebug(lcEmail) <<  "Search action removed from the queue";
         } else {
             ++i;
         }
+    }
+    // cancel running action if is search
+    if (m_currentAction && (m_currentAction->type() == EmailAction::Search)) {
+        cancelCurrentAction();
     }
 }
 
