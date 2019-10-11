@@ -1,9 +1,10 @@
 /*
  * Copyright 2011 Intel Corporation.
  * Copyright (C) 2012-2019 Jolla Ltd.
+ * Copyright (c) 2019 Open Mobile Platform LLC.
  *
  * This program is licensed under the terms and conditions of the
- * Apache License, version 2.0.  The full text of the Apache License is at 	
+ * Apache License, version 2.0.  The full text of the Apache License is at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
@@ -38,12 +39,6 @@ public:
 
     explicit EmailAgent(QObject *parent = 0);
     ~EmailAgent();
-
-    enum Status {
-        Synchronizing = 0,
-        Completed,
-        Error
-    };
 
     enum AttachmentStatus {
         Unknown,
@@ -95,8 +90,6 @@ public:
     double attachmentDownloadProgress(const QString &attachmentLocation);
     QString attachmentName(const QMailMessagePart &part) const;
     QString bodyPlainText(const QMailMessage &mailMsg) const;
-    bool backgroundProcess() const;
-    void setBackgroundProcess(bool isBackgroundProcess);
     void cancelAction(quint64 actionId);
     quint64 downloadMessages(const QMailMessageIdList &messageIds, QMailRetrievalAction::RetrievalSpecification spec);
     quint64 downloadMessagePart(const QMailMessagePartContainer::Location &location);
@@ -104,10 +97,11 @@ public:
     bool hasMessagesInOutbox(const QMailAccountId &accountId);
     void initMailServer();
     bool ipcConnected();
-    bool isOnline();
+    Q_INVOKABLE bool isOnline();
     void searchMessages(const QMailMessageKey &filter, const QString &bodyText, QMailSearchAction::SearchSpecification spec,
                         quint64 limit, bool searchBody, const QMailMessageSortKey &sort = QMailMessageSortKey());
     void cancelSearch();
+    void cancelAll();
     bool synchronizing() const;
     void flagMessages(const QMailMessageIdList &ids, quint64 setMask, quint64 unsetMask);
     void moveMessages(const QMailMessageIdList &ids, const QMailFolderId &destinationId);
@@ -120,7 +114,6 @@ public:
     void syncAccounts(const QMailAccountIdList &accountIdList, bool syncOnlyInbox = true, uint minimum = 20);
 
     Q_INVOKABLE void accountsSync(bool syncOnlyInbox = false, uint minimum = 20);
-    Q_INVOKABLE void cancelSync();
     Q_INVOKABLE void createFolder(const QString &name, int mailAccountId, int parentFolderId);
     Q_INVOKABLE void deleteFolder(int folderId);
     Q_INVOKABLE void deleteMessage(int messageId);
@@ -173,7 +166,7 @@ signals:
     void messagePartDownloaded(const QMailMessageId &messageId, const QString &partLocation, bool success);
     void sendCompleted(bool success);
     void standardFoldersCreated(const QMailAccountId &accountId);
-    void synchronizingChanged(EmailAgent::Status status);
+    void synchronizingChanged();
     void networkConnectionRequested();
     void searchMessageIdsMatched(const QMailMessageIdList &ids);
     void searchCompleted(const QString &search, const QMailMessageIdList &matchedIds, bool isRemote,
@@ -191,13 +184,11 @@ private:
     static EmailAgent *m_instance;
 
     uint m_actionCount;
-    uint m_accountSynchronizing;
+    quint64 m_accountSynchronizing;
     bool m_transmitting;
-    bool m_cancelling;
     bool m_cancellingSingleAction;
     bool m_synchronizing;
     bool m_enqueing;
-    bool m_backgroundProcess;
     bool m_waitForIpc;
 
     QMailAccountIdList m_enabledAccounts;
@@ -233,7 +224,8 @@ private:
     quint64 enqueue(EmailAction *action);
     void executeCurrent();
     QSharedPointer<EmailAction> getNext();
-    void processNextAction(bool error = false);
+    void cancelCurrentAction();
+    void processNextAction();
     quint64 newAction();
     void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode, bool sendFailed);
     void removeAction(quint64 actionId);
