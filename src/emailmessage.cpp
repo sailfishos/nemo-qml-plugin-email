@@ -56,8 +56,12 @@ const QStringList supportedImageTypes = (QStringList() <<  "jpeg" << "jpg" << "p
 
 EmailMessage::EmailMessage(QObject *parent)
     : QObject(parent)
+    , m_account(QMailAccountId())
+    , m_id(QMailMessageId())
     , m_originalMessageId(QMailMessageId())
+    , m_idToRemove(QMailMessageId())
     , m_newMessage(true)
+    , m_requestReadReceipt(false)
     , m_downloadActionId(0)
     , m_htmlBodyConstructed(false)
     , m_calendarStatus(Unknown)
@@ -230,6 +234,24 @@ static ThreadedSignedMessage signatureHelper(QMailMessage *msg,
     // that it will be deleted when not needed anymore.
     return ThreadedSignedMessage(QSharedPointer<QMailMessage>(msg),
                                  QMailCryptographicServiceFactory::sign(*msg, engine, keys));
+}
+
+void EmailMessage::loadFromFile(const QString &path)
+{
+    cancelMessageDownload();
+    m_msg = QMailMessage::fromRfc2822File(path);
+    m_msg.setStatus(QMailMessage::ContentAvailable, true);
+    m_msg.setStatus(QMailMessage::Temporary, true);
+    if (contentType() == EmailMessage::HTML)
+        emit htmlBodyChanged();
+    else
+        setBody(m_msg.body().data());
+    emit dateChanged();
+    emit fromChanged();
+    emit subjectChanged();
+    emit toChanged();
+    emit priorityChanged();
+    emit storedMessageChanged();
 }
 
 void EmailMessage::send()
@@ -570,7 +592,7 @@ QStringList EmailMessage::cc() const
 EmailMessage::ContentType EmailMessage::contentType() const
 {
     // Treat only "text/plain" and invalid message as Plain and others as HTML.
-    if (m_id.isValid()) {
+    if (m_id.isValid() || m_msg.contentAvailable()) {
         if (m_msg.findHtmlContainer()
             || (m_msg.multipartType() == QMailMessagePartContainer::MultipartNone
                 && m_msg.contentDisposition().type() == QMailMessageContentDisposition::Inline

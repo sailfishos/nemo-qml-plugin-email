@@ -118,6 +118,7 @@ public:
     Q_INVOKABLE void cancelMessageDownload();
     Q_INVOKABLE void downloadMessage();
     Q_INVOKABLE void getCalendarInvitation();
+    Q_INVOKABLE void loadFromFile(const QString &path);
     Q_INVOKABLE void send();
     Q_INVOKABLE bool sendReadReceipt(const QString &subjectPrefix, const QString &readReceiptBodyText);
     Q_INVOKABLE void saveDraft();
