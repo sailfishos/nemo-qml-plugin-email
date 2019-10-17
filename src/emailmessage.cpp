@@ -22,6 +22,7 @@
 #include <QTemporaryFile>
 #include <QStandardPaths>
 #include <QDir>
+#include <QUrl>
 #include <QtConcurrent>
 #include <QFuture>
 #include <QFutureWatcher>
@@ -1112,9 +1113,10 @@ void EmailMessage::buildMessage(QMailMessage *msg)
         for (QString attachment : m_attachments) {
             // Attaching a file
             if (attachment.startsWith("file://")) {
-                attachment.remove(0, 7);
+                attachments.append(QUrl(attachment).toLocalFile());
+            } else {
+                attachments.append(attachment);
             }
-            attachments.append(attachment);
         }
         msg->setAttachments(attachments);
     }
