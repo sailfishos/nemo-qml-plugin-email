@@ -14,6 +14,7 @@
 
 #include "attachmentlistmodel.h"
 #include "emailagent.h"
+#include "emailutils.h"
 
 AttachmentListModel::AttachmentListModel(QObject *parent) :
     QAbstractListModel(parent)
@@ -26,6 +27,8 @@ AttachmentListModel::AttachmentListModel(QObject *parent) :
     roles.insert(MimeType, "mimeType");
     roles.insert(Size, "size");
     roles.insert(StatusInfo, "statusInfo");
+    roles.insert(Title, "title");
+    roles.insert(Type, "type");
     roles.insert(Url, "url");
     roles.insert(ProgressInfo, "progressInfo");
 
@@ -86,6 +89,13 @@ QVariant AttachmentListModel::data(const QModelIndex &index, int role) const
         return -1;
     } else if (role == StatusInfo) {
         return item->status;
+    } else if (role == Title) {
+        return EmailAgent::instance()->attachmentTitle(item->part);
+    } else if (role == Type) {
+        if (EmailAgent::isEmailPart(item->part)) {
+            return Email;
+        }
+        return Other;
     } else if (role == Url) {
         return item->url;
     } else if (role == ProgressInfo) {
@@ -185,6 +195,16 @@ bool AttachmentListModel::isDownloaded(int idx)
 QString AttachmentListModel::mimeType(int idx)
 {
     return data(index(idx, 0), MimeType).toString();
+}
+
+QString AttachmentListModel::title(int idx)
+{
+    return data(index(idx, 0), Title).toString();
+}
+
+AttachmentListModel::AttachmentType AttachmentListModel::type(int idx)
+{
+    return data(index(idx, 0), Type).value<AttachmentListModel::AttachmentType>();
 }
 
 QString AttachmentListModel::url(int idx)
