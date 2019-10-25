@@ -3,7 +3,7 @@ Summary:    Email plugin for Nemo Mobile
 Version:    0.5.3
 Release:    1
 Group:      System/Libraries
-License:    BSD
+License:    BSD and LGPLv2+
 URL:        https://git.merproject.org/mer-core/nemo-qml-plugin-email
 Source0:    %{name}-%{version}.tar.bz2
 Requires(post): /sbin/ldconfig
@@ -66,6 +66,7 @@ sed 's/Nemo.Email/org.nemomobile.email/' < src/plugin/qmldir > %{buildroot}%{_li
 %{_libdir}/qt5/qml/Nemo/Email/libnemoemail.so
 %{_libdir}/qt5/qml/Nemo/Email/plugins.qmltypes
 %{_libdir}/qt5/qml/Nemo/Email/qmldir
+%{_libdir}/qt5/plugins/messageserverplugins/libattachmentdownloader.so
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/domainSettings.conf
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/serviceSettings.conf
 
