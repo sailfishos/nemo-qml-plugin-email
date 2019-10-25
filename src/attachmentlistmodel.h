@@ -71,6 +71,7 @@ private slots:
     void onAttachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status);
     void onAttachmentDownloadProgressChanged(const QString &attachmentLocation, double progress);
     void onAttachmentUrlChanged(const QString &attachmentLocation, const QString &url);
+    void onMessagesUpdated(const QMailMessageIdList &ids);
 
 private:
     QString attachmentUrl(const QMailMessage &message, const QString &attachmentLocation);

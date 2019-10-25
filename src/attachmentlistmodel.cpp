@@ -40,6 +40,9 @@ AttachmentListModel::AttachmentListModel(QObject *parent) :
 
     connect(EmailAgent::instance(), &EmailAgent::attachmentUrlChanged,
             this, &AttachmentListModel::onAttachmentUrlChanged);
+
+    connect(QMailStore::instance(), &QMailStore::messagesUpdated,
+            this, &AttachmentListModel::onMessagesUpdated);
 }
 
 AttachmentListModel::~AttachmentListModel()
@@ -57,6 +60,32 @@ int AttachmentListModel::rowCount(const QModelIndex &parent) const
     return m_attachmentsList.count();
 }
 
+static inline bool attachmentPartDownloaded(const QMailMessagePart &part)
+{
+    // Addresses the case where content size is missing
+    return part.contentAvailable() || part.contentDisposition().size() <= 0;
+}
+
+static inline int attachmentSize(const QMailMessagePart &part)
+{
+    if (part.contentDisposition().size() != -1) {
+        return part.contentDisposition().size();
+    }
+    // If size is -1 (unknown) try finding out part's body size
+    if (part.contentAvailable()) {
+        return part.hasBody() ? part.body().length() : 0;
+    }
+    return -1;
+}
+
+static inline AttachmentListModel::AttachmentType attachmentType(const QMailMessagePart &part)
+{
+    if (isEmailPart(part)) {
+        return AttachmentListModel::Email;
+    }
+    return AttachmentListModel::Other;
+}
+
 QVariant AttachmentListModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid() || index.row() >= m_attachmentsList.count())
@@ -70,32 +99,17 @@ QVariant AttachmentListModel::data(const QModelIndex &index, int role) const
     } else if (role == DisplayName) {
         return EmailAgent::instance()->attachmentName(item->part);
     } else if (role == Downloaded) {
-        if (item->status == EmailAgent::Downloaded) {
-            return true;
-        } else {
-            // Addresses the case where content size is missing
-            return item->part.contentAvailable() || item->part.contentDisposition().size() <= 0;
-        }
+        return item->status == EmailAgent::Downloaded || attachmentPartDownloaded(item->part);
     } else if (role == MimeType) {
         return QString::fromLatin1(item->part.contentType().content());
     } else if (role == Size) {
-        if (item->part.contentDisposition().size() != -1) {
-            return item->part.contentDisposition().size();
-        }
-        // If size is -1 (unknown) try finding out part's body size
-        if (item->part.contentAvailable()) {
-            return item->part.hasBody() ? item->part.body().length() : 0;
-        }
-        return -1;
+        return attachmentSize(item->part);
     } else if (role == StatusInfo) {
         return item->status;
     } else if (role == Title) {
         return EmailAgent::instance()->attachmentTitle(item->part);
     } else if (role == Type) {
-        if (EmailAgent::isEmailPart(item->part)) {
-            return Email;
-        }
-        return Other;
+        return attachmentType(item->part);
     } else if (role == Url) {
         return item->url;
     } else if (role == ProgressInfo) {
@@ -142,6 +156,40 @@ void AttachmentListModel::onAttachmentUrlChanged(const QString &attachmentLocati
                 emit dataChanged(changeIndex, changeIndex, QVector<int>() << Url);
                 return;
             }
+        }
+    }
+}
+
+void AttachmentListModel::onMessagesUpdated(const QMailMessageIdList &ids)
+{
+    if (ids.contains(m_messageId)) {
+        auto emailAgent = EmailAgent::instance();
+        // Message got updated, update any changed attachment info from QMailMessagePart
+        m_message = QMailMessage(m_messageId);
+        for (int i = 0; i < m_attachmentsList.count(); ++i) {
+            Attachment *item = m_attachmentsList.at(i);
+            auto location = QMailMessage::Location(item->location);
+            auto part = m_message.partAt(location);
+            QModelIndex changeIndex = index(i, 0);
+            QVector<int> changedRoles;
+            if (emailAgent->attachmentName(item->part) != emailAgent->attachmentName(part))
+                changedRoles << DisplayName;
+            if (item->status != EmailAgent::Downloaded && attachmentPartDownloaded(part)) {
+                item->status = EmailAgent::Downloaded;
+                item->progressInfo = 1.0;
+                changedRoles << Downloaded << StatusInfo << ProgressInfo;
+            }
+            if (item->part.contentType().content() != part.contentType().content())
+                changedRoles << MimeType;
+            if (attachmentSize(item->part) != attachmentSize(part))
+                changedRoles << Size;
+            if (emailAgent->attachmentTitle(item->part) != emailAgent->attachmentTitle(part))
+                changedRoles << Title;
+            if (attachmentType(item->part) != attachmentType(part))
+                changedRoles << Type;
+            item->part = part;
+            if (!changedRoles.isEmpty())
+                emit dataChanged(changeIndex, changeIndex, changedRoles);
         }
     }
 }
@@ -244,7 +292,7 @@ void AttachmentListModel::resetModel()
     m_attachmentFileWatcher = new QFileSystemWatcher(this);
 
     connect(m_attachmentFileWatcher, &QFileSystemWatcher::directoryChanged, this, [this]() {
-        for (const QMailMessagePart::Location &location :  m_message.findAttachmentLocations()) {
+        for (const QMailMessagePart::Location &location : m_message.findAttachmentLocations()) {
             QString attachmentLocation = location.toString(true);
             QString url = attachmentUrl(m_message, attachmentLocation);
             onAttachmentUrlChanged(attachmentLocation, url);
@@ -252,7 +300,7 @@ void AttachmentListModel::resetModel()
     });
 
     if (m_messageId.isValid()) {
-        for (const QMailMessagePart::Location &location :  m_message.findAttachmentLocations()) {
+        for (const QMailMessagePart::Location &location : m_message.findAttachmentLocations()) {
             Attachment *item = new Attachment;
             item->location = location.toString(true);
             QString dlFolder = downloadFolder(m_message, item->location);
