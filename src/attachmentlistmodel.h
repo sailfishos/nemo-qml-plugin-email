@@ -20,6 +20,7 @@ class Q_DECL_EXPORT AttachmentListModel : public QAbstractListModel
     Q_OBJECT
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(int messageId READ messageId WRITE setMessageId NOTIFY messageIdChanged FINAL)
+    Q_ENUMS(AttachmentType);
 
 public:
     explicit AttachmentListModel(QObject *parent = 0);
@@ -32,9 +33,16 @@ public:
         MimeType,
         Size, // size of the message part, i.e. data to be downloaded, including base64 overhead etc. not file itself.
         StatusInfo,
+        Title, // subject for attached emails when available, currently empty otherwise
+        Type,
         Url,
         ProgressInfo,
         Index
+    };
+
+    enum AttachmentType {
+        Email,
+        Other
     };
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
@@ -43,6 +51,8 @@ public:
     Q_INVOKABLE QString displayName(int idx);
     Q_INVOKABLE bool isDownloaded(int idx);
     Q_INVOKABLE QString mimeType(int idx);
+    Q_INVOKABLE QString title(int idx);
+    Q_INVOKABLE AttachmentType type(int idx);
     Q_INVOKABLE QString url(int idx);
     Q_INVOKABLE QString location(int idx);
 
@@ -61,6 +71,7 @@ private slots:
     void onAttachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status);
     void onAttachmentDownloadProgressChanged(const QString &attachmentLocation, double progress);
     void onAttachmentUrlChanged(const QString &attachmentLocation, const QString &url);
+    void onMessagesUpdated(const QMailMessageIdList &ids);
 
 private:
     QString attachmentUrl(const QMailMessage &message, const QString &attachmentLocation);
@@ -87,4 +98,6 @@ private:
     QString downloadFolder(const QMailMessage &message, const QString &attachmentLocation) const;
 
 };
+
+Q_DECLARE_METATYPE(AttachmentListModel::AttachmentType)
 #endif // EMAILATTACHMENTLISTMODEL_H

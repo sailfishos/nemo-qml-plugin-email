@@ -7,11 +7,15 @@ plugins.subdir = src/plugin
 plugins.target = sub-plugin
 plugins.depends = sub-src
 
+attachmentdownloader.subdir = src/attachmentdownloader
+attachmentdownloader.target = sub-attachmentdownloader
+attachmentdownloader.depends = sub-src
+
 tests.subdir = tests
 tests.taget = sub-tests
 tests.depends = sub-src
 
-SUBDIRS = src plugins tests
+SUBDIRS = src plugins attachmentdownloader tests
 
 OTHER_FILES += rpm/nemo-qml-plugin-email-qt5.spec \
               configurations/domainSettings.conf \

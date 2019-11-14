@@ -56,8 +56,12 @@ const QStringList supportedImageTypes = (QStringList() <<  "jpeg" << "jpg" << "p
 
 EmailMessage::EmailMessage(QObject *parent)
     : QObject(parent)
+    , m_account(QMailAccountId())
+    , m_id(QMailMessageId())
     , m_originalMessageId(QMailMessageId())
+    , m_idToRemove(QMailMessageId())
     , m_newMessage(true)
+    , m_requestReadReceipt(false)
     , m_downloadActionId(0)
     , m_htmlBodyConstructed(false)
     , m_calendarStatus(Unknown)
@@ -230,6 +234,24 @@ static ThreadedSignedMessage signatureHelper(QMailMessage *msg,
     // that it will be deleted when not needed anymore.
     return ThreadedSignedMessage(QSharedPointer<QMailMessage>(msg),
                                  QMailCryptographicServiceFactory::sign(*msg, engine, keys));
+}
+
+void EmailMessage::loadFromFile(const QString &path)
+{
+    cancelMessageDownload();
+    m_msg = QMailMessage::fromRfc2822File(path);
+    m_msg.setStatus(QMailMessage::ContentAvailable, true);
+    m_msg.setStatus(QMailMessage::Temporary, true);
+    if (contentType() == EmailMessage::HTML)
+        emit htmlBodyChanged();
+    else
+        setBody(m_msg.body().data());
+    emit dateChanged();
+    emit fromChanged();
+    emit subjectChanged();
+    emit toChanged();
+    emit priorityChanged();
+    emit storedMessageChanged();
 }
 
 void EmailMessage::send()
@@ -523,6 +545,7 @@ QString EmailMessage::body()
         return m_bodyText;
     }
 }
+
 QString EmailMessage::calendarInvitationUrl()
 {
     return m_calendarInvitationUrl;
@@ -569,7 +592,7 @@ QStringList EmailMessage::cc() const
 EmailMessage::ContentType EmailMessage::contentType() const
 {
     // Treat only "text/plain" and invalid message as Plain and others as HTML.
-    if (m_id.isValid()) {
+    if (m_id.isValid() || m_msg.contentAvailable()) {
         if (m_msg.findHtmlContainer()
             || (m_msg.multipartType() == QMailMessagePartContainer::MultipartNone
                 && m_msg.contentDisposition().type() == QMailMessageContentDisposition::Inline
@@ -1109,16 +1132,49 @@ void EmailMessage::buildMessage(QMailMessage *msg)
 
     // Include attachments into the message
     if (m_attachments.size()) {
+        // Attachments by file
         QStringList attachments;
+        // Attachments by message part
+        QList<QMailMessagePart> messageParts;
+        QList<const QMailMessagePart *> messagePartPointers;
+
         for (QString attachment : m_attachments) {
+            // Attaching referenced emails
+            if (attachment.startsWith("id://")) {
+                QMailMessageId msgId(attachment.midRef(5).toULongLong());
+                if (!msgId.isValid()) {
+                    qCWarning(lcEmail) << "Invalid message id on attachment:" << msgId << "Can not add attachment";
+                    continue;
+                }
+
+                QMailMessage msg(msgId);
+                auto content = msg.toRfc2822();
+                auto filename = QMailMessageContentDisposition::encodeParameter(QString(msg.subject()).append(".eml"), "UTF-8");
+
+                QMailMessageContentType contentType("message/rfc822");
+
+                QMailMessageContentDisposition disposition(QMailMessageContentDisposition::Attachment);
+                disposition.setSize(content.size());
+
+                contentType.setParameter("name*", filename);
+                disposition.setParameter("filename*", filename);
+
+                // Note: if the account / server supports message references correctly,
+                // we could instead create this message part from reference instead
+                auto part = QMailMessagePart::fromData(content, disposition, contentType, QMailMessageBody::EightBit);
+                messageParts.push_back(part);
+                messagePartPointers.push_back(&part);
+
             // Attaching a file
-            if (attachment.startsWith("file://")) {
+            } else if (attachment.startsWith("file://")) {
                 attachments.append(QUrl(attachment).toLocalFile());
             } else {
                 attachments.append(attachment);
             }
         }
-        msg->setAttachments(attachments);
+
+        msg->setAttachments(messagePartPointers);
+        msg->addAttachments(attachments);
     }
 
     // set message basic attributes
