@@ -13,6 +13,13 @@ Module {
         prototype: "QAbstractListModel"
         exports: ["Nemo.Email/AttachmentListModel 0.1"]
         exportMetaObjectRevisions: [0]
+        Enum {
+            name: "AttachmentType"
+            values: {
+                "Email": 0,
+                "Other": 1
+            }
+        }
         Property { name: "count"; type: "int"; isReadonly: true }
         Property { name: "messageId"; type: "int" }
         Method {
@@ -28,6 +35,16 @@ Module {
         Method {
             name: "mimeType"
             type: "string"
+            Parameter { name: "idx"; type: "int" }
+        }
+        Method {
+            name: "title"
+            type: "string"
+            Parameter { name: "idx"; type: "int" }
+        }
+        Method {
+            name: "type"
+            type: "AttachmentType"
             Parameter { name: "idx"; type: "int" }
         }
         Method {
@@ -259,14 +276,6 @@ Module {
         exports: ["Nemo.Email/EmailAgent 0.1"]
         exportMetaObjectRevisions: [0]
         Enum {
-            name: "Status"
-            values: {
-                "Synchronizing": 0,
-                "Completed": 1,
-                "Error": 2
-            }
-        }
-        Enum {
             name: "AttachmentStatus"
             values: {
                 "Unknown": 0,
@@ -366,10 +375,6 @@ Module {
             name: "standardFoldersCreated"
             Parameter { name: "accountId"; type: "QMailAccountId" }
         }
-        Signal {
-            name: "synchronizingChanged"
-            Parameter { name: "status"; type: "EmailAgent::Status" }
-        }
         Signal { name: "networkConnectionRequested" }
         Signal {
             name: "searchMessageIdsMatched"
@@ -393,6 +398,7 @@ Module {
             Parameter { name: "action"; type: "OnlineFolderAction" }
             Parameter { name: "success"; type: "bool" }
         }
+        Method { name: "isOnline"; type: "bool" }
         Method {
             name: "accountsSync"
             Parameter { name: "syncOnlyInbox"; type: "bool" }
@@ -403,7 +409,6 @@ Module {
             Parameter { name: "syncOnlyInbox"; type: "bool" }
         }
         Method { name: "accountsSync" }
-        Method { name: "cancelSync" }
         Method {
             name: "createFolder"
             Parameter { name: "name"; type: "string" }
@@ -419,8 +424,8 @@ Module {
             Parameter { name: "messageId"; type: "int" }
         }
         Method {
-            name: "deleteMessages"
-            Parameter { name: "ids"; type: "QMailMessageIdList" }
+            name: "deleteMessagesFromVariantList"
+            Parameter { name: "ids"; type: "QVariantList" }
         }
         Method {
             name: "expungeMessages"
@@ -747,6 +752,10 @@ Module {
         Method { name: "cancelMessageDownload" }
         Method { name: "downloadMessage" }
         Method { name: "getCalendarInvitation" }
+        Method {
+            name: "loadFromFile"
+            Parameter { name: "path"; type: "string" }
+        }
         Method { name: "send" }
         Method {
             name: "sendReadReceipt"
@@ -816,6 +825,7 @@ Module {
         Property { name: "searchRemainingOnRemote"; type: "int"; isReadonly: true }
         Property { name: "sortBy"; type: "EmailMessageListModel::Sort" }
         Property { name: "unreadMailsSelected"; type: "bool"; isReadonly: true }
+        Property { name: "currentDate"; type: "QDate" }
         Method { name: "notifyDateChanged" }
         Method {
             name: "setSearch"
