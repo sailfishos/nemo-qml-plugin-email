@@ -70,7 +70,7 @@ sed 's/Nemo.Email/org.nemomobile.email/' < src/plugin/qmldir > %{buildroot}%{_li
 %{_libdir}/qt5/qml/Nemo/Email/qmldir
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/domainSettings.conf
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/serviceSettings.conf
-
+%exclude %{_libdir}/qt5/plugins/messageserverplugins/libattachmentdownloader.so
 
 # org.nemomobile.email legacy import
 %dir %{_libdir}/qt5/qml/org/nemomobile/email
