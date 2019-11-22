@@ -58,7 +58,7 @@ void AttachmentDownloader::onlineStateChanged(bool online)
     qMailLog(Messaging) << "Online state changed:" << online;
     if (online) {
         processNext();
-    } else {
+    } else if (!m_locationQueue.isEmpty()) {
         cancelAndRequeue();
     }
 }
