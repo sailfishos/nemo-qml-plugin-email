@@ -87,12 +87,13 @@ void AttachmentDownloader::activityChanged(QMailServiceAction::Activity activity
         return;
     }
 
-    if (requeue)
+    if (requeue) {
         cancelAndRequeue();
-    else
+    } else {
         m_locationQueue.removeFirst();
+        processNext();
+    }
     qMailLog(Messaging) << Q_FUNC_INFO << "Attachment download queue length is now" << m_locationQueue.size();
-    processNext();
 }
 
 void AttachmentDownloader::autoDownloadAttachments(const QMailMessageId &messageId)
