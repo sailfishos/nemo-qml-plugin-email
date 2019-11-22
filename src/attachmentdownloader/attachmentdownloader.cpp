@@ -135,8 +135,8 @@ void AttachmentDownloader::processNext()
 void AttachmentDownloader::cancelAndRequeue()
 {
     qMailLog(Messaging) << Q_FUNC_INFO << "Canceling and requeing attachment download action for account" << m_account;
-    auto location = m_locationQueue.takeFirst();
-    m_action.cancelOperation();
-    enqueue(location);
-    processNext();
+    if (m_action.isRunning())
+        m_action.cancelOperation();
+    if (!m_locationQueue.isEmpty())
+        enqueue(m_locationQueue.takeFirst());
 }
