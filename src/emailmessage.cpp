@@ -159,15 +159,11 @@ void EmailMessage::onInlinePartDownloaded(const QMailMessageId &messageId, const
             // Reload the message and insert the image
             m_msg = QMailMessage(m_id);
             QMailMessagePart &part = m_msg.partAt(m_partsToDownload.value(partLocation));
-            if (&part) {
-                insertInlineImage(part);
-            }
+            insertInlineImage(part);
         } else {
             // remove the image placeholder if the content fails to download
             QMailMessagePart &part = m_msg.partAt(m_partsToDownload.value(partLocation));
-            if (&part) {
-                removeInlineImagePlaceholder(part);
-            }
+            removeInlineImagePlaceholder(part);
         }
         emit htmlBodyChanged();
         m_partsToDownload.remove(partLocation);
@@ -491,9 +487,7 @@ QStringList EmailMessage::attachments()
         m_attachments.clear();
         for (const QMailMessagePart::Location &location : m_msg.findAttachmentLocations()) {
             const QMailMessagePart &attachmentPart = m_msg.partAt(location);
-            if (&attachmentPart) {
-                m_attachments << attachmentPart.displayName();
-            }
+            m_attachments << attachmentPart.displayName();
         }
     }
 
@@ -1363,15 +1357,13 @@ void EmailMessage::insertInlineImages(const QList<QMailMessagePart::Location> &i
 {
     for (const QMailMessagePart::Location &location : inlineParts) {
         const QMailMessagePart &sourcePart = m_msg.partAt(location);
-        if (&sourcePart) {
-            if (sourcePart.contentAvailable()) {
-                insertInlineImage(sourcePart);
-            } else if (!m_partsToDownload.contains(location.toString(true))) {
-                QString contentId = QString("cid:%1\"").arg(sourcePart.contentID());
-                QString loadingPlaceHolder = contentId + QString::fromLatin1(" nemo-inline-image-loading=\"yes\"");
-                m_htmlText.replace(contentId, loadingPlaceHolder);
-                m_partsToDownload.insert(location.toString(true), location);
-            }
+        if (sourcePart.contentAvailable()) {
+            insertInlineImage(sourcePart);
+        } else if (!m_partsToDownload.contains(location.toString(true))) {
+            QString contentId = QString("cid:%1\"").arg(sourcePart.contentID());
+            QString loadingPlaceHolder = contentId + QString::fromLatin1(" nemo-inline-image-loading=\"yes\"");
+            m_htmlText.replace(contentId, loadingPlaceHolder);
+            m_partsToDownload.insert(location.toString(true), location);
         }
     }
     if (!m_partsToDownload.isEmpty()) {
