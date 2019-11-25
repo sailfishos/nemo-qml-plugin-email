@@ -148,7 +148,7 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
         return (timeStamp.toString("hh:mm MM/dd/yyyy"));
     } else if (role == MessageAttachmentCountRole) {
         // return number of attachments
-        if (!messageMetaData.status() & QMailMessageMetaData::HasAttachments)
+        if (!(messageMetaData.status() & QMailMessageMetaData::HasAttachments))
             return 0;
 
         QMailMessage message(msgId);
@@ -156,7 +156,7 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
         return attachmentLocations.count();
     } else if (role == MessageAttachmentsRole) {
         // return a stringlist of attachments
-        if (!messageMetaData.status() & QMailMessageMetaData::HasAttachments)
+        if (!(messageMetaData.status() & QMailMessageMetaData::HasAttachments))
             return QStringList();
 
         QMailMessage message(msgId);

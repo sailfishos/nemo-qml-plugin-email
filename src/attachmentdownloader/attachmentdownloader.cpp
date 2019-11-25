@@ -58,7 +58,7 @@ void AttachmentDownloader::onlineStateChanged(bool online)
     qMailLog(Messaging) << "Online state changed:" << online;
     if (online) {
         processNext();
-    } else {
+    } else if (!m_locationQueue.isEmpty()) {
         cancelAndRequeue();
     }
 }
@@ -87,12 +87,13 @@ void AttachmentDownloader::activityChanged(QMailServiceAction::Activity activity
         return;
     }
 
-    if (requeue)
+    if (requeue) {
         cancelAndRequeue();
-    else
+    } else {
         m_locationQueue.removeFirst();
+        processNext();
+    }
     qMailLog(Messaging) << Q_FUNC_INFO << "Attachment download queue length is now" << m_locationQueue.size();
-    processNext();
 }
 
 void AttachmentDownloader::autoDownloadAttachments(const QMailMessageId &messageId)
@@ -135,8 +136,8 @@ void AttachmentDownloader::processNext()
 void AttachmentDownloader::cancelAndRequeue()
 {
     qMailLog(Messaging) << Q_FUNC_INFO << "Canceling and requeing attachment download action for account" << m_account;
-    auto location = m_locationQueue.takeFirst();
-    m_action.cancelOperation();
-    enqueue(location);
-    processNext();
+    if (m_action.isRunning())
+        m_action.cancelOperation();
+    if (!m_locationQueue.isEmpty())
+        enqueue(m_locationQueue.takeFirst());
 }
