@@ -485,7 +485,7 @@ void EmailMessage::saveDraft()
 QStringList EmailMessage::attachments()
 {
     if (m_id.isValid()) {
-        if (!m_msg.status() & QMailMessageMetaData::HasAttachments)
+        if (!(m_msg.status() & QMailMessageMetaData::HasAttachments))
             return QStringList();
 
         m_attachments.clear();
@@ -731,7 +731,7 @@ bool EmailMessage::multipleRecipients() const
 
 int EmailMessage::numberOfAttachments() const
 {
-    if (!m_msg.status() & QMailMessageMetaData::HasAttachments)
+    if (!(m_msg.status() & QMailMessageMetaData::HasAttachments))
         return 0;
 
     const QList<QMailMessagePart::Location> &attachmentLocations = m_msg.findAttachmentLocations();
