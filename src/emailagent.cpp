@@ -579,7 +579,17 @@ void EmailAgent::accountsSync(bool syncOnlyInbox, uint minimum)
                                                               & QMailAccountKey::status(QMailAccount::Enabled));
     qCDebug(lcEmail) << "Enabled accounts size is:" << m_enabledAccounts.count();
 
-    syncAccounts(m_enabledAccounts, syncOnlyInbox, minimum);
+    if (m_enabledAccounts.isEmpty()) {
+        qCDebug(lcEmail) << Q_FUNC_INFO << "No enabled accounts, nothing to do.";
+    } else {
+        for (const QMailAccountId &accountId : m_enabledAccounts) {
+            if (syncOnlyInbox) {
+                synchronizeInbox(accountId.toULongLong(), minimum);
+            } else {
+                synchronize(accountId.toULongLong(), minimum);
+            }
+        }
+    }
 }
 
 void EmailAgent::createFolder(const QString &name, int mailAccountId, int parentFolderId)
@@ -934,9 +944,10 @@ void EmailAgent::processSendingQueue(int accountId)
 void EmailAgent::synchronize(int accountId, uint minimum)
 {
     QMailAccountId acctId(accountId);
-
-    if (!acctId.isValid())
+    if (!acctId.isValid()) {
+        qCWarning(lcEmail) << "Cannot synchronize, invalid account id:" << accountId;
         return;
+    }
 
     bool messagesToSend = hasMessagesInOutbox(acctId);
     if (messagesToSend) {
@@ -953,6 +964,10 @@ void EmailAgent::synchronize(int accountId, uint minimum)
 void EmailAgent::synchronizeInbox(int accountId, uint minimum)
 {
     QMailAccountId acctId(accountId);
+    if (!acctId.isValid()) {
+        qCWarning(lcEmail) << "Cannot synchronize, invalid account id:" << accountId;
+        return;
+    }
 
     QMailAccount account(acctId);
     QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
@@ -1107,22 +1122,6 @@ bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,
                                       response, data));
     exportUpdates(QMailAccountIdList() << message.parentAccountId());
     return true;
-}
-
-// Sync accounts list (both ways)
-void EmailAgent::syncAccounts(const QMailAccountIdList &accountIdList, bool syncOnlyInbox, uint minimum)
-{
-    if (accountIdList.isEmpty()) {
-        qCDebug(lcEmail) << Q_FUNC_INFO << "No enabled accounts, nothing to do.";
-    } else {
-        for (const QMailAccountId &accountId : accountIdList) {
-            if (syncOnlyInbox) {
-                synchronizeInbox(accountId.toULongLong(), minimum);
-            } else {
-                synchronize(accountId.toULongLong(), minimum);
-            }
-        }
-    }
 }
 
 // ############## Private API #########################

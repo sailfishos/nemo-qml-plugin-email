@@ -112,7 +112,6 @@ public:
 
     void setupAccountFlags();
     int standardFolderId(int accountId, QMailFolder::StandardFolder folder) const;
-    void syncAccounts(const QMailAccountIdList &accountIdList, bool syncOnlyInbox = true, uint minimum = 20);
 
     Q_INVOKABLE void accountsSync(bool syncOnlyInbox = false, uint minimum = 20);
     Q_INVOKABLE void createFolder(const QString &name, int mailAccountId, int parentFolderId);

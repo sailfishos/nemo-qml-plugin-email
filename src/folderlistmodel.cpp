@@ -137,6 +137,7 @@ FolderListModel::FolderListModel(QObject *parent)
     roles.insert(FolderChildCreatePermitted, "canCreateChild");
     roles.insert(FolderMovePermitted, "canMove");
     roles.insert(FolderMessagesPermitted, "canHaveMessages");
+    roles.insert(FolderSyncEnabled, "syncEnabled");
     roles.insert(FolderParentId, "parentFolderId");
 
     connect(QMailStore::instance(), SIGNAL(foldersAdded(const QMailFolderIdList &)),
@@ -219,10 +220,36 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const
                 && folder.status() & QMailFolder::ChildCreationPermitted;
     case FolderMessagesPermitted:
         return folder.status() & QMailFolder::MessagesPermitted;
+    case FolderSyncEnabled:
+        return folder.status() & QMailFolder::SynchronizationEnabled;
     case FolderParentId:
         return folder.parentFolderId().toULongLong();
     default:
         return QVariant();
+    }
+}
+
+bool FolderListModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (!index.isValid() || index.row() > m_folderList.count())
+        return false;
+
+    switch (role) {
+    case FolderSyncEnabled: {
+        const FolderItem *item = m_folderList.at(index.row());
+        Q_ASSERT(item);
+
+        QMailFolder folder(item->folderId);
+        folder.setStatus(QMailFolder::SynchronizationEnabled, value.toBool());
+
+        bool success =  QMailStore::instance()->updateFolder(&folder);
+        if (success) {
+            emit dataChanged(index, index, QVector<int>() << role);
+        }
+        return success;
+    }
+    default:
+        return false;
     }
 }
 
