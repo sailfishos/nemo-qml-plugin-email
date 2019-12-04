@@ -150,8 +150,12 @@ void AttachmentListModel::onAttachmentUrlChanged(const QString &attachmentLocati
     for (int i = 0; i < m_attachmentsList.count(); ++i) {
         Attachment *attachment = m_attachmentsList.at(i);
         if (attachment->location == attachmentLocation) {
-            if (attachment->url != url) {
-                attachment->url = url;
+            // Make url more secure and compatible with QMF client
+            QString downloads = downloadFolder(m_message, attachmentLocation);
+            QString fileName = url;
+            QString secureUrl = downloads + "/" + fileName.remove(downloads).remove('/');
+            if (attachment->url != secureUrl) {
+                attachment->url = secureUrl;
                 QModelIndex changeIndex = index(i, 0);
                 emit dataChanged(changeIndex, changeIndex, QVector<int>() << Url);
                 return;
@@ -218,7 +222,8 @@ QString AttachmentListModel::attachmentUrl(const QMailMessage &message, const QS
         QMailMessagePart part = message.partAt(i);
         QMailMessagePart sourcePart;
         if (findPartFromAttachment(part, attachmentLocation, sourcePart)) {
-            QString attachmentPath = attachmentDownloadFolder + "/" + sourcePart.displayName();
+            // Make url more secure and compatible with QMF client
+            QString attachmentPath = attachmentDownloadFolder + "/" + sourcePart.displayName().remove('/');
             QFile f(attachmentPath);
             if (f.exists()) {
                 return attachmentPath;
