@@ -1,7 +1,7 @@
 /*
  * Copyright 2011 Intel Corporation.
- * Copyright (C) 2012-2019 Jolla Ltd.
- * Copyright (c) 2019 Open Mobile Platform LLC.
+ * Copyright (c) 2012 - 2019 Jolla Ltd.
+ * Copyright (c) 2019 - 2020 Open Mobile Platform LLC.
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at
@@ -234,6 +234,7 @@ private:
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);
     bool easCalendarInvitationResponse(const QMailMessage &message, CalendarInvitationResponse response,
                                        const QString &responseSubject);
+    void applyFolderSyncPolicy(int accountId);
 };
 
 #endif
