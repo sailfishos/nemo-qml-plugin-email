@@ -10,6 +10,7 @@ SOURCES += \
     $$PWD/folderaccessor.cpp \
     $$PWD/folderlistmodel.cpp \
     $$PWD/folderlistproxymodel.cpp \
+    $$PWD/folderlistfiltertypemodel.cpp \
     $$PWD/folderutils.cpp \
     $$PWD/emailagent.cpp \
     $$PWD/emailmessage.cpp \
@@ -36,6 +37,7 @@ PRIVATE_HEADERS += \
     $$PWD/folderaccessor.h \
     $$PWD/folderlistmodel.h \
     $$PWD/folderlistproxymodel.h \
+    $$PWD/folderlistfiltertypemodel.h \
     $$PWD/folderutils.h \
     $$PWD/logging_p.h \
 

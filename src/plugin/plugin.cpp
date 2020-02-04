@@ -35,6 +35,7 @@
 #include "folderaccessor.h"
 #include "folderlistmodel.h"
 #include "folderlistproxymodel.h"
+#include "folderlistfiltertypemodel.h"
 #include "emailaccountlistmodel.h"
 #include "emailmessagelistmodel.h"
 #include "emailagent.h"
@@ -71,6 +72,7 @@ public:
 
         qmlRegisterType<FolderListModel>(uri, 0, 1, "FolderListModel");
         qmlRegisterType<FolderListProxyModel>(uri, 0, 1, "FolderListProxyModel");
+        qmlRegisterType<FolderListFilterTypeModel>(uri, 0, 1, "FolderListFilterTypeModel");
         qmlRegisterType<EmailAccountListModel>(uri, 0, 1, "EmailAccountListModel");
         qmlRegisterType<EmailMessageListModel>(uri, 0, 1, "EmailMessageListModel");
         qmlRegisterType<EmailAgent>(uri, 0, 1, "EmailAgent");

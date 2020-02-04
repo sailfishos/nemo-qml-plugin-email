@@ -68,6 +68,7 @@ signals:
     void supportsFolderActionsChanged();
     void resyncNeeded();
     void accountKeyChanged();
+    void countChanged();
 
 protected:
     virtual QHash<int, QByteArray> roleNames() const;

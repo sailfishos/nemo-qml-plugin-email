@@ -1036,15 +1036,15 @@ void EmailAgent::applyFolderSyncPolicy(int accountId)
     Accounts::Account *accountConfig = accountManager.account(accountId);
     QString folderSyncPolicy;
     if (accountConfig) {
-        accountConfig->selectService(accountManager.service(QStringLiteral("")));
+        accountConfig->selectService(accountManager.service(QString()));
         folderSyncPolicy = accountConfig->valueAsString(QStringLiteral("folderSyncPolicy"));
     }
 
     QMailAccountId mailId(accountId);
     if (mailId.isValid()) {
-        bool all = (folderSyncPolicy.compare(QStringLiteral("all-folders")) == 0);
-        bool subfolders = (folderSyncPolicy.compare(QStringLiteral("inbox-and-subfolders")) == 0);
-        bool inbox = (folderSyncPolicy.compare(QStringLiteral("inbox")) == 0);
+        bool all = (folderSyncPolicy == QLatin1String("all-folders"));
+        bool subfolders = (folderSyncPolicy == QLatin1String("inbox-and-subfolders"));
+        bool inbox = (folderSyncPolicy == QLatin1Literal("inbox"));
         // If no flag is set, leave the SynchronizationEnabled status as it is
         // to allow a custom combination to be chosen by the user
         if (all || subfolders || inbox) {
