@@ -596,6 +596,20 @@ void EmailAgent::accountsSync(bool syncOnlyInbox, uint minimum)
     }
 }
 
+// Sync all accounts (both ways), just the inboxes
+// See also accountsSyncAllFolders(uint minimum)
+void EmailAgent::accountsSyncInbox(uint minimum)
+{
+    accountsSync(true, minimum);
+}
+
+// Sync all accounts (both ways), all folders
+// See also accountsSyncInbox(uint minimum)
+void EmailAgent::accountsSyncAllFolders(uint minimum)
+{
+    accountsSync(false, minimum);
+}
+
 void EmailAgent::createFolder(const QString &name, int mailAccountId, int parentFolderId)
 {
     if (name.isEmpty()) {
