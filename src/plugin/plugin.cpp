@@ -1,6 +1,8 @@
 /*
- * Copyright (C) 2011 Robin Burchell <robin+mer@viroteck.net>
- * Copyright (C) 2012 Valerio Valerio <valerio.valerio@jollamobile.com>
+ * Copyright (c) 2011 Robin Burchell <robin+mer@viroteck.net>
+ * Copyright (c) 2012 Valerio Valerio <valerio.valerio@jollamobile.com>
+ * Copyright (c) 2012 - 2020 Jolla Ltd.
+ * Copyright (c) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -33,6 +35,7 @@
 #include "folderaccessor.h"
 #include "folderlistmodel.h"
 #include "folderlistproxymodel.h"
+#include "folderlistfiltertypemodel.h"
 #include "emailaccountlistmodel.h"
 #include "emailmessagelistmodel.h"
 #include "emailagent.h"
@@ -69,6 +72,7 @@ public:
 
         qmlRegisterType<FolderListModel>(uri, 0, 1, "FolderListModel");
         qmlRegisterType<FolderListProxyModel>(uri, 0, 1, "FolderListProxyModel");
+        qmlRegisterType<FolderListFilterTypeModel>(uri, 0, 1, "FolderListFilterTypeModel");
         qmlRegisterType<EmailAccountListModel>(uri, 0, 1, "EmailAccountListModel");
         qmlRegisterType<EmailMessageListModel>(uri, 0, 1, "EmailMessageListModel");
         qmlRegisterType<EmailAgent>(uri, 0, 1, "EmailAgent");

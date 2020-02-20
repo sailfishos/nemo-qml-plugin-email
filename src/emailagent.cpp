@@ -1,7 +1,7 @@
 /*
  * Copyright 2011 Intel Corporation.
- * Copyright (C) 2012-2019 Jolla Ltd.
- * Copyright (c) 2019 Open Mobile Platform LLC.
+ * Copyright (c) 2012 - 2020 Jolla Ltd.
+ * Copyright (c) 2019 - 2020 Open Mobile Platform LLC.
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at
@@ -29,6 +29,10 @@
 #include "folderutils.h"
 #include "folderaccessor.h"
 #include "logging_p.h"
+
+// accounts-qt5
+#include <Accounts/Manager>
+#include <Accounts/Account>
 
 namespace {
 
@@ -592,6 +596,20 @@ void EmailAgent::accountsSync(bool syncOnlyInbox, uint minimum)
     }
 }
 
+// Sync all accounts (both ways), just the inboxes
+// See also accountsSyncAllFolders(uint minimum)
+void EmailAgent::accountsSyncInbox(uint minimum)
+{
+    accountsSync(true, minimum);
+}
+
+// Sync all accounts (both ways), all folders
+// See also accountsSyncInbox(uint minimum)
+void EmailAgent::accountsSyncAllFolders(uint minimum)
+{
+    accountsSync(false, minimum);
+}
+
 void EmailAgent::createFolder(const QString &name, int mailAccountId, int parentFolderId)
 {
     if (name.isEmpty()) {
@@ -922,6 +940,8 @@ void EmailAgent::retrieveMessageList(int accountId, int folderId, uint minimum)
     QMailAccountId acctId(accountId);
     QMailFolderId foldId(folderId);
 
+    applyFolderSyncPolicy(accountId);
+
     if (acctId.isValid()) {
         enqueue(new RetrieveMessageList(m_retrievalAction.data(), acctId, foldId, minimum));
     }
@@ -949,6 +969,8 @@ void EmailAgent::synchronize(int accountId, uint minimum)
         return;
     }
 
+    applyFolderSyncPolicy(accountId);
+
     bool messagesToSend = hasMessagesInOutbox(acctId);
     if (messagesToSend) {
         m_enqueing = true;
@@ -969,6 +991,8 @@ void EmailAgent::synchronizeInbox(int accountId, uint minimum)
         return;
     }
 
+    applyFolderSyncPolicy(accountId);
+
     QMailAccount account(acctId);
     QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
     if (foldId.isValid()) {
@@ -987,6 +1011,7 @@ void EmailAgent::synchronizeInbox(int accountId, uint minimum)
         }
 
     } else { //Account was never synced, retrieve list of folders and come back here.
+
         connect(this, &EmailAgent::standardFoldersCreated,
                 this, [=](const QMailAccountId &acctId) {
                     QMailAccount account(acctId);
@@ -1002,6 +1027,63 @@ void EmailAgent::synchronizeInbox(int accountId, uint minimum)
         enqueue(new RetrieveFolderList(m_retrievalAction.data(), acctId, QMailFolderId(), true));
         m_enqueing = false;
         enqueue(new CreateStandardFolders(m_retrievalAction.data(), acctId));
+    }
+}
+
+static bool isAncestorFolder(const QMailFolder &folder, const QMailFolderId &ancestor)
+{
+    if (folder.status() & QMailFolder::NonMail) {
+        return false;
+    }
+    QMailFolderId parentId = folder.parentFolderId();
+    if (!parentId.isValid()) {
+        return false;
+    } else {
+        return parentId == ancestor
+            || isAncestorFolder(QMailFolder(parentId), ancestor);
+    }
+}
+
+void EmailAgent::applyFolderSyncPolicy(int accountId)
+{
+    Accounts::Manager accountManager;
+    Accounts::Account *accountConfig = accountManager.account(accountId);
+    QString folderSyncPolicy;
+    if (accountConfig) {
+        accountConfig->selectService(accountManager.service(QString()));
+        folderSyncPolicy = accountConfig->valueAsString(QStringLiteral("folderSyncPolicy"));
+    }
+
+    QMailAccountId mailId(accountId);
+    if (mailId.isValid()) {
+        bool all = (folderSyncPolicy == QLatin1String("all-folders"));
+        bool subfolders = (folderSyncPolicy == QLatin1String("inbox-and-subfolders"));
+        bool inbox = (folderSyncPolicy == QLatin1Literal("inbox"));
+        // If no flag is set, leave the SynchronizationEnabled status as it is
+        // to allow a custom combination to be chosen by the user
+        if (all || subfolders || inbox) {
+            // Ensure that synchronization flag is set
+            // for inbox and subfolders or for all.
+            QMailAccount account(mailId);
+            QMailFolderId syncFolderId = account.standardFolder(QMailFolder::InboxFolder);
+            if (all || syncFolderId.isValid()) {
+                QMailFolderKey key = QMailFolderKey::parentAccountId(mailId);
+                QList<QMailFolderId> folders = QMailStore::instance()->queryFolders(key);
+                for (QList<QMailFolderId>::ConstIterator it = folders.constBegin();
+                    it != folders.constEnd(); ++it) {
+                    if (it->isValid()) {
+                        QMailFolder folder(*it);
+                        bool status = all
+                                || *it == syncFolderId
+                                || (subfolders && isAncestorFolder(folder, syncFolderId));
+                        folder.setStatus(QMailFolder::SynchronizationEnabled, status);
+                        QMailStore::instance()->updateFolder(&folder);
+                    }
+                }
+            } else {
+                qCWarning(lcEmail) << "Email account has no inbox.";
+            }
+        }
     }
 }
 

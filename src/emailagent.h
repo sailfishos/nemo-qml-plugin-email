@@ -1,7 +1,7 @@
 /*
  * Copyright 2011 Intel Corporation.
- * Copyright (C) 2012-2019 Jolla Ltd.
- * Copyright (c) 2019 Open Mobile Platform LLC.
+ * Copyright (c) 2012 - 2019 Jolla Ltd.
+ * Copyright (c) 2019 - 2020 Open Mobile Platform LLC.
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at
@@ -113,7 +113,8 @@ public:
     void setupAccountFlags();
     int standardFolderId(int accountId, QMailFolder::StandardFolder folder) const;
 
-    Q_INVOKABLE void accountsSync(bool syncOnlyInbox = false, uint minimum = 20);
+    Q_INVOKABLE void accountsSyncInbox(uint minimum = 20);
+    Q_INVOKABLE void accountsSyncAllFolders(uint minimum = 20);
     Q_INVOKABLE void createFolder(const QString &name, int mailAccountId, int parentFolderId);
     Q_INVOKABLE void deleteFolder(int folderId);
     Q_INVOKABLE void deleteMessage(int messageId);
@@ -218,6 +219,7 @@ private:
     // Holds a list of the attachments currently downloading or queued for download
     QHash<QString, AttachmentInfo> m_attachmentDownloadQueue;
 
+    void accountsSync(bool syncOnlyInbox = false, uint minimum = 20);
     bool actionInQueue(QSharedPointer<EmailAction> action) const;
     quint64 actionInQueueId(QSharedPointer<EmailAction> action) const;
     void dequeue();
@@ -234,6 +236,7 @@ private:
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);
     bool easCalendarInvitationResponse(const QMailMessage &message, CalendarInvitationResponse response,
                                        const QString &responseSubject);
+    void applyFolderSyncPolicy(int accountId);
 };
 
 #endif
