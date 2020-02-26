@@ -1044,24 +1044,58 @@ static bool isAncestorFolder(const QMailFolder &folder, const QMailFolderId &anc
     }
 }
 
+// Choose a default policy
+// IMAP4, Gmail and EAS default to "inbox"
+// POP3 and anything else defaults to "follow-flags"
+static QString getDefaultFolderSyncPolicy(int accountId)
+{
+    Accounts::Manager accountManager;
+    Accounts::Account *accountConfig = accountManager.account(accountId);
+
+    QString policy("follow-flags");
+    if (accountConfig) {
+
+        Accounts::ServiceList serviceList = accountConfig->services(QStringLiteral("e-mail"));
+        // Loop, but we're not expecting more than one
+        for (Accounts::Service service : serviceList) {
+            if (service.name() == QLatin1String("google-gmail")
+                    || service.name() == QLatin1String("sailfisheas-email")) {
+                policy = "inbox";
+            } else if (service.name() == QLatin1String("email")) {
+                accountConfig->selectService(accountManager.service(QStringLiteral("email")));
+                if (accountConfig->childGroups().contains(QLatin1String("imap4"))) {
+                    policy = "inbox";
+                }
+            }
+        }
+    }
+    return policy;
+}
+
 void EmailAgent::applyFolderSyncPolicy(int accountId)
 {
     Accounts::Manager accountManager;
     Accounts::Account *accountConfig = accountManager.account(accountId);
-    QString folderSyncPolicy;
+    QString policy;
     if (accountConfig) {
         accountConfig->selectService(accountManager.service(QString()));
-        folderSyncPolicy = accountConfig->valueAsString(QStringLiteral("folderSyncPolicy"));
+        policy = accountConfig->valueAsString(QStringLiteral("folderSyncPolicy"), QString());
     }
 
-    QMailAccountId mailId(accountId);
-    if (mailId.isValid()) {
-        bool all = (folderSyncPolicy == QLatin1String("all-folders"));
-        bool subfolders = (folderSyncPolicy == QLatin1String("inbox-and-subfolders"));
-        bool inbox = (folderSyncPolicy == QLatin1Literal("inbox"));
-        // If no flag is set, leave the SynchronizationEnabled status as it is
-        // to allow a custom combination to be chosen by the user
-        if (all || subfolders || inbox) {
+    if (policy.isEmpty()) {
+        policy = getDefaultFolderSyncPolicy(accountId);
+    }
+
+    bool followflags = (policy == QLatin1String("follow-flags"));
+    // If followflags set, leave the SynchronizationEnabled status as it is
+    // to allow a custom combination to be chosen by the user
+    if (!followflags) {
+        QMailAccountId mailId(accountId);
+        if (mailId.isValid()) {
+            qCDebug(lcEmail) << "Applying folder sync policy: " << policy;
+            // Default to "inbox" if none of the others apply
+            bool all = (policy == QLatin1String("all-folders"));
+            bool subfolders = (policy == QLatin1String("inbox-and-subfolders"));
             // Ensure that synchronization flag is set
             // for inbox and subfolders or for all.
             QMailAccount account(mailId);
