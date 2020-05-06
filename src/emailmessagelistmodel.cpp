@@ -31,8 +31,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
       m_searchBody(true),
       m_searchRemainingOnRemote(0),
       m_searchCanceled(false),
-      m_folderAccessor(new FolderAccessor(this)),
-      m_currentDate(QDate::currentDate())
+      m_folderAccessor(new FolderAccessor(this))
 {
     roles[QMailMessageModelBase::MessageAddressTextRole] = "sender";
     roles[QMailMessageModelBase::MessageSubjectTextRole] = "subject";
@@ -195,17 +194,11 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
     } else if (role == MessageSenderEmailAddressRole) {
         return messageMetaData.from().address();
     } else if (role == MessageTimeStampRole) {
-        return (messageMetaData.date().toLocalTime());
+        return messageMetaData.date().toLocalTime();
     } else if (role == MessagePreviewRole) {
         return messageMetaData.preview().simplified();
     } else if (role == MessageTimeSectionRole) {
-        const int daysDiff = m_currentDate.toJulianDay() - (messageMetaData.date().toLocalTime()).date().toJulianDay();
-        if (daysDiff < 7) {
-            return (messageMetaData.date().toLocalTime()).date();
-        } else {
-            //returns epoch time for items older than a week
-            return QDateTime::fromTime_t(0);
-        }
+        return messageMetaData.date().toLocalTime().date();
     } else if (role == MessagePriorityRole) {
         if (messageMetaData.status() & QMailMessage::HighPriority) {
             return HighPriority;
@@ -397,25 +390,6 @@ EmailMessageListModel::Sort EmailMessageListModel::sortBy() const
 bool EmailMessageListModel::unreadMailsSelected() const
 {
     return !m_selectedUnreadIdx.isEmpty();
-}
-
-void EmailMessageListModel::notifyDateChanged()
-{
-    dataChanged(index(0), index(rowCount() - 1), QVector<int>() << MessageTimeSectionRole);
-}
-
-void EmailMessageListModel::setCurrentDate(const QDate &dt)
-{
-    if (m_currentDate != dt) {
-        m_currentDate = dt;
-        emit currentDateChanged();
-        emit dataChanged(index(0), index(rowCount() - 1), QVector<int>() << MessageTimeSectionRole);
-    }
-}
-
-QDate EmailMessageListModel::currentDate() const
-{
-    return m_currentDate;
 }
 
 void EmailMessageListModel::setSortBy(EmailMessageListModel::Sort sort)

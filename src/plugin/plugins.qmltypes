@@ -825,8 +825,6 @@ Module {
         Property { name: "searchRemainingOnRemote"; type: "int"; isReadonly: true }
         Property { name: "sortBy"; type: "EmailMessageListModel::Sort" }
         Property { name: "unreadMailsSelected"; type: "bool"; isReadonly: true }
-        Property { name: "currentDate"; type: "QDate" }
-        Method { name: "notifyDateChanged" }
         Method {
             name: "setSearch"
             Parameter { name: "search"; type: "string" }

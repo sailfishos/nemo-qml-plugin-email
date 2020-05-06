@@ -43,7 +43,6 @@ class Q_DECL_EXPORT EmailMessageListModel : public QMailMessageListModel
     Q_PROPERTY(int searchRemainingOnRemote READ searchRemainingOnRemote NOTIFY searchRemainingOnRemoteChanged FINAL)
     Q_PROPERTY(EmailMessageListModel::Sort sortBy READ sortBy WRITE setSortBy NOTIFY sortByChanged)
     Q_PROPERTY(bool unreadMailsSelected READ unreadMailsSelected NOTIFY unreadMailsSelectedChanged FINAL)
-    Q_PROPERTY(QDate currentDate READ currentDate WRITE setCurrentDate NOTIFY currentDateChanged)
 
 public:
     enum Roles {
@@ -62,7 +61,7 @@ public:
         MessageTimeStampRole,                                  // returns timestamp in QDateTime format
         MessageSelectModeRole,                                 // returns the select mode
         MessagePreviewRole,                                    // returns message preview if available
-        MessageTimeSectionRole,                                // returns time section relative to the current time
+        MessageTimeSectionRole,                                // returns time section
         MessagePriorityRole,                                   // returns message priority
         MessageAccountIdRole,                                  // returns parent account id for the message
         MessageHasAttachmentsRole,                             // returns 1 if message has attachments, 0 otherwise
@@ -109,10 +108,6 @@ public:
     void setSortBy(Sort sort);
     EmailMessageListModel::Sort sortBy() const;
     bool unreadMailsSelected() const;
-    void setCurrentDate(const QDate &dt);
-    QDate currentDate() const;
-
-    Q_INVOKABLE void notifyDateChanged();
 
 Q_SIGNALS:
     void folderAccessorChanged();
@@ -129,7 +124,6 @@ Q_SIGNALS:
     void searchRemainingOnRemoteChanged();
     void sortByChanged();
     void unreadMailsSelectedChanged();
-    void currentDateChanged();
 
 public:
     Q_INVOKABLE void setSearch(const QString &search);
@@ -188,7 +182,6 @@ private:
     QList<int> m_selectedUnreadIdx;
     QTimer m_remoteSearchTimer;
     FolderAccessor *m_folderAccessor;
-    QDate m_currentDate;
 };
 
 #endif
