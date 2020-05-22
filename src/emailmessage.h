@@ -40,6 +40,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(QString calendarInvitationBody READ calendarInvitationBody NOTIFY calendarInvitationBodyChanged)
     Q_PROPERTY(bool calendarInvitationSupportsEmailResponses READ calendarInvitationSupportsEmailResponses NOTIFY calendarInvitationSupportsEmailResponsesChanged)
     Q_PROPERTY(QStringList cc READ cc WRITE setCc NOTIFY ccChanged)
+    Q_PROPERTY(QStringList ccEmailAddresses READ ccEmailAddresses NOTIFY ccChanged)
     Q_PROPERTY(ContentType contentType READ contentType NOTIFY storedMessageChanged FINAL)
     Q_PROPERTY(bool autoVerifySignature READ autoVerifySignature WRITE setAutoVerifySignature NOTIFY autoVerifySignatureChanged)
     Q_PROPERTY(CryptoProtocol cryptoProtocol READ cryptoProtocol NOTIFY cryptoProtocolChanged)
@@ -68,6 +69,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(int size READ size NOTIFY storedMessageChanged)
     Q_PROPERTY(QString subject READ subject WRITE setSubject NOTIFY subjectChanged)
     Q_PROPERTY(QStringList to READ to WRITE setTo NOTIFY toChanged)
+    Q_PROPERTY(QStringList toEmailAddresses READ toEmailAddresses NOTIFY toChanged)
 
 public:
     explicit EmailMessage(QObject *parent = 0);
@@ -138,6 +140,7 @@ public:
     QString calendarInvitationBody() const;
     bool calendarInvitationSupportsEmailResponses() const;
     QStringList cc() const;
+    QStringList ccEmailAddresses() const;
     ContentType contentType() const;
     bool autoVerifySignature() const;
     CryptoProtocol cryptoProtocol() const;
@@ -183,7 +186,8 @@ public:
     void setAutoVerifySignature(bool autoVerify);
     int size();
     QString subject();
-    QStringList to();
+    QStringList to() const;
+    QStringList toEmailAddresses() const;
 
 signals:
     void sendEnqueued(bool success);

@@ -1085,7 +1085,7 @@ QString EmailMessage::subject()
     return m_msg.subject();
 }
 
-QStringList EmailMessage::to()
+QStringList EmailMessage::to() const
 {
     return QMailAddress::toStringList(m_msg.to());
 }
@@ -1559,6 +1559,26 @@ EmailMessage::CryptoProtocol EmailMessage::cryptoProtocolForKey(const QString &p
     } else {
         return EmailMessage::UnknownProtocol;
     }
+}
+
+QStringList EmailMessage::toEmailAddresses() const
+{
+    QStringList to;
+    QList<QMailAddress> addresses = m_msg.to();
+    for (const QMailAddress &address : addresses) {
+        to << address.address();
+    }
+    return to;
+}
+
+QStringList EmailMessage::ccEmailAddresses() const
+{
+    QStringList cc;
+    QList<QMailAddress> addresses = m_msg.cc();
+    for (const QMailAddress &address : addresses) {
+        cc << address.address();
+    }
+    return cc;
 }
 
 EmailMessage::CryptoProtocol EmailMessage::cryptoProtocol() const
