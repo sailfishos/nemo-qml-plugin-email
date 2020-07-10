@@ -940,8 +940,6 @@ void EmailAgent::retrieveMessageList(int accountId, int folderId, uint minimum)
     QMailAccountId acctId(accountId);
     QMailFolderId foldId(folderId);
 
-    applyFolderSyncPolicy(accountId);
-
     if (acctId.isValid()) {
         enqueue(new RetrieveMessageList(m_retrievalAction.data(), acctId, foldId, minimum));
     }
@@ -969,8 +967,6 @@ void EmailAgent::synchronize(int accountId, uint minimum)
         return;
     }
 
-    applyFolderSyncPolicy(accountId);
-
     bool messagesToSend = hasMessagesInOutbox(acctId);
     if (messagesToSend) {
         m_enqueing = true;
@@ -990,8 +986,6 @@ void EmailAgent::synchronizeInbox(int accountId, uint minimum)
         qCWarning(lcEmail) << "Cannot synchronize, invalid account id:" << accountId;
         return;
     }
-
-    applyFolderSyncPolicy(accountId);
 
     QMailAccount account(acctId);
     QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
@@ -1041,83 +1035,6 @@ static bool isAncestorFolder(const QMailFolder &folder, const QMailFolderId &anc
     } else {
         return parentId == ancestor
             || isAncestorFolder(QMailFolder(parentId), ancestor);
-    }
-}
-
-// Choose a default policy
-// IMAP4, Gmail and EAS default to "inbox"
-// POP3 and anything else defaults to "follow-flags"
-static QString getDefaultFolderSyncPolicy(int accountId)
-{
-    Accounts::Manager accountManager;
-    Accounts::Account *accountConfig = accountManager.account(accountId);
-
-    QString policy("follow-flags");
-    if (accountConfig) {
-
-        Accounts::ServiceList serviceList = accountConfig->services(QStringLiteral("e-mail"));
-        // Loop, but we're not expecting more than one
-        for (Accounts::Service service : serviceList) {
-            if (service.name() == QLatin1String("google-gmail")
-                    || service.name() == QLatin1String("sailfisheas-email")) {
-                policy = "inbox";
-            } else if (service.name() == QLatin1String("email")) {
-                accountConfig->selectService(accountManager.service(QStringLiteral("email")));
-                if (accountConfig->childGroups().contains(QLatin1String("imap4"))) {
-                    policy = "inbox";
-                }
-            }
-        }
-    }
-    return policy;
-}
-
-void EmailAgent::applyFolderSyncPolicy(int accountId)
-{
-    Accounts::Manager accountManager;
-    Accounts::Account *accountConfig = accountManager.account(accountId);
-    QString policy;
-    if (accountConfig) {
-        accountConfig->selectService(accountManager.service(QString()));
-        policy = accountConfig->valueAsString(QStringLiteral("folderSyncPolicy"), QString());
-    }
-
-    if (policy.isEmpty()) {
-        policy = getDefaultFolderSyncPolicy(accountId);
-    }
-
-    bool followflags = (policy == QLatin1String("follow-flags"));
-    // If followflags set, leave the SynchronizationEnabled status as it is
-    // to allow a custom combination to be chosen by the user
-    if (!followflags) {
-        QMailAccountId mailId(accountId);
-        if (mailId.isValid()) {
-            qCDebug(lcEmail) << "Applying folder sync policy: " << policy;
-            // Default to "inbox" if none of the others apply
-            bool all = (policy == QLatin1String("all-folders"));
-            bool subfolders = (policy == QLatin1String("inbox-and-subfolders"));
-            // Ensure that synchronization flag is set
-            // for inbox and subfolders or for all.
-            QMailAccount account(mailId);
-            QMailFolderId syncFolderId = account.standardFolder(QMailFolder::InboxFolder);
-            if (all || syncFolderId.isValid()) {
-                QMailFolderKey key = QMailFolderKey::parentAccountId(mailId);
-                QList<QMailFolderId> folders = QMailStore::instance()->queryFolders(key);
-                for (QList<QMailFolderId>::ConstIterator it = folders.constBegin();
-                    it != folders.constEnd(); ++it) {
-                    if (it->isValid()) {
-                        QMailFolder folder(*it);
-                        bool status = all
-                                || *it == syncFolderId
-                                || (subfolders && isAncestorFolder(folder, syncFolderId));
-                        folder.setStatus(QMailFolder::SynchronizationEnabled, status);
-                        QMailStore::instance()->updateFolder(&folder);
-                    }
-                }
-            } else {
-                qCWarning(lcEmail) << "Email account has no inbox.";
-            }
-        }
     }
 }
 

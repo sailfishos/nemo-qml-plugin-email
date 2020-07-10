@@ -145,7 +145,6 @@ public:
     Q_INVOKABLE void processSendingQueue(int accountId);
     Q_INVOKABLE void synchronize(int accountId, uint minimum = 20);
     Q_INVOKABLE void synchronizeInbox(int accountId, uint minimum = 20);
-    Q_INVOKABLE void applyFolderSyncPolicy(int accountId);
     Q_INVOKABLE void respondToCalendarInvitation(int messageId, CalendarInvitationResponse response,
                                                  const QString &responseSubject);
 
