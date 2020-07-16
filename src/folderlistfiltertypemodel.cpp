@@ -19,7 +19,13 @@ FolderListFilterTypeModel::FolderListFilterTypeModel(QObject *parent) :
     updateSyncFolderListTimer(-1)
 {
     // Default to email folders
-    m_typeFilter << EmailFolder::NormalFolder << EmailFolder::InboxFolder;
+    m_typeFilter << EmailFolder::NormalFolder
+                 << EmailFolder::InboxFolder
+                 << EmailFolder::OutboxFolder
+                 << EmailFolder::SentFolder
+                 << EmailFolder::DraftsFolder
+                 << EmailFolder::TrashFolder
+                 << EmailFolder::JunkFolder;
 
     m_folderModel = new FolderListModel(this);
     setSourceModel(m_folderModel);
