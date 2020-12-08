@@ -558,12 +558,16 @@ void FolderListModel::doReloadModel()
         addFolderAndChildren(trashFolderId, messageKey, folders);
     }
 
-    // TODO: Some servers already have an outbox folder exported modified code to make use of that one as well.
     // Outbox
-    createAndAddFolderItem(QMailFolder::LocalStorageFolderId, EmailFolder::OutboxFolder,
-                           QMailMessageKey::status(QMailMessage::Outbox) &
-                           ~QMailMessageKey::status(QMailMessage::Trash) &
-                           excludeRemovedKey);
+    QMailFolderId outboxFolderId = account.standardFolder(QMailFolder::OutboxFolder);
+    if (!outboxFolderId.isValid()) {
+        createAndAddFolderItem(QMailFolder::LocalStorageFolderId, EmailFolder::OutboxFolder,
+                               QMailMessageKey::status(QMailMessage::Outbox) &
+                               ~QMailMessageKey::status(QMailMessage::Trash) &
+                               excludeRemovedKey);
+    } else {
+        addFolderAndChildren(outboxFolderId, messageKey, folders);
+    }
     // Add the remaining folders, they are already ordered
     for (const QMailFolderId& folderId : folders) {
         EmailFolder::FolderType folderType = FolderUtils::folderTypeFromId(folderId);
