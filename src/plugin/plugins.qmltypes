@@ -708,6 +708,7 @@ Module {
         Property { name: "calendarInvitationBody"; type: "string"; isReadonly: true }
         Property { name: "calendarInvitationSupportsEmailResponses"; type: "bool"; isReadonly: true }
         Property { name: "cc"; type: "QStringList" }
+        Property { name: "ccEmailAddresses"; type: "QStringList"; isReadonly: true }
         Property { name: "contentType"; type: "ContentType"; isReadonly: true }
         Property { name: "autoVerifySignature"; type: "bool" }
         Property { name: "cryptoProtocol"; type: "CryptoProtocol"; isReadonly: true }
@@ -736,6 +737,7 @@ Module {
         Property { name: "size"; type: "int"; isReadonly: true }
         Property { name: "subject"; type: "string" }
         Property { name: "to"; type: "QStringList" }
+        Property { name: "toEmailAddresses"; type: "QStringList"; isReadonly: true }
         Signal {
             name: "sendEnqueued"
             Parameter { name: "success"; type: "bool" }
