@@ -545,9 +545,20 @@ void EmailAgent::onOnlineStateChanged(bool isOnline)
         } else {
             executeCurrent();
         }
-    } else if (!m_currentAction.isNull() && m_currentAction->needsNetworkConnection() && m_currentAction->serviceAction()->isRunning()) {
-        // TODO: should this be responsibility of the backend? cancelOperation is kind of hinted being a user initiated action.
-        m_currentAction->serviceAction()->cancelOperation();
+    } else {
+        if (m_synchronizing) {
+            qCDebug(lcEmail) <<  "Canceling synchronizing";
+            m_synchronizing = false;
+            emit synchronizingChanged();
+        }
+        if (m_accountSynchronizing != 0) {
+            m_accountSynchronizing = 0;
+            emit currentSynchronizingAccountIdChanged();
+        }
+        if (!m_currentAction.isNull() && m_currentAction->needsNetworkConnection() && m_currentAction->serviceAction()->isRunning()) {
+            // TODO: should this be responsibility of the backend? cancelOperation is kind of hinted being a user initiated action.
+            m_currentAction->serviceAction()->cancelOperation();
+        }
     }
 }
 
