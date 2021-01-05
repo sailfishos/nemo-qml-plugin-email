@@ -1,6 +1,7 @@
 /*
  * Copyright 2011 Intel Corporation.
- * Copyright (C) 2012-2019 Jolla Ltd.
+ * Copyright (C) 2012-2020 Jolla Ltd.
+ * Copyright (C) 2021 Open Mobile Platform LLC.
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at 	
@@ -69,7 +70,8 @@ public:
         MessageHasSignatureRole,                               // returns true if message is numerically signed, false otherwise
         MessageSizeSectionRole,                                // returns size section (0-2)
         MessageFolderIdRole,                                   // returns parent folder id for the message
-        MessageParsedSubject                                   // returns the message subject parsed against a pre-defined regular expression
+        MessageParsedSubject,                                  // returns the message subject parsed against a pre-defined regular expression
+        MessageHasCalendarCancellationRole,                    // returns 1 if message has a calendar cancellation, 0 otherwise
     };
 
     enum Priority { LowPriority, NormalPriority, HighPriority };

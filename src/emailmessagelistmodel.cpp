@@ -1,6 +1,7 @@
 /*
  * Copyright 2011 Intel Corporation.
- * Copyright (C) 2012-2019 Jolla Ltd.
+ * Copyright (C) 2012-2020 Jolla Ltd.
+ * Copyright (C) 2021 Open Mobile Platform LLC.
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at
@@ -63,6 +64,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageSizeSectionRole] = "sizeSection";
     roles[MessageFolderIdRole] = "folderId";
     roles[MessageParsedSubject] = "parsedSubject";
+    roles[MessageHasCalendarCancellationRole] = "hasCalendarCancellation";
 
     m_key = key();
     m_sortKey = QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
@@ -234,6 +236,8 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
         subject.replace(QRegExp("<\\s*img", Qt::CaseInsensitive), "<no-img");
         subject.replace(QRegExp("<\\s*a", Qt::CaseInsensitive), "<no-a");
         return subject;
+    } else if (role == MessageHasCalendarCancellationRole) {
+        return (messageMetaData.status() & QMailMessageMetaData::CalendarCancellation) != 0;
     }
 
     return QMailMessageListModel::data(index, role);
