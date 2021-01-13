@@ -1,6 +1,7 @@
 /*
  * Copyright 2011 Intel Corporation.
- * Copyright (C) 2013-2019 Jolla Ltd.
+ * Copyright (C) 2013-2020 Jolla Ltd.
+ * Copyright (C) 2021 Open Mobile Platform LLC.
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at
@@ -36,6 +37,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(QString body READ body WRITE setBody NOTIFY bodyChanged)
     Q_PROPERTY(QString calendarInvitationUrl READ calendarInvitationUrl NOTIFY calendarInvitationUrlChanged FINAL)
     Q_PROPERTY(bool hasCalendarInvitation READ hasCalendarInvitation NOTIFY hasCalendarInvitationChanged FINAL)
+    Q_PROPERTY(bool hasCalendarCancellation READ hasCalendarCancellation NOTIFY hasCalendarCancellationChanged FINAL)
     Q_PROPERTY(AttachedDataStatus calendarInvitationStatus READ calendarInvitationStatus NOTIFY calendarInvitationStatusChanged FINAL)
     Q_PROPERTY(QString calendarInvitationBody READ calendarInvitationBody NOTIFY calendarInvitationBodyChanged)
     Q_PROPERTY(bool calendarInvitationSupportsEmailResponses READ calendarInvitationSupportsEmailResponses NOTIFY calendarInvitationSupportsEmailResponsesChanged)
@@ -136,6 +138,7 @@ public:
     QString body();
     QString calendarInvitationUrl();
     bool hasCalendarInvitation() const;
+    bool hasCalendarCancellation() const;
     AttachedDataStatus calendarInvitationStatus() const;
     QString calendarInvitationBody() const;
     bool calendarInvitationSupportsEmailResponses() const;
@@ -200,6 +203,7 @@ signals:
     void bccChanged();
     void calendarInvitationUrlChanged();
     void hasCalendarInvitationChanged();
+    void hasCalendarCancellationChanged();
     void calendarInvitationStatusChanged();
     void calendarInvitationBodyChanged();
     bool calendarInvitationSupportsEmailResponsesChanged();

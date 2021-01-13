@@ -1,6 +1,7 @@
 /*
  * Copyright 2011 Intel Corporation.
- * Copyright (C) 2013-2019 Jolla Ltd.
+ * Copyright (C) 2013-2020 Jolla Ltd.
+ * Copyright (C) 2021 Open Mobile Platform LLC.
  *
  * This program is licensed under the terms and conditions of the
  * Apache License, version 2.0.  The full text of the Apache License is at
@@ -548,6 +549,11 @@ QString EmailMessage::calendarInvitationUrl()
 bool EmailMessage::hasCalendarInvitation() const
 {
     return (m_msg.status() & QMailMessageMetaData::CalendarInvitation) != 0;
+}
+
+bool EmailMessage::hasCalendarCancellation() const
+{
+    return (m_msg.status() & QMailMessageMetaData::CalendarCancellation) != 0;
 }
 
 EmailMessage::AttachedDataStatus EmailMessage::calendarInvitationStatus() const
@@ -1218,6 +1224,7 @@ void EmailMessage::emitMessageReloadedSignals()
     emit attachmentsChanged();
     emit calendarInvitationUrlChanged();
     emit hasCalendarInvitationChanged();
+    emit hasCalendarCancellationChanged();
     emit calendarInvitationStatusChanged();
     emit calendarInvitationBodyChanged();
     emit calendarInvitationSupportsEmailResponsesChanged();
