@@ -1452,13 +1452,13 @@ bool EmailAgent::saveAttachmentToDownloads(const QMailMessageId &messageId, cons
         QString attachmentPath = attachmentDownloadFolder + "/" + attachmentPart.displayName();
         QFile attachmentFile(attachmentPath);
         if (attachmentFile.exists()) {
-            emit attachmentUrlChanged(attachmentLocation, attachmentPath);
+            emit attachmentPathChanged(attachmentLocation, attachmentPath);
             updateAttachmentDownloadStatus(attachmentLocation, Downloaded);
             return true;
         } else {
             QString path = attachmentPart.writeBodyTo(attachmentDownloadFolder);
             if (!path.isEmpty()) {
-                emit attachmentUrlChanged(attachmentLocation, path);
+                emit attachmentPathChanged(attachmentLocation, path);
                 updateAttachmentDownloadStatus(attachmentLocation, Downloaded);
                 return true;
             } else {

@@ -70,11 +70,11 @@ signals:
 private slots:
     void onAttachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status);
     void onAttachmentDownloadProgressChanged(const QString &attachmentLocation, double progress);
-    void onAttachmentUrlChanged(const QString &attachmentLocation, const QString &url);
+    void onAttachmentPathChanged(const QString &attachmentLocation, const QString &path);
     void onMessagesUpdated(const QMailMessageIdList &ids);
 
 private:
-    QString attachmentUrl(const QMailMessage &message, const QString &attachmentLocation);
+    QString attachmentPath(const QMailMessage &message, const QString &attachmentLocation);
     QHash<int, QByteArray> roles;
     QMailMessageId m_messageId;
     QMailMessage m_message;

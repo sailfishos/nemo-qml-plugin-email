@@ -159,7 +159,7 @@ signals:
     void currentSynchronizingAccountIdChanged();
     void attachmentDownloadProgressChanged(const QString &attachmentLocation, double progress);
     void attachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status);
-    void attachmentUrlChanged(const QString &attachmentLocation, const QString &url);
+    void attachmentPathChanged(const QString &attachmentLocation, const QString &filepath);
     void error(int accountId, EmailAgent::SyncErrors syncError);
     void folderRetrievalCompleted(const QMailAccountId &accountId);
     void ipcConnectionEstablished();
