@@ -11,6 +11,7 @@
 #include <QDir>
 #include <QFile>
 #include <QStandardPaths>
+#include <QUrl>
 
 #include "attachmentlistmodel.h"
 #include "emailagent.h"
@@ -38,8 +39,8 @@ AttachmentListModel::AttachmentListModel(QObject *parent) :
     connect(EmailAgent::instance(), &EmailAgent::attachmentDownloadProgressChanged,
             this, &AttachmentListModel::onAttachmentDownloadProgressChanged);
 
-    connect(EmailAgent::instance(), &EmailAgent::attachmentUrlChanged,
-            this, &AttachmentListModel::onAttachmentUrlChanged);
+    connect(EmailAgent::instance(), &EmailAgent::attachmentPathChanged,
+            this, &AttachmentListModel::onAttachmentPathChanged);
 
     connect(QMailStore::instance(), &QMailStore::messagesUpdated,
             this, &AttachmentListModel::onMessagesUpdated);
@@ -145,15 +146,15 @@ void AttachmentListModel::onAttachmentDownloadProgressChanged(const QString &att
     }
 }
 
-void AttachmentListModel::onAttachmentUrlChanged(const QString &attachmentLocation, const QString &url)
+void AttachmentListModel::onAttachmentPathChanged(const QString &attachmentLocation, const QString &path)
 {
     for (int i = 0; i < m_attachmentsList.count(); ++i) {
         Attachment *attachment = m_attachmentsList.at(i);
         if (attachment->location == attachmentLocation) {
             // Make url more secure and compatible with QMF client
             QString downloads = downloadFolder(m_message, attachmentLocation);
-            QString fileName = url;
-            QString secureUrl = downloads + "/" + fileName.remove(downloads).remove('/');
+            QString fileName = path;
+            QString secureUrl = QUrl::fromLocalFile(downloads + "/" + fileName.remove(downloads).remove('/')).toString();
             if (attachment->url != secureUrl) {
                 attachment->url = secureUrl;
                 QModelIndex changeIndex = index(i, 0);
@@ -214,7 +215,7 @@ static bool findPartFromAttachment(const QMailMessagePart &part, const QString &
     return false;
 }
 
-QString AttachmentListModel::attachmentUrl(const QMailMessage &message, const QString &attachmentLocation)
+QString AttachmentListModel::attachmentPath(const QMailMessage &message, const QString &attachmentLocation)
 {
     QString attachmentDownloadFolder = downloadFolder(message, attachmentLocation);
 
@@ -222,7 +223,7 @@ QString AttachmentListModel::attachmentUrl(const QMailMessage &message, const QS
         QMailMessagePart part = message.partAt(i);
         QMailMessagePart sourcePart;
         if (findPartFromAttachment(part, attachmentLocation, sourcePart)) {
-            // Make url more secure and compatible with QMF client
+            // Make path more secure and compatible with QMF client
             QString attachmentPath = attachmentDownloadFolder + "/" + sourcePart.displayName().remove('/');
             QFile f(attachmentPath);
             if (f.exists()) {
@@ -299,8 +300,8 @@ void AttachmentListModel::resetModel()
     connect(m_attachmentFileWatcher, &QFileSystemWatcher::directoryChanged, this, [this]() {
         for (const QMailMessagePart::Location &location : m_message.findAttachmentLocations()) {
             QString attachmentLocation = location.toString(true);
-            QString url = attachmentUrl(m_message, attachmentLocation);
-            onAttachmentUrlChanged(attachmentLocation, url);
+            QString path = attachmentPath(m_message, attachmentLocation);
+            onAttachmentPathChanged(attachmentLocation, path);
         }
     });
 
@@ -314,9 +315,9 @@ void AttachmentListModel::resetModel()
             item->part = m_message.partAt(location);
             item->status = EmailAgent::instance()->attachmentDownloadStatus(item->location);
 
-            // if attachment is in the queue for download we will get a url update later
+            // if attachment is in the queue for download we will get a path update later
             if (item->status == EmailAgent::Unknown) {
-                item->url = attachmentUrl(m_message, item->location);
+                item->url = QUrl::fromLocalFile(attachmentPath(m_message, item->location)).toString();
                 // Update status and progress if attachment exists
                 if (!item->url.isEmpty() || item->part.hasBody()) {
                     item->status = EmailAgent::Downloaded;
