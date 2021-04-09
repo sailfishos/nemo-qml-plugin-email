@@ -5,10 +5,13 @@
        <set name="unit-tests" feature="QML Email">
            <description>Email QML plugin automatic tests</description>
            <case manual="false" name="emailfolder">
-               <step>/opt/tests/nemo-qml-plugins/email/tst_emailfolder</step>
+               <step>/usr/sbin/run-blts-root /bin/su $USER -g privileged -c /opt/tests/nemo-qml-plugins/email/tst_emailfolder</step>
            </case>
            <case manual="false" name="emailmessage">
-               <step>/opt/tests/nemo-qml-plugins/email/tst_emailmessage</step>
+               <step>/usr/sbin/run-blts-root /bin/su $USER -g privileged -c /opt/tests/nemo-qml-plugins/email/tst_emailmessage</step>
+           </case>
+           <case manual="false" name="folderlistmodel">
+               <step>/usr/sbin/run-blts-root /bin/su $USER -g privileged -c /opt/tests/nemo-qml-plugins/email/tst_folderlistmodel</step>
            </case>
        </set>
    </suite>
