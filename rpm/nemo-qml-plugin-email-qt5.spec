@@ -35,6 +35,7 @@ Requires:   %{name} = %{version}-%{release}
 Summary:    QML email plugin tests
 Group:      System/Libraries
 Requires:   %{name} = %{version}-%{release}
+Requires:   blts-tools
 
 %description tests
 %{summary}.
