@@ -64,6 +64,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageSizeSectionRole] = "sizeSection";
     roles[MessageFolderIdRole] = "folderId";
     roles[MessageParsedSubject] = "parsedSubject";
+    roles[MessageTrimmedSubject] = "trimmedSubject";
     roles[MessageHasCalendarCancellationRole] = "hasCalendarCancellation";
 
     m_key = key();
@@ -236,6 +237,9 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
         subject.replace(QRegExp("<\\s*img", Qt::CaseInsensitive), "<no-img");
         subject.replace(QRegExp("<\\s*a", Qt::CaseInsensitive), "<no-a");
         return subject;
+    } else if (role == MessageTrimmedSubject) {
+        QString subject = QMailMessageListModel::data(index, QMailMessageModelBase::MessageSubjectTextRole).toString();
+        return subject.replace(QRegExp(QStringLiteral("^(re:|fw:|fwd:|\\s*)*"), Qt::CaseInsensitive), QString());
     } else if (role == MessageHasCalendarCancellationRole) {
         return (messageMetaData.status() & QMailMessageMetaData::CalendarCancellation) != 0;
     }
