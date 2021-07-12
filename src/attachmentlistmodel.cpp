@@ -152,7 +152,7 @@ void AttachmentListModel::onAttachmentPathChanged(const QString &attachmentLocat
         Attachment *attachment = m_attachmentsList.at(i);
         if (attachment->location == attachmentLocation) {
             // Make url more secure and compatible with QMF client
-            QString downloads = downloadFolder(m_message, attachmentLocation);
+            QString downloads = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
             QString fileName = path;
             QString secureUrl = QUrl::fromLocalFile(downloads + "/" + fileName.remove(downloads).remove('/')).toString();
             if (attachment->url != secureUrl) {
@@ -217,7 +217,7 @@ static bool findPartFromAttachment(const QMailMessagePart &part, const QString &
 
 QString AttachmentListModel::attachmentPath(const QMailMessage &message, const QString &attachmentLocation)
 {
-    QString attachmentDownloadFolder = downloadFolder(message, attachmentLocation);
+    QString attachmentDownloadFolder = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
 
     for (uint i = 0; i < message.partCount(); i++) {
         QMailMessagePart part = message.partAt(i);
@@ -309,7 +309,7 @@ void AttachmentListModel::resetModel()
         for (const QMailMessagePart::Location &location : m_message.findAttachmentLocations()) {
             Attachment *item = new Attachment;
             item->location = location.toString(true);
-            QString dlFolder = downloadFolder(m_message, item->location);
+            QString dlFolder = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
             QDir::root().mkpath(dlFolder);
             m_attachmentFileWatcher->addPath(dlFolder);
             item->part = m_message.partAt(location);
@@ -333,13 +333,4 @@ void AttachmentListModel::resetModel()
     }
     endResetModel();
     emit countChanged();
-}
-
-QString AttachmentListModel::downloadFolder(const QMailMessage &message, const QString &attachmentLocation) const
-{
-    QMailAccountId accountId = message.parentAccountId();
-    // Attachments must be saved in a account specific folder to enable easy cleaning of them
-    return QStandardPaths::writableLocation(QStandardPaths::DownloadLocation) + "/mail_attachments/"
-            + QString::number(accountId.toULongLong()) +  "/" + attachmentLocation;
-
 }

@@ -95,7 +95,6 @@ private:
     QFileSystemWatcher *m_attachmentFileWatcher;
 
     void resetModel();
-    QString downloadFolder(const QMailMessage &message, const QString &attachmentLocation) const;
 
 };
 

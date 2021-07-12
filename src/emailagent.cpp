@@ -1444,8 +1444,7 @@ bool EmailAgent::saveAttachmentToDownloads(const QMailMessageId &messageId, cons
     const QMailMessage message (messageId);
     const QMailMessagePart::Location location(attachmentLocation);
     QMailAccountId accountId = message.parentAccountId();
-    QString attachmentDownloadFolder = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation) + "/mail_attachments/"
-            + QString::number(accountId.toULongLong()) +  "/" + attachmentLocation;
+    QString attachmentDownloadFolder = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
 
     if (message.contains(location)) {
         const QMailMessagePart attachmentPart = message.partAt(location);
