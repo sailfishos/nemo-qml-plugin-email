@@ -44,6 +44,7 @@
 #include "emailaccount.h"
 #include "emailfolder.h"
 #include "attachmentlistmodel.h"
+#include "emailcontactmodel.h"
 #include <QtGlobal>
 #include <QtQml>
 #include <QQmlEngine>
@@ -83,6 +84,7 @@ public:
         qmlRegisterType<AttachmentListModel>(uri, 0, 1, "AttachmentListModel");
         qmlRegisterUncreatableType<FolderAccessor>(uri, 0, 1, "FolderAccessor",
                                                    "FolderAccessor is created via FolderListModel or similar");
+        qmlRegisterType<EmailContactModel>(uri, 0, 1, "EmailContactModel");
     }
 };
 
