@@ -64,7 +64,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageSizeSectionRole] = "sizeSection";
     roles[MessageFolderIdRole] = "folderId";
     roles[MessageParsedSubject] = "parsedSubject";
-    roles[MessageTrimmedSubject] = "trimmedSubject";
+    roles[MessageOriginalSubject] = "originalSubject";
     roles[MessageHasCalendarCancellationRole] = "hasCalendarCancellation";
 
     m_key = key();
@@ -237,9 +237,9 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
         subject.replace(QRegExp("<\\s*img", Qt::CaseInsensitive), "<no-img");
         subject.replace(QRegExp("<\\s*a", Qt::CaseInsensitive), "<no-a");
         return subject;
-    } else if (role == MessageTrimmedSubject) {
+    } else if (role == MessageOriginalSubject) {
         QString subject = QMailMessageListModel::data(index, QMailMessageModelBase::MessageSubjectTextRole).toString();
-        return subject.replace(QRegExp(QStringLiteral("^(re:|fw:|fwd:|\\s*)*"), Qt::CaseInsensitive), QString());
+        return subject.replace(QRegExp(QStringLiteral("^(re:|fw:|fwd:|\\s*|\\\")*"), Qt::CaseInsensitive), QString());
     } else if (role == MessageHasCalendarCancellationRole) {
         return (messageMetaData.status() & QMailMessageMetaData::CalendarCancellation) != 0;
     }
@@ -445,6 +445,9 @@ void EmailMessageListModel::sortByOrder(Qt::SortOrder sortOrder, EmailMessageLis
         break;
     case Subject:
         m_sortKey = QMailMessageSortKey::subject(sortOrder);
+        break;
+    case OriginalSubject:
+        m_sortKey = QMailMessageSortKey::originalSubject(sortOrder);
         break;
     case Time:
         m_sortKey = QMailMessageSortKey::timeStamp(sortOrder);
