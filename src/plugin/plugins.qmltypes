@@ -342,9 +342,9 @@ Module {
             Parameter { name: "status"; type: "EmailAgent::AttachmentStatus" }
         }
         Signal {
-            name: "attachmentUrlChanged"
+            name: "attachmentPathChanged"
             Parameter { name: "attachmentLocation"; type: "string" }
-            Parameter { name: "url"; type: "string" }
+            Parameter { name: "filepath"; type: "string" }
         }
         Signal {
             name: "error"
@@ -704,6 +704,7 @@ Module {
         Property { name: "body"; type: "string" }
         Property { name: "calendarInvitationUrl"; type: "string"; isReadonly: true }
         Property { name: "hasCalendarInvitation"; type: "bool"; isReadonly: true }
+        Property { name: "hasCalendarCancellation"; type: "bool"; isReadonly: true }
         Property { name: "calendarInvitationStatus"; type: "AttachedDataStatus"; isReadonly: true }
         Property { name: "calendarInvitationBody"; type: "string"; isReadonly: true }
         Property { name: "calendarInvitationSupportsEmailResponses"; type: "bool"; isReadonly: true }
