@@ -1,10 +1,9 @@
 Name:       nemo-qml-plugin-email-qt5-offline
 Summary:    Offline email plugin for Nemo Mobile
-Version:    0.5.0
+Version:    0.6.22
 Release:    1
-Group:      System/Libraries
-License:    BSD
-URL:        https://git.merproject.org/mer-core/nemo-qml-plugin-email
+License:    ASL 2.0 and LGPLv2+ and BSD
+URL:        https://github.com/sailfishos/nemo-qml-plugin-email
 Source0:    %{name}-%{version}.tar.bz2
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
@@ -25,7 +24,6 @@ Provides: nemo-qml-plugin-email-qt5
 
 %package devel
 Summary:    Nemo email plugin support for C++ applications
-Group:      System/Libraries
 Requires:   %{name} = %{version}-%{release}
 
 %description devel
@@ -33,7 +31,6 @@ Requires:   %{name} = %{version}-%{release}
 
 %package tests
 Summary:    QML email plugin tests
-Group:      System/Libraries
 Requires:   %{name} = %{version}-%{release}
 
 %description tests
@@ -49,7 +46,6 @@ echo "DEFINES+=OFFLINE" > .qmake.conf
 make %{?_smp_mflags}
 
 %install
-rm -rf %{buildroot}
 %qmake5_install
 # org.nemomobile.email legacy import
 mkdir -p %{buildroot}%{_libdir}/qt5/qml/org/nemomobile/email/
@@ -63,6 +59,7 @@ sed 's/Nemo.Email/org.nemomobile.email/' < src/plugin/qmldir > %{buildroot}%{_li
 
 %files
 %defattr(-,root,root,-)
+%license LICENSE.ASL2 LICENSE.LGPL LICENSE.BSD
 %{_libdir}/libnemoemail-qt5.so.*
 %dir %{_libdir}/qt5/qml/Nemo/Email
 %{_libdir}/qt5/qml/Nemo/Email/libnemoemail.so
