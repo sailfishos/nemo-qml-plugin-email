@@ -71,13 +71,13 @@ public:
         MessageSizeSectionRole,                                // returns size section (0-2)
         MessageFolderIdRole,                                   // returns parent folder id for the message
         MessageParsedSubject,                                  // returns the message subject parsed against a pre-defined regular expression
-        MessageTrimmedSubject,                                 // returns the message subject without Re: and Fwd: prefixes
+        MessageOriginalSubject,                                 // returns the message subject without Re: and Fwd: prefixes
         MessageHasCalendarCancellationRole,                    // returns 1 if message has a calendar cancellation, 0 otherwise
     };
 
     enum Priority { LowPriority, NormalPriority, HighPriority };
 
-    enum Sort { Time, Sender, Size, ReadStatus, Priority, Attachments, Subject, Recipients };
+    enum Sort { Time, Sender, Size, ReadStatus, Priority, Attachments, Subject, Recipients, OriginalSubject };
 
     enum SearchOn { LocalAndRemote, Local, Remote };
 
