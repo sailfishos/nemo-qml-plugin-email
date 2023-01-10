@@ -69,6 +69,9 @@ public:
     void registerTypes(const char *uri)
     {
         Q_ASSERT(uri == QLatin1String("Nemo.Email") || uri == QLatin1String("org.nemomobile.email"));
+        if (uri == QLatin1String("org.nemomobile.email")) {
+            qWarning() << "org.nemomobile.email is deprecated qml module name and subject to be removed. Please migrate to Nemo.Email";
+        }
 
         qmlRegisterType<FolderListModel>(uri, 0, 1, "FolderListModel");
         qmlRegisterType<FolderListProxyModel>(uri, 0, 1, "FolderListProxyModel");
