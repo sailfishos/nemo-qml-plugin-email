@@ -28,6 +28,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_ENUMS(AttachedDataStatus)
     Q_ENUMS(CryptoProtocol)
     Q_ENUMS(SignatureStatus)
+    Q_ENUMS(EncryptionStatus)
 
     Q_PROPERTY(int accountId READ accountId NOTIFY accountIdChanged)
     Q_PROPERTY(QString accountAddress READ accountAddress NOTIFY accountAddressChanged)
@@ -47,6 +48,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(bool autoVerifySignature READ autoVerifySignature WRITE setAutoVerifySignature NOTIFY autoVerifySignatureChanged)
     Q_PROPERTY(CryptoProtocol cryptoProtocol READ cryptoProtocol NOTIFY cryptoProtocolChanged)
     Q_PROPERTY(SignatureStatus signatureStatus READ signatureStatus NOTIFY signatureStatusChanged FINAL)
+    Q_PROPERTY(EncryptionStatus encryptionStatus READ encryptionStatus NOTIFY encryptionStatusChanged FINAL)
     Q_PROPERTY(QDateTime date READ date NOTIFY storedMessageChanged)
     Q_PROPERTY(QString from READ from WRITE setFrom NOTIFY fromChanged)
     Q_PROPERTY(QString fromAddress READ fromAddress NOTIFY fromChanged)
@@ -113,6 +115,11 @@ public:
         SignedFailure
     };
 
+    enum EncryptionStatus {
+        NoDigitalEncryption,
+        Encrypted
+    };
+
     enum CryptoProtocol {
         UnknownProtocol,
         OpenPGP,
@@ -148,6 +155,7 @@ public:
     bool autoVerifySignature() const;
     CryptoProtocol cryptoProtocol() const;
     SignatureStatus signatureStatus() const;
+    EncryptionStatus encryptionStatus() const;
     QDateTime date() const;
     QString from() const;
     QString fromAddress() const;
@@ -211,6 +219,7 @@ signals:
     void autoVerifySignatureChanged();
     void cryptoProtocolChanged();
     void signatureStatusChanged();
+    void encryptionStatusChanged();
     void dateChanged();
     void fromChanged();
     void htmlBodyChanged();
@@ -265,6 +274,7 @@ private:
     void updateReadReceiptHeader();
     QString readReceiptRequestEmail() const;
     void setSignatureStatus(SignatureStatus status);
+    void setEncryptionStatus(EncryptionStatus status);
 
     QMailAccount m_account;
     QStringList m_attachments;
@@ -287,6 +297,7 @@ private:
     SignatureStatus m_signatureStatus;
     QMailCryptoFwd::VerificationResult m_cryptoResult;
     QString m_signatureLocation;
+    EncryptionStatus m_encryptionStatus;
 };
 
 #endif
