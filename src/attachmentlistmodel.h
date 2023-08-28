@@ -74,7 +74,7 @@ private slots:
     void onMessagesUpdated(const QMailMessageIdList &ids);
 
 private:
-    QString attachmentPath(const QMailMessage &message, const QString &attachmentLocation);
+    QString attachmentPath(const QMailMessage &message, const QMailMessagePartContainer::Location &attachmentLocation);
     QHash<int, QByteArray> roles;
     QMailMessageId m_messageId;
     QMailMessage m_message;
@@ -95,7 +95,6 @@ private:
     QFileSystemWatcher *m_attachmentFileWatcher;
 
     void resetModel();
-    QString downloadFolder(const QMailMessage &message, const QString &attachmentLocation) const;
 
 };
 

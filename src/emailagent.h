@@ -89,6 +89,8 @@ public:
     EmailAgent::AttachmentStatus attachmentDownloadStatus(const QString &attachmentLocation);
     double attachmentDownloadProgress(const QString &attachmentLocation);
     QString attachmentName(const QMailMessagePart &part) const;
+    QString attachmentPath(const QMailAccountId &accountId,
+                           const QMailMessagePart &part) const;
     QString attachmentTitle(const QMailMessagePart &part) const;
     QString bodyPlainText(const QMailMessage &mailMsg) const;
     void cancelAction(quint64 actionId);
