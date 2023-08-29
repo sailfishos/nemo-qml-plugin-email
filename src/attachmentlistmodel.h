@@ -11,7 +11,6 @@
 #define EMAILATTACHMENTLISTMODEL_H
 
 #include <QAbstractListModel>
-#include <QFileSystemWatcher>
 #include <qmailmessage.h>
 #include "emailagent.h"
 
@@ -74,7 +73,6 @@ private slots:
     void onMessagesUpdated(const QMailMessageIdList &ids);
 
 private:
-    QString attachmentPath(const QMailMessage &message, const QMailMessagePartContainer::Location &attachmentLocation);
     QHash<int, QByteArray> roles;
     QMailMessageId m_messageId;
     QMailMessage m_message;
@@ -92,7 +90,6 @@ private:
     };
 
     QList<Attachment*> m_attachmentsList;
-    QFileSystemWatcher *m_attachmentFileWatcher;
 
     void resetModel();
 
