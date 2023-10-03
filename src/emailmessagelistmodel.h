@@ -68,6 +68,7 @@ public:
         MessageHasAttachmentsRole,                             // returns 1 if message has attachments, 0 otherwise
         MessageHasCalendarInvitationRole,                      // returns 1 if message has a calendar invitation, 0 otherwise
         MessageHasSignatureRole,                               // returns true if message is numerically signed, false otherwise
+        MessageIsEncryptedRole,                               // returns true if message is numerically encrypted, false otherwise
         MessageSizeSectionRole,                                // returns size section (0-2)
         MessageFolderIdRole,                                   // returns parent folder id for the message
         MessageParsedSubject,                                  // returns the message subject parsed against a pre-defined regular expression

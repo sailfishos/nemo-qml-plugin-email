@@ -61,6 +61,7 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageHasAttachmentsRole] = "hasAttachments";
     roles[MessageHasCalendarInvitationRole] = "hasCalendarInvitation";
     roles[MessageHasSignatureRole] = "hasSignature";
+    roles[MessageIsEncryptedRole] = "isEncrypted";
     roles[MessageSizeSectionRole] = "sizeSection";
     roles[MessageFolderIdRole] = "folderId";
     roles[MessageParsedSubject] = "parsedSubject";
@@ -218,6 +219,8 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
         return (messageMetaData.status() & QMailMessageMetaData::CalendarInvitation) != 0;
     } else if (role == MessageHasSignatureRole) {
         return (messageMetaData.status() & QMailMessageMetaData::HasSignature) != 0;
+    } else if (role == MessageIsEncryptedRole) {
+        return (messageMetaData.status() & QMailMessageMetaData::HasEncryption) != 0;
     } else if (role == MessageSizeSectionRole) {
         const uint size(messageMetaData.size());
 

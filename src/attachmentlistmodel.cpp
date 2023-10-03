@@ -299,7 +299,11 @@ void AttachmentListModel::resetModel()
     m_attachmentFileWatcher = new QFileSystemWatcher(this);
 
     connect(m_attachmentFileWatcher, &QFileSystemWatcher::directoryChanged, this, [this]() {
-        for (const QMailMessagePart::Location &location : m_message.findAttachmentLocations()) {
+        const QList<QMailMessagePart::Location> locations
+            = m_message.isEncrypted()
+            ? QList<QMailMessagePart::Location>() << m_message.partAt(1).location()
+            : m_message.findAttachmentLocations();
+        for (const QMailMessagePart::Location &location : locations) {
             QString attachmentLocation = location.toString(true);
             QString path = attachmentPath(m_message, attachmentLocation);
             if (!path.isEmpty()) {
@@ -309,7 +313,11 @@ void AttachmentListModel::resetModel()
     });
 
     if (m_messageId.isValid()) {
-        for (const QMailMessagePart::Location &location : m_message.findAttachmentLocations()) {
+        const QList<QMailMessagePart::Location> locations
+            = m_message.isEncrypted()
+            ? QList<QMailMessagePart::Location>() << m_message.partAt(1).location()
+            : m_message.findAttachmentLocations();
+        for (const QMailMessagePart::Location &location : locations) {
             Attachment *item = new Attachment;
             item->location = location.toString(true);
             QString dlFolder = downloadFolder(m_message, item->location);

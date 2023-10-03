@@ -68,6 +68,7 @@ EmailMessage::EmailMessage(QObject *parent)
     , m_calendarStatus(Unknown)
     , m_autoVerifySignature(false)
     , m_signatureStatus(NoDigitalSignature)
+    , m_encryptionStatus(NoDigitalEncryption)
 {
     setPriority(NormalPriority);
 }
@@ -481,7 +482,11 @@ void EmailMessage::saveDraft()
 
 QStringList EmailMessage::attachments()
 {
-    if (m_id.isValid()) {
+    if (m_id.isValid() && m_msg.isEncrypted()) {
+        // Treat the encrypted part as an attachment to allow external treatment.
+        m_attachments.clear();
+        m_attachments << m_msg.partAt(1).displayName();
+    } else if (m_id.isValid()) {
         if (!(m_msg.status() & QMailMessageMetaData::HasAttachments))
             return QStringList();
 
@@ -616,6 +621,11 @@ EmailMessage::SignatureStatus EmailMessage::signatureStatus() const
     return m_signatureStatus;
 }
 
+EmailMessage::EncryptionStatus EmailMessage::encryptionStatus() const
+{
+    return m_encryptionStatus;
+}
+
 QDateTime EmailMessage::date() const
 {
     return m_msg.date().toLocalTime();
@@ -731,8 +741,12 @@ bool EmailMessage::multipleRecipients() const
 
 int EmailMessage::numberOfAttachments() const
 {
-    if (!(m_msg.status() & QMailMessageMetaData::HasAttachments))
+    if (m_msg.isEncrypted()) {
+        // Allow to download the encrypted part for external treatment.
+        return 1;
+    } else if (!(m_msg.status() & QMailMessageMetaData::HasAttachments)) {
         return 0;
+    }
 
     const QList<QMailMessagePart::Location> &attachmentLocations = m_msg.findAttachmentLocations();
     return attachmentLocations.count();
@@ -1081,6 +1095,14 @@ void EmailMessage::setSignatureStatus(SignatureStatus status)
     }
 }
 
+void EmailMessage::setEncryptionStatus(EncryptionStatus status)
+{
+    if (status != m_encryptionStatus) {
+        m_encryptionStatus = status;
+        emit encryptionStatusChanged();
+    }
+}
+
 int EmailMessage::size()
 {
     return m_msg.size();
@@ -1255,6 +1277,10 @@ void EmailMessage::emitMessageReloadedSignals()
         setSignatureStatus(EmailMessage::SignedUnchecked);
     } else {
         setSignatureStatus(EmailMessage::NoDigitalSignature);
+    }
+
+    if (m_msg.isEncrypted()) {
+        setEncryptionStatus(EmailMessage::Encrypted);
     }
 }
 
