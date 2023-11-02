@@ -44,9 +44,9 @@ public:
         Unknown,
         Queued,
         Downloading,
-        // following are transient states within emailagent. I.e. download finished will be signaled, but not remembered
         NotDownloaded,
         Downloaded,
+        // following are transient states within emailagent. I.e. failed to save will be signaled, but not remembered
         Failed,
         FailedToSave,
         Canceled
@@ -86,7 +86,9 @@ public:
     };
 
     int currentSynchronizingAccountId() const;
-    EmailAgent::AttachmentStatus attachmentDownloadStatus(const QString &attachmentLocation);
+    EmailAgent::AttachmentStatus attachmentDownloadStatus(const QMailMessage &message,
+                                                          const QString &attachmentLocation,
+                                                          QString *downloadPath = nullptr);
     double attachmentDownloadProgress(const QString &attachmentLocation);
     QString attachmentName(const QMailMessagePart &part) const;
     QString attachmentTitle(const QMailMessagePart &part) const;
@@ -231,6 +233,7 @@ private:
     quint64 newAction();
     void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode, bool sendFailed);
     void removeAction(quint64 actionId);
+    QString attachmentPath(const QMailMessage &message, const QString &attachmentLocation);
     bool saveAttachmentToDownloads(const QMailMessageId &messageId, const QString &attachmentLocation);
     void updateAttachmentDownloadStatus(const QString &attachmentLocation, AttachmentStatus status);
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);
