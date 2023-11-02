@@ -9,7 +9,7 @@
 
 #include <QVector>
 #include <QDir>
-#include <QFile>
+#include <QFileInfo>
 #include <QStandardPaths>
 #include <QUrl>
 
@@ -20,6 +20,7 @@
 AttachmentListModel::AttachmentListModel(QObject *parent) :
     QAbstractListModel(parent)
   , m_messageId(QMailMessageId())
+  , m_attachmentFileWatcher(new QFileSystemWatcher(this))
 {
     roles.insert(ContentLocation, "contentLocation");
     roles.insert(DisplayName, "displayName");
@@ -43,6 +44,9 @@ AttachmentListModel::AttachmentListModel(QObject *parent) :
 
     connect(QMailStore::instance(), &QMailStore::messagesUpdated,
             this, &AttachmentListModel::onMessagesUpdated);
+
+    connect(m_attachmentFileWatcher, &QFileSystemWatcher::directoryChanged,
+            this, &AttachmentListModel::onDirectoryChanged);
 }
 
 AttachmentListModel::~AttachmentListModel()
@@ -152,11 +156,25 @@ void AttachmentListModel::onAttachmentPathChanged(const QString &attachmentLocat
         if (attachment->location == attachmentLocation) {
             QString url = QUrl::fromLocalFile(path).toString();
             if (attachment->url != url) {
+                m_attachmentFileWatcher->addPath(QFileInfo(path).dir().path());
                 attachment->url = url;
                 QModelIndex changeIndex = index(i, 0);
                 emit dataChanged(changeIndex, changeIndex, QVector<int>() << Url);
                 return;
             }
+        }
+    }
+}
+
+void AttachmentListModel::onDirectoryChanged(const QString &path)
+{
+    for (int i = 0; i < m_attachmentsList.count(); ++i) {
+        Attachment *item = m_attachmentsList.at(i);
+        const QString savedPath = QUrl(item->url).toLocalFile();
+        if (savedPath.startsWith(path) && !QFileInfo::exists(savedPath)) {
+            item->url.clear();
+            const QModelIndex changeIndex = index(i, 0);
+            emit dataChanged(changeIndex, changeIndex, QVector<int>() << Url);
         }
     }
 }
@@ -252,6 +270,10 @@ void AttachmentListModel::resetModel()
     beginResetModel();
     qDeleteAll(m_attachmentsList);
     m_attachmentsList.clear();
+    const QStringList dirs = m_attachmentFileWatcher->directories();
+    if (!dirs.isEmpty()) {
+        m_attachmentFileWatcher->removePaths(dirs);
+    }
 
     if (m_messageId.isValid()) {
         const QList<QMailMessagePart::Location> locations
@@ -269,6 +291,7 @@ void AttachmentListModel::resetModel()
             // if attachment is in the queue for download we will get a path update later
             if (!path.isEmpty()) {
                 item->url = QUrl::fromLocalFile(path).toString();
+                m_attachmentFileWatcher->addPath(QFileInfo(path).dir().path());
             }
 
             m_attachmentsList.append(item);
