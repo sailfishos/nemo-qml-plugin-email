@@ -111,7 +111,7 @@ QVariant AttachmentListModel::data(const QModelIndex &index, int role) const
     } else if (role == Type) {
         return attachmentType(item->part);
     } else if (role == Url) {
-        return item->url;
+        return (!item->url.isEmpty() && QFile::exists(item->url.mid(7))) ? item->url : QString();
     } else if (role == ProgressInfo) {
         return item->progressInfo;
     }
