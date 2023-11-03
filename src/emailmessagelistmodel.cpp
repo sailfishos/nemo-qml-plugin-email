@@ -66,6 +66,9 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     roles[MessageParsedSubject] = "parsedSubject";
     roles[MessageTrimmedSubject] = "trimmedSubject";
     roles[MessageHasCalendarCancellationRole] = "hasCalendarCancellation";
+    roles[MessageRepliedRole] = "replied";
+    roles[MessageRepliedAllRole] = "repliedAll";
+    roles[MessageForwardedRole] = "forwarded";
 
     m_key = key();
     m_sortKey = QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
@@ -242,6 +245,12 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
         return subject.replace(QRegExp(QStringLiteral("^(re:|fw:|fwd:|\\s*)*"), Qt::CaseInsensitive), QString());
     } else if (role == MessageHasCalendarCancellationRole) {
         return (messageMetaData.status() & QMailMessageMetaData::CalendarCancellation) != 0;
+    } else if (role == MessageRepliedRole) {
+        return (messageMetaData.status() & QMailMessageMetaData::Replied) != 0;
+    } else if (role == MessageRepliedAllRole) {
+        return (messageMetaData.status() & QMailMessageMetaData::RepliedAll) != 0;
+    } else if (role == MessageForwardedRole) {
+        return (messageMetaData.status() & QMailMessageMetaData::Forwarded) != 0;
     }
 
     return QMailMessageListModel::data(index, role);
