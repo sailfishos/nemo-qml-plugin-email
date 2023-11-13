@@ -1,6 +1,6 @@
 Name:       nemo-qml-plugin-email-qt5
 Summary:    Email plugin for Nemo Mobile
-Version:    0.6.22
+Version:    0.6.36
 Release:    1
 License:    ASL 2.0 and LGPLv2+ and BSD
 URL:        https://github.com/sailfishos/nemo-qml-plugin-email
@@ -15,7 +15,7 @@ BuildRequires:  pkgconfig(Qt5Network)
 BuildRequires:  pkgconfig(Qt5Concurrent)
 BuildRequires:  pkgconfig(Qt5Test)
 BuildRequires:  pkgconfig(QmfMessageServer) >= 4.0.4+git127
-BuildRequires:  pkgconfig(QmfClient) >= 4.0.4+git127
+BuildRequires:  pkgconfig(QmfClient) >= 4.0.4+git146
 BuildRequires:  pkgconfig(accounts-qt5)
 Conflicts: nemo-qml-plugin-email-qt5-offline
 
