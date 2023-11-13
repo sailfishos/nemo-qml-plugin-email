@@ -43,11 +43,22 @@ QMailAccountId accountForMessageId(const QMailMessageId &msgId)
     return metaData.parentAccountId();
 }
 
+QString attachmentField(const QMailMessage &message,
+                        const QString &attachmentLocation)
+{
+    if (message.isEncrypted()) {
+        return QString::fromLatin1("encrypted-") + attachmentLocation;
+    } else {
+        return attachmentLocation;
+    }
+}
+
 QString attachmentFilename(const QMailMessage &message,
                            const QString &attachmentLocation,
                            QString *attachmentMd5)
 {
-    QString filename = message.customField(attachmentLocation + "-filename");
+    const QString prefix = attachmentField(message, attachmentLocation);
+    QString filename = message.customField(prefix + "-filename");
     if (filename.isEmpty()) {
         // Legacy naming scheme
         const QMailMessagePartContainer::Location location(attachmentLocation);
@@ -60,7 +71,7 @@ QString attachmentFilename(const QMailMessage &message,
         }
     }
     if (attachmentMd5) {
-        *attachmentMd5 = message.customField(attachmentLocation + "-md5");
+        *attachmentMd5 = message.customField(prefix + "-md5");
     }
     return filename;
 }
@@ -76,13 +87,14 @@ QString md5(const QString &filename)
     return QString();
 }
 
-void setAttachmentFilename(QMailMessageMetaData *meta,
+void setAttachmentFilename(QMailMessage *message,
                            const QString &attachmentLocation,
                            const QString &filename)
 {
-    meta->setCustomField(attachmentLocation + "-filename", filename);
-    meta->setCustomField(attachmentLocation + "-md5", md5(filename));
-    QMailMessageMetaData local = *meta;
+    const QString prefix = attachmentField(*message, attachmentLocation);
+    message->setCustomField(prefix + "-filename", filename);
+    message->setCustomField(prefix + "-md5", md5(filename));
+    QMailMessageMetaData local = *message;
     QTimer::singleShot(0, [local] {
                               QMailStore::instance()->updateMessage((QMailMessageMetaData*)&local);
                           });

@@ -51,6 +51,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(CryptoProtocol cryptoProtocol READ cryptoProtocol NOTIFY cryptoProtocolChanged)
     Q_PROPERTY(SignatureStatus signatureStatus READ signatureStatus NOTIFY signatureStatusChanged FINAL)
     Q_PROPERTY(EncryptionStatus encryptionStatus READ encryptionStatus NOTIFY encryptionStatusChanged FINAL)
+    Q_PROPERTY(bool canDecrypt READ canDecrypt NOTIFY canDecryptChanged)
     Q_PROPERTY(QDateTime date READ date NOTIFY storedMessageChanged)
     Q_PROPERTY(QString from READ from WRITE setFrom NOTIFY fromChanged)
     Q_PROPERTY(QString fromAddress READ fromAddress NOTIFY fromChanged)
@@ -119,7 +120,11 @@ public:
 
     enum EncryptionStatus {
         NoDigitalEncryption,
-        Encrypted
+        Encrypted,
+        CryptedDataDownloading,
+        CryptedDataMissing,
+        Decrypting,
+        DecryptionFailure
     };
 
     enum CryptoProtocol {
@@ -138,6 +143,7 @@ public:
     Q_INVOKABLE bool sendReadReceipt(const QString &subjectPrefix, const QString &readReceiptBodyText);
     Q_INVOKABLE void saveDraft();
     Q_INVOKABLE void verifySignature();
+    Q_INVOKABLE void decrypt();
     Q_INVOKABLE SignatureStatus getSignatureStatusForKey(const QString &keyIdentifier) const;
     Q_INVOKABLE CryptoProtocol cryptoProtocolForKey(const QString &pluginName, const QString &keyIdentifier) const;
 
@@ -161,6 +167,7 @@ public:
     CryptoProtocol cryptoProtocol() const;
     SignatureStatus signatureStatus() const;
     EncryptionStatus encryptionStatus() const;
+    bool canDecrypt() const;
     QDateTime date() const;
     QString from() const;
     QString fromAddress() const;
@@ -227,6 +234,7 @@ signals:
     void cryptoProtocolChanged();
     void signatureStatusChanged();
     void encryptionStatusChanged();
+    void canDecryptChanged();
     void dateChanged();
     void fromChanged();
     void htmlBodyChanged();
@@ -304,6 +312,7 @@ private:
     SignatureStatus m_signatureStatus;
     QMailCryptoFwd::VerificationResult m_cryptoResult;
     QString m_signatureLocation;
+    QString m_cryptedDataLocation;
     EncryptionStatus m_encryptionStatus;
     AttachmentListModel *m_attachmentModel = nullptr;
 };
