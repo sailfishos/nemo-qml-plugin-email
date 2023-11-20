@@ -74,6 +74,9 @@ public:
         MessageParsedSubject,                                  // returns the message subject parsed against a pre-defined regular expression
         MessageTrimmedSubject,                                 // returns the message subject without Re: and Fwd: prefixes
         MessageHasCalendarCancellationRole,                    // returns 1 if message has a calendar cancellation, 0 otherwise
+        MessageRepliedRole,                                    // returns 1 if message has been replied to, 0 otherwise
+        MessageRepliedAllRole,                                 // returns 1 if message has been replied to all, 0 otherwise
+        MessageForwardedRole,                                  // returns 1 if message has been forwarded, 0 otherwise
     };
 
     enum Priority { LowPriority, NormalPriority, HighPriority };
