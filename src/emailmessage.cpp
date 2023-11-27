@@ -332,6 +332,27 @@ void EmailMessage::sendBuiltMessage()
         // Send messages are always new at this point
         m_newMessage = false;
         emitSignals();
+
+        if (m_msg.inResponseTo().isValid()) {
+            const QString description = QString::fromLatin1("Marking message as replied/forwared");
+            switch (m_msg.responseType()) {
+            case (QMailMessage::Reply):
+                QMailDisconnected::flagMessage(m_msg.inResponseTo(),
+                                               QMailMessage::Replied, 0, description);
+                break;
+            case (QMailMessage::ReplyToAll):
+                QMailDisconnected::flagMessage(m_msg.inResponseTo(),
+                                               QMailMessage::RepliedAll, 0, description);
+                break;
+            case (QMailMessage::Forward):
+            case (QMailMessage::ForwardPart):
+                QMailDisconnected::flagMessage(m_msg.inResponseTo(),
+                                               QMailMessage::Forwarded, 0, description);
+                break;
+            default:
+                break;
+            }
+        }
     } else {
        qCWarning(lcEmail) << "Error: queuing message, stored:" << stored;
     }
