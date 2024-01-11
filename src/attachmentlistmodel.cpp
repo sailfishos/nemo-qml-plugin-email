@@ -248,6 +248,11 @@ QString AttachmentListModel::location(int idx)
     return data(index(idx, 0), ContentLocation).toString();
 }
 
+int AttachmentListModel::size(int idx)
+{
+    return data(index(idx, 0), Size).toInt();
+}
+
 int AttachmentListModel::count() const
 {
     return rowCount();

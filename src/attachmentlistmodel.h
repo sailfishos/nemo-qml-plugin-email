@@ -55,6 +55,7 @@ public:
     Q_INVOKABLE AttachmentType type(int idx);
     Q_INVOKABLE QString url(int idx);
     Q_INVOKABLE QString location(int idx);
+    Q_INVOKABLE int size(int idx);
 
     int count() const;
     int messageId() const;
