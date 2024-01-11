@@ -182,34 +182,9 @@ void AttachmentListModel::onDirectoryChanged(const QString &path)
 void AttachmentListModel::onMessagesUpdated(const QMailMessageIdList &ids)
 {
     if (ids.contains(m_messageId)) {
-        auto emailAgent = EmailAgent::instance();
-        // Message got updated, update any changed attachment info from QMailMessagePart
         m_message = QMailMessage(m_messageId);
-        for (int i = 0; i < m_attachmentsList.count(); ++i) {
-            Attachment *item = m_attachmentsList.at(i);
-            auto location = QMailMessage::Location(item->location);
-            auto part = m_message.partAt(location);
-            QModelIndex changeIndex = index(i, 0);
-            QVector<int> changedRoles;
-            if (emailAgent->attachmentName(item->part) != emailAgent->attachmentName(part))
-                changedRoles << DisplayName;
-            if (item->status != EmailAgent::Downloaded && attachmentPartDownloaded(part)) {
-                item->status = EmailAgent::Downloaded;
-                item->progressInfo = 1.0;
-                changedRoles << Downloaded << StatusInfo << ProgressInfo;
-            }
-            if (item->part.contentType().content() != part.contentType().content())
-                changedRoles << MimeType;
-            if (attachmentSize(item->part) != attachmentSize(part))
-                changedRoles << Size;
-            if (emailAgent->attachmentTitle(item->part) != emailAgent->attachmentTitle(part))
-                changedRoles << Title;
-            if (attachmentType(item->part) != attachmentType(part))
-                changedRoles << Type;
-            item->part = part;
-            if (!changedRoles.isEmpty())
-                emit dataChanged(changeIndex, changeIndex, changedRoles);
-        }
+        // Message got updated, number of attachments may have changed.
+        resetModel();
     }
 }
 
