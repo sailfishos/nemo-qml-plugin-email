@@ -36,8 +36,7 @@ public:
         Title, // subject for attached emails when available, currently empty otherwise
         Type,
         Url,
-        ProgressInfo,
-        Index
+        ProgressInfo
     };
 
     enum AttachmentType {
