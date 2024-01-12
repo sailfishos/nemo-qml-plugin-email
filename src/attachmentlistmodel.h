@@ -36,8 +36,7 @@ public:
         Title, // subject for attached emails when available, currently empty otherwise
         Type,
         Url,
-        ProgressInfo,
-        Index
+        ProgressInfo
     };
 
     enum AttachmentType {
@@ -55,6 +54,7 @@ public:
     Q_INVOKABLE AttachmentType type(int idx);
     Q_INVOKABLE QString url(int idx);
     Q_INVOKABLE QString location(int idx);
+    Q_INVOKABLE int size(int idx);
 
     int count() const;
     int messageId() const;
