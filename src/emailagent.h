@@ -233,8 +233,7 @@ private:
     quint64 newAction();
     void reportError(const QMailAccountId &accountId, const QMailServiceAction::Status::ErrorCode &errorCode, bool sendFailed);
     void removeAction(quint64 actionId);
-    QString attachmentPath(const QMailMessage &message, const QString &attachmentLocation);
-    bool saveAttachmentToDownloads(const QMailMessageId &messageId, const QString &attachmentLocation);
+    bool saveAttachmentToDownloads(QMailMessage *message, const QString &attachmentLocation);
     void updateAttachmentDownloadStatus(const QString &attachmentLocation, AttachmentStatus status);
     void emitSearchStatusChanges(QSharedPointer<EmailAction> action, EmailAgent::SearchStatus status);
     bool easCalendarInvitationResponse(const QMailMessage &message, CalendarInvitationResponse response,

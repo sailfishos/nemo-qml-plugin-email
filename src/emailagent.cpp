@@ -14,10 +14,11 @@
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
 #include <QFile>
-#include <QFileInfo>
 #include <QMap>
 #include <QStandardPaths>
+#include <QTimer>
 #include <QNetworkConfigurationManager>
+#include <QCryptographicHash>
 
 #include <qmailnamespace.h>
 #include <qmailaccount.h>
@@ -41,6 +42,58 @@ QMailAccountId accountForMessageId(const QMailMessageId &msgId)
 {
     QMailMessageMetaData metaData(msgId);
     return metaData.parentAccountId();
+}
+
+QString attachmentFilename(const QMailMessage &message,
+                           const QString &attachmentLocation,
+                           QString *attachmentMd5)
+{
+    QString filename = message.customField(attachmentLocation + "-filename");
+    if (filename.isEmpty()) {
+        // Legacy naming scheme
+        const QMailMessagePartContainer::Location location(attachmentLocation);
+        if (message.contains(location)) {
+            filename = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)
+                + "/mail_attachments"
+                + "/" + QString::number(message.parentAccountId().toULongLong())
+                + "/" + attachmentLocation
+                + "/" + message.partAt(location).displayName().remove('/');
+        }
+    }
+    if (attachmentMd5) {
+        *attachmentMd5 = message.customField(attachmentLocation + "-md5");
+    }
+    return filename;
+}
+
+QString md5(const QString &filename)
+{
+    QFile f(filename);
+    if (f.open(QFile::ReadOnly)) {
+        QCryptographicHash hash(QCryptographicHash::Md5);
+        hash.addData(&f);
+        return QString::fromUtf8(hash.result());
+    }
+    return QString();
+}
+
+void setAttachmentFilename(QMailMessageMetaData *meta,
+                           const QString &attachmentLocation,
+                           const QString &filename)
+{
+    meta->setCustomField(attachmentLocation + "-filename", filename);
+    meta->setCustomField(attachmentLocation + "-md5", md5(filename));
+    QMailMessageMetaData local = *meta;
+    QTimer::singleShot(0, [local] {
+                              QMailStore::instance()->updateMessage((QMailMessageMetaData*)&local);
+                          });
+}
+
+bool matchesAttachment(const QString &path, const QString &attachmentMd5)
+{
+    return !path.isEmpty()
+        && ((attachmentMd5.isEmpty() && QFile::exists(path))
+            || (!attachmentMd5.isEmpty() && md5(path) == attachmentMd5));
 }
 }
 
@@ -132,15 +185,13 @@ EmailAgent::AttachmentStatus EmailAgent::attachmentDownloadStatus(const QMailMes
         AttachmentInfo attInfo = m_attachmentDownloadQueue.value(attachmentLocation);
         return attInfo.status;
     } else {
-        const QString path = attachmentPath(message, attachmentLocation);
-        if (!path.isEmpty()) {
-            QFile attachment(path);
-            bool exists = attachment.exists();
-            if (downloadPath && exists) {
-                *downloadPath = path;
-            }
-            return (exists) ? Downloaded : NotDownloaded;
+        QString checksum;
+        const QString path = attachmentFilename(message, attachmentLocation, &checksum);
+        bool matches = matchesAttachment(attachmentLocation, checksum);
+        if (downloadPath && matches) {
+            *downloadPath = path;
         }
+        return (matches) ? Downloaded : NotDownloaded;
     }
     return Unknown;
 }
@@ -492,7 +543,10 @@ void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
         } else if (m_currentAction->type() == EmailAction::RetrieveMessagePart) {
             RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(m_currentAction.data());
             if (messagePartAction->isAttachment()) {
-                saveAttachmentToDownloads(messagePartAction->messageId(), messagePartAction->partLocation());
+                // Message and part structure can be updated during
+                // attachment download. It is safer to reload everything
+                QMailMessage message(messagePartAction->messageId());
+                saveAttachmentToDownloads(&message, messagePartAction->partLocation());
             } else {
                 emit messagePartDownloaded(messagePartAction->messageId(), messagePartAction->partLocation(), true);
             }
@@ -787,16 +841,16 @@ void EmailAgent::expungeMessages(const QMailMessageIdList &ids)
 bool EmailAgent::downloadAttachment(int messageId, const QString &attachmentLocation)
 {
     QMailMessageId mailMessageId(messageId);
-    const QMailMessage message(mailMessageId);
+    QMailMessage message(mailMessageId);
     QMailMessagePart::Location location(attachmentLocation);
 
     if (message.contains(location)) {
         const QMailMessagePart attachmentPart = message.partAt(location);
-        location.setContainingMessageId(mailMessageId);
         if (attachmentPart.hasBody()) {
-            return saveAttachmentToDownloads(mailMessageId, attachmentLocation);
+            return saveAttachmentToDownloads(&message, attachmentLocation);
         } else {
             qCDebug(lcEmail) << "Start Download for:" << attachmentLocation;
+            location.setContainingMessageId(mailMessageId);
             enqueue(new RetrieveMessagePart(m_retrievalAction.data(), location, true));
         }
     } else {
@@ -1452,57 +1506,33 @@ void EmailAgent::removeAction(quint64 actionId)
     }
 }
 
-bool EmailAgent::saveAttachmentToDownloads(const QMailMessageId &messageId, const QString &attachmentLocation)
-{
-    // Message and part structure can be updated during attachment download
-    // is safer to reload everything
-    const QMailMessage message (messageId);
-    const QString path = attachmentPath(message, attachmentLocation);
-
-    if (!path.isEmpty()) {
-        QFile attachment(path);
-        if (attachment.exists()) {
-            emit attachmentPathChanged(attachmentLocation, path);
-            updateAttachmentDownloadStatus(attachmentLocation, Downloaded);
-            return true;
-        } else {
-            QFileInfo info(attachment);
-            const QMailMessagePart::Location location(attachmentLocation);
-            const QString newpath = message.partAt(location).writeBodyTo(info.path());
-            if (!newpath.isEmpty()) {
-                emit attachmentPathChanged(attachmentLocation, newpath);
-                updateAttachmentDownloadStatus(attachmentLocation, Downloaded);
-                return true;
-            } else {
-                qCDebug(lcEmail) << "ERROR: Failed to save attachment file to location:" << info.path();
-                updateAttachmentDownloadStatus(attachmentLocation, FailedToSave);
-            }
-        }
-    } else {
-        qCDebug(lcEmail) << "ERROR: Can't save attachment, location not found:" << attachmentLocation;
-    }
-    return false;
-}
-
-QString EmailAgent::attachmentPath(const QMailMessage &message, const QString &attachmentLocation)
+bool EmailAgent::saveAttachmentToDownloads(QMailMessage *message, const QString &attachmentLocation)
 {
     const QMailMessagePart::Location location(attachmentLocation);
-    if (message.contains(location)) {
-        const QMailMessagePart &attachmentPart = message.partAt(location);
-        // TODO: create a method in QMF to get the filename generated by
-        // writeBodyTo() as used by saveAttachmentToDownloads().
-        return QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)
-            + "/mail_attachments"
-            + "/" + QString::number(message.parentAccountId().toULongLong())
-            + "/" + location.toString(true)
-            + "/" + attachmentName(attachmentPart);
+    if (!message || !message->contains(location)) {
+        qCDebug(lcEmail) << "ERROR: Can't save attachment, location not found:" << attachmentLocation;
+        return false;
     }
-    return QString();
+    QString checksum;
+    QString filename = attachmentFilename(*message, attachmentLocation, &checksum);
+    if (!matchesAttachment(filename, checksum)) {
+        const QString path = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+        filename = message->partAt(location).writeBodyTo(path);
+        if (filename.isEmpty()) {
+            qCDebug(lcEmail) << "ERROR: Failed to save attachment file to location:" << path;
+            updateAttachmentDownloadStatus(attachmentLocation, FailedToSave);
+            return false;
+        }
+        setAttachmentFilename(message, attachmentLocation, filename);
+    }
+    emit attachmentPathChanged(attachmentLocation, filename);
+    updateAttachmentDownloadStatus(attachmentLocation, Downloaded);
+    return true;
 }
 
 void EmailAgent::updateAttachmentDownloadStatus(const QString &attachmentLocation, AttachmentStatus status)
 {
-    if (status == Failed || status == Canceled || status == Downloaded) {
+    if (status == Failed || status == FailedToSave || status == Canceled || status == Downloaded) {
         emit attachmentDownloadStatusChanged(attachmentLocation, status);
         m_attachmentDownloadQueue.remove(attachmentLocation);
     } else if (m_attachmentDownloadQueue.contains(attachmentLocation)) {
