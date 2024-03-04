@@ -1142,9 +1142,6 @@ QStringList EmailMessage::to() const
 // ############## Private API #########################
 void EmailMessage::buildMessage(QMailMessage *msg)
 {
-    // remove all existent message parts if there's any
-    msg->clearParts();
-
     if (msg->responseType() == QMailMessage::Reply || msg->responseType() == QMailMessage::ReplyToAll ||
             msg->responseType() == QMailMessage::Forward) {
         // Needed for conversations support
@@ -1164,14 +1161,7 @@ void EmailMessage::buildMessage(QMailMessage *msg)
         type.setSubType("html");
     */
     // This should be improved to use QuotedPrintable when appending parts and inline references are implemented
-    if (m_attachments.size() == 0) {
-        msg->setBody(QMailMessageBody::fromData(m_bodyText, type, QMailMessageBody::Base64));
-    } else {
-        QMailMessagePart body;
-        body.setBody(QMailMessageBody::fromData(m_bodyText.toUtf8(), type, QMailMessageBody::Base64));
-        msg->setMultipartType(QMailMessagePartContainer::MultipartMixed);
-        msg->appendPart(body);
-    }
+    msg->setBody(QMailMessageBody::fromData(m_bodyText, type, QMailMessageBody::Base64));
 
     // Include attachments into the message
     if (m_attachments.size()) {
