@@ -22,4 +22,22 @@ inline bool isEmailPart(const QMailMessagePart &part)
     return false;
 }
 
+inline int attachmentSize(const QMailMessagePart &part)
+{
+    if (part.contentDisposition().size() != -1) {
+        return part.contentDisposition().size();
+    }
+    // If size is -1 (unknown) try finding out part's body size
+    if (part.contentAvailable()) {
+        return part.hasBody() ? part.body().length() : 0;
+    }
+    return -1;
+}
+
+inline bool attachmentPartDownloaded(const QMailMessagePart &part)
+{
+    // Addresses the case where content size is missing
+    return part.contentAvailable() || part.contentDisposition().size() <= 0;
+}
+
 #endif
