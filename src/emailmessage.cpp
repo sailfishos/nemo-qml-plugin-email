@@ -16,6 +16,8 @@
 
 #include "emailmessage.h"
 #include "logging_p.h"
+#include "emailutils.h"
+
 #include <qmailnamespace.h>
 #include <qmailcrypto.h>
 #include <qmaildisconnected.h>
@@ -195,6 +197,16 @@ void EmailMessage::cancelMessageDownload()
 void EmailMessage::downloadMessage()
 {
     requestMessageDownload();
+}
+
+void EmailMessage::cancelAttachmentDownload(const QString &location)
+{
+    EmailAgent::instance()->cancelAttachmentDownload(location);
+}
+
+bool EmailMessage::downloadAttachment(const QString &location)
+{
+    return m_id.isValid() ? EmailAgent::instance()->downloadAttachment(&m_msg, location) : false;
 }
 
 void EmailMessage::getCalendarInvitation()
@@ -519,6 +531,57 @@ QStringList EmailMessage::attachments()
     }
 
     return m_attachments;
+}
+
+QStringList EmailMessage::attachmentLocations() const
+{
+    QStringList locations;
+
+    if (m_id.isValid() && m_msg.isEncrypted()) {
+        // Treat the encrypted part as an attachment to allow external treatment.
+        locations << m_msg.partAt(1).location().toString(true);
+    } else if (m_id.isValid() && (m_msg.status() & QMailMessageMetaData::HasAttachments)
+) {
+        for (const QMailMessagePart::Location &location : m_msg.findAttachmentLocations(
+)) {
+            locations << location.toString(true);
+        }
+    }
+
+    return locations;
+}
+
+AttachmentListModel::Attachment EmailMessage::attachment(const QString &location) const
+{
+    AttachmentListModel::Attachment attachment;
+
+    QMailMessagePartContainer::Location partLocation(location);
+    if (m_id.isValid() && m_msg.contains(partLocation)) {
+        QString path;
+        QMailMessagePart part = m_msg.partAt(partLocation);
+        attachment.location = location;
+        attachment.displayName = EmailAgent::instance()->attachmentName(part);
+        attachment.downloaded = attachmentPartDownloaded(part);
+        attachment.status = EmailAgent::instance()->attachmentDownloadStatus(m_msg, location, &path);
+        attachment.mimeType = QString::fromLatin1(part.contentType().content());
+        attachment.size = attachmentSize(part);
+        attachment.title = EmailAgent::instance()->attachmentTitle(part);
+        attachment.type = (isEmailPart(part)) ? AttachmentListModel::Email : AttachmentListModel::Other;
+        if (!path.isEmpty()) {
+            attachment.url = QUrl::fromLocalFile(path).toString();
+        }
+        attachment.progressInfo = EmailAgent::instance()->attachmentDownloadProgress(location);
+    }
+
+    return attachment;
+}
+
+AttachmentListModel* EmailMessage::attachmentModel()
+{
+    if (!m_attachmentModel) {
+        m_attachmentModel = new AttachmentListModel(this);
+    }
+    return m_attachmentModel;
 }
 
 int EmailMessage::accountId() const

@@ -15,15 +15,15 @@
 #include <qmailmessage.h>
 #include "emailagent.h"
 
+class EmailMessage;
 class Q_DECL_EXPORT AttachmentListModel : public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(int messageId READ messageId WRITE setMessageId NOTIFY messageIdChanged FINAL)
     Q_ENUMS(AttachmentType);
 
 public:
-    explicit AttachmentListModel(QObject *parent = 0);
+    explicit AttachmentListModel(EmailMessage *parent);
     ~AttachmentListModel();
 
     enum Role {
@@ -44,6 +44,19 @@ public:
         Other
     };
 
+    struct Attachment {
+        QString location;
+        QString displayName;
+        bool downloaded = false;
+        EmailAgent::AttachmentStatus status = EmailAgent::Unknown;
+        QString mimeType;
+        int size = 0;
+        QString title;
+        AttachmentType type = Other;
+        QString url;
+        double progressInfo = 0.;
+    };
+
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role) const;
 
@@ -57,15 +70,12 @@ public:
     Q_INVOKABLE int size(int idx);
 
     int count() const;
-    int messageId() const;
-    void setMessageId(int id);
 
 protected:
     virtual QHash<int, QByteArray> roleNames() const;
 
 signals:
     void countChanged();
-    void messageIdChanged();
 
 private slots:
     void onAttachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status);
@@ -76,26 +86,11 @@ private slots:
 
 private:
     QHash<int, QByteArray> roles;
-    QMailMessageId m_messageId;
-    QMailMessage m_message;
-    struct Attachment {
-        Attachment()
-            : status(EmailAgent::Unknown),
-              progressInfo(0.0)
-        {}
-
-        QMailMessagePart part;
-        QString location;
-        EmailAgent::AttachmentStatus status;
-        QString url;
-        double progressInfo;
-    };
-
-    QList<Attachment*> m_attachmentsList;
+    EmailMessage *m_message;
+    QList<Attachment> m_attachmentsList;
     QFileSystemWatcher *m_attachmentFileWatcher;
 
     void resetModel();
-
 };
 
 Q_DECLARE_METATYPE(AttachmentListModel::AttachmentType)

@@ -842,15 +842,20 @@ bool EmailAgent::downloadAttachment(int messageId, const QString &attachmentLoca
 {
     QMailMessageId mailMessageId(messageId);
     QMailMessage message(mailMessageId);
+    return downloadAttachment(&message, attachmentLocation);
+}
+
+bool EmailAgent::downloadAttachment(QMailMessage *message, const QString &attachmentLocation)
+{
     QMailMessagePart::Location location(attachmentLocation);
 
-    if (message.contains(location)) {
-        const QMailMessagePart attachmentPart = message.partAt(location);
+    if (message && message->contains(location)) {
+        const QMailMessagePart attachmentPart = message->partAt(location);
         if (attachmentPart.hasBody()) {
-            return saveAttachmentToDownloads(&message, attachmentLocation);
+            return saveAttachmentToDownloads(message, attachmentLocation);
         } else {
             qCDebug(lcEmail) << "Start Download for:" << attachmentLocation;
-            location.setContainingMessageId(mailMessageId);
+            location.setContainingMessageId(message->id());
             enqueue(new RetrieveMessagePart(m_retrievalAction.data(), location, true));
         }
     } else {
