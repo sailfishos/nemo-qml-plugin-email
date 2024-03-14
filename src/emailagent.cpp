@@ -187,7 +187,7 @@ EmailAgent::AttachmentStatus EmailAgent::attachmentDownloadStatus(const QMailMes
     } else {
         QString checksum;
         const QString path = attachmentFilename(message, attachmentLocation, &checksum);
-        bool matches = matchesAttachment(attachmentLocation, checksum);
+        bool matches = matchesAttachment(path, checksum);
         if (downloadPath && matches) {
             *downloadPath = path;
         }
