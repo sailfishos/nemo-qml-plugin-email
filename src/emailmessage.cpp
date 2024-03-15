@@ -560,12 +560,12 @@ AttachmentListModel::Attachment EmailMessage::attachment(const QString &location
         QString path;
         QMailMessagePart part = m_msg.partAt(partLocation);
         attachment.location = location;
-        attachment.displayName = EmailAgent::instance()->attachmentName(part);
+        attachment.displayName = attachmentName(part);
         attachment.downloaded = attachmentPartDownloaded(part);
         attachment.status = EmailAgent::instance()->attachmentDownloadStatus(m_msg, location, &path);
         attachment.mimeType = QString::fromLatin1(part.contentType().content());
         attachment.size = attachmentSize(part);
-        attachment.title = EmailAgent::instance()->attachmentTitle(part);
+        attachment.title = attachmentTitle(part);
         attachment.type = (isEmailPart(part)) ? AttachmentListModel::Email : AttachmentListModel::Other;
         if (!path.isEmpty()) {
             attachment.url = QUrl::fromLocalFile(path).toString();
