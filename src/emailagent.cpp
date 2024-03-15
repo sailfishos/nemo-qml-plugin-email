@@ -27,7 +27,6 @@
 
 #include "emailagent.h"
 #include "emailaction.h"
-#include "emailutils.h"
 #include "folderutils.h"
 #include "folderaccessor.h"
 #include "logging_p.h"
@@ -194,44 +193,6 @@ EmailAgent::AttachmentStatus EmailAgent::attachmentDownloadStatus(const QMailMes
         return (matches) ? Downloaded : NotDownloaded;
     }
     return Unknown;
-}
-
-QString EmailAgent::attachmentName(const QMailMessagePart &part) const
-{
-    return part.displayName().remove('/');
-}
-
-QString EmailAgent::attachmentTitle(const QMailMessagePart &part) const
-{
-    if (isEmailPart(part)) {
-        if (part.contentAvailable())
-            return QMailMessage::fromRfc2822(part.body().data(QMailMessageBody::Decoded)).subject();
-
-        auto contentType = part.contentType();
-        QString name = contentType.isParameterEncoded("name")
-            ? QMailMessageHeaderField::decodeParameter(contentType.name()).trimmed()
-            : QMailMessageHeaderField::decodeContent(contentType.name()).trimmed();
-
-        // QMF plugin may append an extra .eml ending, remove both
-        for (int i = 0; name.endsWith(EML_EXTENSION) && i < 2; i++)
-            name.chop(4);
-
-        if (!name.isEmpty())
-            return name;
-
-        auto contentDisposition = part.contentDisposition();
-        name = contentDisposition.isParameterEncoded("filename")
-            ? QMailMessageHeaderField::decodeParameter(contentDisposition.filename()).trimmed()
-            : QMailMessageHeaderField::decodeContent(contentDisposition.filename()).trimmed();
-
-        if (name.endsWith(EML_EXTENSION))
-            name.chop(4);
-
-        if (!name.isEmpty())
-            return name;
-    }
-
-    return QString();
 }
 
 QString EmailAgent::bodyPlainText(const QMailMessage &mailMsg) const
