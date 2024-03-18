@@ -57,6 +57,11 @@ Module {
             type: "string"
             Parameter { name: "idx"; type: "int" }
         }
+        Method {
+            name: "size"
+            type: "int"
+            Parameter { name: "idx"; type: "int" }
+        }
     }
     Component {
         name: "EmailAccount"
@@ -689,6 +694,13 @@ Module {
             }
         }
         Enum {
+            name: "EncryptionStatus"
+            values: {
+                "NoDigitalEncryption": 0,
+                "Encrypted": 1
+            }
+        }
+        Enum {
             name: "CryptoProtocol"
             values: {
                 "UnknownProtocol": 0,
@@ -714,6 +726,7 @@ Module {
         Property { name: "autoVerifySignature"; type: "bool" }
         Property { name: "cryptoProtocol"; type: "CryptoProtocol"; isReadonly: true }
         Property { name: "signatureStatus"; type: "SignatureStatus"; isReadonly: true }
+        Property { name: "encryptionStatus"; type: "EncryptionStatus"; isReadonly: true }
         Property { name: "date"; type: "QDateTime"; isReadonly: true }
         Property { name: "from"; type: "string" }
         Property { name: "fromAddress"; type: "string"; isReadonly: true }
