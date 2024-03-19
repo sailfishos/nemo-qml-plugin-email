@@ -90,12 +90,11 @@ public:
                                                           const QString &attachmentLocation,
                                                           QString *downloadPath = nullptr);
     double attachmentDownloadProgress(const QString &attachmentLocation);
-    QString attachmentName(const QMailMessagePart &part) const;
-    QString attachmentTitle(const QMailMessagePart &part) const;
     QString bodyPlainText(const QMailMessage &mailMsg) const;
     void cancelAction(quint64 actionId);
     quint64 downloadMessages(const QMailMessageIdList &messageIds, QMailRetrievalAction::RetrievalSpecification spec);
     quint64 downloadMessagePart(const QMailMessagePartContainer::Location &location);
+    bool downloadAttachment(QMailMessage *message, const QString &attachmentLocation);
     void exportUpdates(const QMailAccountIdList &accountIdList);
     bool hasMessagesInOutbox(const QMailAccountId &accountId);
     void initMailServer();

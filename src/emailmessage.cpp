@@ -16,6 +16,8 @@
 
 #include "emailmessage.h"
 #include "logging_p.h"
+#include "emailutils.h"
+
 #include <qmailnamespace.h>
 #include <qmailcrypto.h>
 #include <qmaildisconnected.h>
@@ -195,6 +197,16 @@ void EmailMessage::cancelMessageDownload()
 void EmailMessage::downloadMessage()
 {
     requestMessageDownload();
+}
+
+void EmailMessage::cancelAttachmentDownload(const QString &location)
+{
+    EmailAgent::instance()->cancelAttachmentDownload(location);
+}
+
+bool EmailMessage::downloadAttachment(const QString &location)
+{
+    return m_id.isValid() ? EmailAgent::instance()->downloadAttachment(&m_msg, location) : false;
 }
 
 void EmailMessage::getCalendarInvitation()
@@ -521,6 +533,57 @@ QStringList EmailMessage::attachments()
     return m_attachments;
 }
 
+QStringList EmailMessage::attachmentLocations() const
+{
+    QStringList locations;
+
+    if (m_id.isValid() && m_msg.isEncrypted()) {
+        // Treat the encrypted part as an attachment to allow external treatment.
+        locations << m_msg.partAt(1).location().toString(true);
+    } else if (m_id.isValid() && (m_msg.status() & QMailMessageMetaData::HasAttachments)
+) {
+        for (const QMailMessagePart::Location &location : m_msg.findAttachmentLocations(
+)) {
+            locations << location.toString(true);
+        }
+    }
+
+    return locations;
+}
+
+AttachmentListModel::Attachment EmailMessage::attachment(const QString &location) const
+{
+    AttachmentListModel::Attachment attachment;
+
+    QMailMessagePartContainer::Location partLocation(location);
+    if (m_id.isValid() && m_msg.contains(partLocation)) {
+        QString path;
+        QMailMessagePart part = m_msg.partAt(partLocation);
+        attachment.location = location;
+        attachment.displayName = attachmentName(part);
+        attachment.downloaded = attachmentPartDownloaded(part);
+        attachment.status = EmailAgent::instance()->attachmentDownloadStatus(m_msg, location, &path);
+        attachment.mimeType = QString::fromLatin1(part.contentType().content());
+        attachment.size = attachmentSize(part);
+        attachment.title = attachmentTitle(part);
+        attachment.type = (isEmailPart(part)) ? AttachmentListModel::Email : AttachmentListModel::Other;
+        if (!path.isEmpty()) {
+            attachment.url = QUrl::fromLocalFile(path).toString();
+        }
+        attachment.progressInfo = EmailAgent::instance()->attachmentDownloadProgress(location);
+    }
+
+    return attachment;
+}
+
+AttachmentListModel* EmailMessage::attachmentModel()
+{
+    if (!m_attachmentModel) {
+        m_attachmentModel = new AttachmentListModel(this);
+    }
+    return m_attachmentModel;
+}
+
 int EmailMessage::accountId() const
 {
     return m_msg.parentAccountId().toULongLong();
@@ -645,6 +708,11 @@ EmailMessage::SignatureStatus EmailMessage::signatureStatus() const
 EmailMessage::EncryptionStatus EmailMessage::encryptionStatus() const
 {
     return m_encryptionStatus;
+}
+
+bool EmailMessage::canDecrypt() const
+{
+    return m_id.isValid() ? QMailCryptographicServiceFactory::canDecrypt(m_msg) : false;
 }
 
 QDateTime EmailMessage::date() const
@@ -1280,6 +1348,7 @@ void EmailMessage::emitMessageReloadedSignals()
     emit storedMessageChanged();
     emit toChanged();
     emit quotedBodyChanged();
+    emit canDecryptChanged();
 
     // Update and emit cryptography status.
     if (m_autoVerifySignature) {
@@ -1465,20 +1534,33 @@ QString EmailMessage::readReceiptRequestEmail() const
 void EmailMessage::onAttachmentDownloadStatusChanged(const QString &attachmentLocation,
                                                      EmailAgent::AttachmentStatus status)
 {
-    if (attachmentLocation != m_signatureLocation)
+    if (status == EmailAgent::Unknown
+        || status == EmailAgent::Queued
+        || status == EmailAgent::Downloading
+        || status == EmailAgent::NotDownloaded)
         return;
 
-    if (status != EmailAgent::Downloaded && status != EmailAgent::Failed)
-        return;
-
+    if (status == EmailAgent::Downloaded) {
+        // Reload the message to get the new content.
+        m_msg = QMailMessage(m_id);
+    }
     disconnect(EmailAgent::instance(),
                &EmailAgent::attachmentDownloadStatusChanged,
                this, &EmailMessage::onAttachmentDownloadStatusChanged);
-    if (status == EmailAgent::Downloaded) {
-        verifySignature();
-    } else {
-        m_signatureLocation.clear();
-        setSignatureStatus(EmailMessage::SignatureMissing);
+    if (attachmentLocation == m_signatureLocation) {
+        if (status == EmailAgent::Downloaded) {
+            verifySignature();
+        } else {
+            m_signatureLocation.clear();
+            setSignatureStatus(EmailMessage::SignatureMissing);
+        }
+    } else if (attachmentLocation == m_cryptedDataLocation) {
+        if (status == EmailAgent::Downloaded) {
+            decrypt();
+        } else {
+            m_cryptedDataLocation.clear();
+            setEncryptionStatus(EmailMessage::CryptedDataMissing);
+        }
     }
 }
 
@@ -1580,7 +1662,8 @@ void EmailMessage::verifySignature()
                     onVerifyCompleted(verifyingWatcher->result());
                 });
         // Delegate the ownership to the thread later.
-        QMailMessage *verificationCopy = new QMailMessage(m_msg.id());
+        QMailMessage *verificationCopy = new QMailMessage;
+        *verificationCopy = m_msg;
         QFuture<QMailCryptoFwd::VerificationResult> future =
             QtConcurrent::run(verificationHelper, verificationCopy);
         verifyingWatcher->setFuture(future);
@@ -1628,4 +1711,59 @@ QStringList EmailMessage::ccEmailAddresses() const
 EmailMessage::CryptoProtocol EmailMessage::cryptoProtocol() const
 {
     return cryptoProtocolForKey(m_signingPlugin, m_signingKeys.value(0, QString()));
+}
+
+typedef QPair<QSharedPointer<QMailMessage>, QMailCryptoFwd::DecryptionResult> DecryptionMessage;
+static DecryptionMessage decryptionHelper(QMailMessage *message)
+{
+    const QMailCryptoFwd::DecryptionResult result =
+        QMailCryptographicServiceFactory::decrypt(*message);
+    return DecryptionMessage(QSharedPointer<QMailMessage>(message), result);
+}
+
+void EmailMessage::decrypt()
+{
+    if (m_msg.isEncrypted()) {
+        const QMailMessagePart &encoded = m_msg.partAt(1);
+        if (!encoded.contentAvailable() && m_cryptedDataLocation.isEmpty()) {
+            m_cryptedDataLocation = encoded.location().toString(true);
+            setEncryptionStatus(EmailMessage::CryptedDataDownloading);
+
+            connect(EmailAgent::instance(),
+                    &EmailAgent::attachmentDownloadStatusChanged,
+                    this, &EmailMessage::onAttachmentDownloadStatusChanged);
+            EmailAgent::instance()->downloadAttachment(m_msg.id().toULongLong(),
+                                                       m_cryptedDataLocation);
+            return;
+        } else if (!encoded.contentAvailable()) {
+            return;
+        }
+        setEncryptionStatus(EmailMessage::Decrypting);
+
+        // Execute decryption in a thread, using a copy of the message.
+        QFutureWatcher<DecryptionMessage> *decryptingWatcher
+          = new QFutureWatcher<DecryptionMessage>(this);
+        connect(decryptingWatcher,
+                &QFutureWatcher<DecryptionMessage>::finished,
+                this,
+                [=] {
+                    decryptingWatcher->deleteLater();
+                    DecryptionMessage result = decryptingWatcher->result();
+                    if (result.second.status == QMailCryptoFwd::Decrypted) {
+                        setEncryptionStatus(EmailMessage::NoDigitalEncryption);
+                        m_msg = *result.first;
+                        m_bodyText = EmailAgent::instance()->bodyPlainText(m_msg);
+                        emitMessageReloadedSignals();
+                    } else {
+                        setEncryptionStatus(EmailMessage::DecryptionFailure);
+                    }
+                });
+        // Delegate the ownership to the thread later.
+        QMailMessage *decryptionCopy = new QMailMessage(m_msg.id());
+        QFuture<DecryptionMessage> future =
+            QtConcurrent::run(decryptionHelper, decryptionCopy);
+        decryptingWatcher->setFuture(future);
+    } else {
+        setEncryptionStatus(EmailMessage::NoDigitalEncryption);
+    }
 }

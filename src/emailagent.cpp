@@ -27,7 +27,6 @@
 
 #include "emailagent.h"
 #include "emailaction.h"
-#include "emailutils.h"
 #include "folderutils.h"
 #include "folderaccessor.h"
 #include "logging_p.h"
@@ -44,11 +43,22 @@ QMailAccountId accountForMessageId(const QMailMessageId &msgId)
     return metaData.parentAccountId();
 }
 
+QString attachmentField(const QMailMessage &message,
+                        const QString &attachmentLocation)
+{
+    if (message.isEncrypted()) {
+        return QString::fromLatin1("encrypted-") + attachmentLocation;
+    } else {
+        return attachmentLocation;
+    }
+}
+
 QString attachmentFilename(const QMailMessage &message,
                            const QString &attachmentLocation,
                            QString *attachmentMd5)
 {
-    QString filename = message.customField(attachmentLocation + "-filename");
+    const QString prefix = attachmentField(message, attachmentLocation);
+    QString filename = message.customField(prefix + "-filename");
     if (filename.isEmpty()) {
         // Legacy naming scheme
         const QMailMessagePartContainer::Location location(attachmentLocation);
@@ -61,7 +71,7 @@ QString attachmentFilename(const QMailMessage &message,
         }
     }
     if (attachmentMd5) {
-        *attachmentMd5 = message.customField(attachmentLocation + "-md5");
+        *attachmentMd5 = message.customField(prefix + "-md5");
     }
     return filename;
 }
@@ -77,13 +87,14 @@ QString md5(const QString &filename)
     return QString();
 }
 
-void setAttachmentFilename(QMailMessageMetaData *meta,
+void setAttachmentFilename(QMailMessage *message,
                            const QString &attachmentLocation,
                            const QString &filename)
 {
-    meta->setCustomField(attachmentLocation + "-filename", filename);
-    meta->setCustomField(attachmentLocation + "-md5", md5(filename));
-    QMailMessageMetaData local = *meta;
+    const QString prefix = attachmentField(*message, attachmentLocation);
+    message->setCustomField(prefix + "-filename", filename);
+    message->setCustomField(prefix + "-md5", md5(filename));
+    QMailMessageMetaData local = *message;
     QTimer::singleShot(0, [local] {
                               QMailStore::instance()->updateMessage((QMailMessageMetaData*)&local);
                           });
@@ -194,44 +205,6 @@ EmailAgent::AttachmentStatus EmailAgent::attachmentDownloadStatus(const QMailMes
         return (matches) ? Downloaded : NotDownloaded;
     }
     return Unknown;
-}
-
-QString EmailAgent::attachmentName(const QMailMessagePart &part) const
-{
-    return part.displayName().remove('/');
-}
-
-QString EmailAgent::attachmentTitle(const QMailMessagePart &part) const
-{
-    if (isEmailPart(part)) {
-        if (part.contentAvailable())
-            return QMailMessage::fromRfc2822(part.body().data(QMailMessageBody::Decoded)).subject();
-
-        auto contentType = part.contentType();
-        QString name = contentType.isParameterEncoded("name")
-            ? QMailMessageHeaderField::decodeParameter(contentType.name()).trimmed()
-            : QMailMessageHeaderField::decodeContent(contentType.name()).trimmed();
-
-        // QMF plugin may append an extra .eml ending, remove both
-        for (int i = 0; name.endsWith(EML_EXTENSION) && i < 2; i++)
-            name.chop(4);
-
-        if (!name.isEmpty())
-            return name;
-
-        auto contentDisposition = part.contentDisposition();
-        name = contentDisposition.isParameterEncoded("filename")
-            ? QMailMessageHeaderField::decodeParameter(contentDisposition.filename()).trimmed()
-            : QMailMessageHeaderField::decodeContent(contentDisposition.filename()).trimmed();
-
-        if (name.endsWith(EML_EXTENSION))
-            name.chop(4);
-
-        if (!name.isEmpty())
-            return name;
-    }
-
-    return QString();
 }
 
 QString EmailAgent::bodyPlainText(const QMailMessage &mailMsg) const
@@ -842,15 +815,20 @@ bool EmailAgent::downloadAttachment(int messageId, const QString &attachmentLoca
 {
     QMailMessageId mailMessageId(messageId);
     QMailMessage message(mailMessageId);
+    return downloadAttachment(&message, attachmentLocation);
+}
+
+bool EmailAgent::downloadAttachment(QMailMessage *message, const QString &attachmentLocation)
+{
     QMailMessagePart::Location location(attachmentLocation);
 
-    if (message.contains(location)) {
-        const QMailMessagePart attachmentPart = message.partAt(location);
+    if (message && message->contains(location)) {
+        const QMailMessagePart attachmentPart = message->partAt(location);
         if (attachmentPart.hasBody()) {
-            return saveAttachmentToDownloads(&message, attachmentLocation);
+            return saveAttachmentToDownloads(message, attachmentLocation);
         } else {
             qCDebug(lcEmail) << "Start Download for:" << attachmentLocation;
-            location.setContainingMessageId(mailMessageId);
+            location.setContainingMessageId(message->id());
             enqueue(new RetrieveMessagePart(m_retrievalAction.data(), location, true));
         }
     } else {
