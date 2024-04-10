@@ -83,7 +83,8 @@ public:
         qmlRegisterType<EmailAccountSettingsModel>(uri, 0, 1, "EmailAccountSettingsModel");
         qmlRegisterType<EmailAccount>(uri, 0, 1, "EmailAccount");
         qmlRegisterType<EmailFolder>(uri, 0, 1, "EmailFolder");
-        qmlRegisterType<AttachmentListModel>(uri, 0, 1, "AttachmentListModel");
+        qmlRegisterUncreatableType<AttachmentListModel>(uri, 0, 1, "AttachmentListModel",
+                                                        "AttachmentListModel is got from a EmailMessage");
         qmlRegisterUncreatableType<FolderAccessor>(uri, 0, 1, "FolderAccessor",
                                                    "FolderAccessor is created via FolderListModel or similar");
     }

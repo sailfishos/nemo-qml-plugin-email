@@ -22,4 +22,60 @@ inline bool isEmailPart(const QMailMessagePart &part)
     return false;
 }
 
+inline QString attachmentName(const QMailMessagePart &part)
+{
+    return part.displayName().remove('/');
+}
+
+inline QString attachmentTitle(const QMailMessagePart &part)
+{
+    if (isEmailPart(part)) {
+        if (part.contentAvailable())
+            return QMailMessage::fromRfc2822(part.body().data(QMailMessageBody::Decoded)).subject();
+
+        auto contentType = part.contentType();
+        QString name = contentType.isParameterEncoded("name")
+            ? QMailMessageHeaderField::decodeParameter(contentType.name()).trimmed()
+            : QMailMessageHeaderField::decodeContent(contentType.name()).trimmed();
+
+        // QMF plugin may append an extra .eml ending, remove both
+        for (int i = 0; name.endsWith(EML_EXTENSION) && i < 2; i++)
+            name.chop(4);
+
+        if (!name.isEmpty())
+            return name;
+
+        auto contentDisposition = part.contentDisposition();
+        name = contentDisposition.isParameterEncoded("filename")
+            ? QMailMessageHeaderField::decodeParameter(contentDisposition.filename()).trimmed()
+            : QMailMessageHeaderField::decodeContent(contentDisposition.filename()).trimmed();
+
+        if (name.endsWith(EML_EXTENSION))
+            name.chop(4);
+
+        if (!name.isEmpty())
+            return name;
+    }
+
+    return QString();
+}
+
+inline int attachmentSize(const QMailMessagePart &part)
+{
+    if (part.contentDisposition().size() != -1) {
+        return part.contentDisposition().size();
+    }
+    // If size is -1 (unknown) try finding out part's body size
+    if (part.contentAvailable()) {
+        return part.hasBody() ? part.body().length() : 0;
+    }
+    return -1;
+}
+
+inline bool attachmentPartDownloaded(const QMailMessagePart &part)
+{
+    // Addresses the case where content size is missing
+    return part.contentAvailable() || part.contentDisposition().size() <= 0;
+}
+
 #endif

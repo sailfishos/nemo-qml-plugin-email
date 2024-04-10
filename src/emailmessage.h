@@ -18,6 +18,7 @@
 #include <qmailcryptofwd.h>
 
 #include "emailagent.h"
+#include "attachmentlistmodel.h"
 
 class Q_DECL_EXPORT EmailMessage : public QObject
 {
@@ -34,6 +35,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(QString accountAddress READ accountAddress NOTIFY accountAddressChanged)
     Q_PROPERTY(int folderId READ folderId NOTIFY folderIdChanged)
     Q_PROPERTY(QStringList attachments READ attachments WRITE setAttachments NOTIFY attachmentsChanged)
+    Q_PROPERTY(AttachmentListModel* attachmentModel READ attachmentModel CONSTANT)
     Q_PROPERTY(QStringList bcc READ bcc WRITE setBcc NOTIFY bccChanged)
     Q_PROPERTY(QString body READ body WRITE setBody NOTIFY bodyChanged)
     Q_PROPERTY(QString calendarInvitationUrl READ calendarInvitationUrl NOTIFY calendarInvitationUrlChanged FINAL)
@@ -128,6 +130,8 @@ public:
 
     Q_INVOKABLE void cancelMessageDownload();
     Q_INVOKABLE void downloadMessage();
+    Q_INVOKABLE void cancelAttachmentDownload(const QString &location);
+    Q_INVOKABLE bool downloadAttachment(const QString &location);
     Q_INVOKABLE void getCalendarInvitation();
     Q_INVOKABLE void loadFromFile(const QString &path);
     Q_INVOKABLE void send();
@@ -141,6 +145,7 @@ public:
     QString accountAddress() const;
     int folderId() const;
     QStringList attachments();
+    AttachmentListModel* attachmentModel();
     QStringList bcc() const;
     QString body();
     QString calendarInvitationUrl();
@@ -199,6 +204,8 @@ public:
     QString subject();
     QStringList to() const;
     QStringList toEmailAddresses() const;
+    QStringList attachmentLocations() const;
+    AttachmentListModel::Attachment attachment(const QString &location) const;
 
 signals:
     void sendEnqueued(bool success);
@@ -298,6 +305,7 @@ private:
     QMailCryptoFwd::VerificationResult m_cryptoResult;
     QString m_signatureLocation;
     EncryptionStatus m_encryptionStatus;
+    AttachmentListModel *m_attachmentModel = nullptr;
 };
 
 #endif
