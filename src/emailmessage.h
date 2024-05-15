@@ -119,7 +119,11 @@ public:
 
     enum EncryptionStatus {
         NoDigitalEncryption,
-        Encrypted
+        Encrypted,
+        EncryptedDataDownloading,
+        EncryptedDataMissing,
+        Decrypting,
+        DecryptionFailure
     };
 
     enum CryptoProtocol {
@@ -138,6 +142,7 @@ public:
     Q_INVOKABLE bool sendReadReceipt(const QString &subjectPrefix, const QString &readReceiptBodyText);
     Q_INVOKABLE void saveDraft();
     Q_INVOKABLE void verifySignature();
+    Q_INVOKABLE void decrypt();
     Q_INVOKABLE SignatureStatus getSignatureStatusForKey(const QString &keyIdentifier) const;
     Q_INVOKABLE CryptoProtocol cryptoProtocolForKey(const QString &pluginName, const QString &keyIdentifier) const;
 
@@ -304,6 +309,7 @@ private:
     SignatureStatus m_signatureStatus;
     QMailCryptoFwd::VerificationResult m_cryptoResult;
     QString m_signatureLocation;
+    QString m_cryptedDataLocation;
     EncryptionStatus m_encryptionStatus;
     AttachmentListModel *m_attachmentModel = nullptr;
 };
