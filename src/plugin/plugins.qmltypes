@@ -12,6 +12,7 @@ Module {
         name: "AttachmentListModel"
         prototype: "QAbstractListModel"
         exports: ["Nemo.Email/AttachmentListModel 0.1"]
+        isCreatable: false
         exportMetaObjectRevisions: [0]
         Enum {
             name: "AttachmentType"
@@ -21,7 +22,6 @@ Module {
             }
         }
         Property { name: "count"; type: "int"; isReadonly: true }
-        Property { name: "messageId"; type: "int" }
         Method {
             name: "displayName"
             type: "string"
@@ -697,7 +697,11 @@ Module {
             name: "EncryptionStatus"
             values: {
                 "NoDigitalEncryption": 0,
-                "Encrypted": 1
+                "Encrypted": 1,
+                "EncryptedDataDownloading": 2,
+                "EncryptedDataMissing": 3,
+                "Decrypting": 4,
+                "DecryptionFailure": 5
             }
         }
         Enum {
@@ -712,6 +716,12 @@ Module {
         Property { name: "accountAddress"; type: "string"; isReadonly: true }
         Property { name: "folderId"; type: "int"; isReadonly: true }
         Property { name: "attachments"; type: "QStringList" }
+        Property {
+            name: "attachmentModel"
+            type: "AttachmentListModel"
+            isReadonly: true
+            isPointer: true
+        }
         Property { name: "bcc"; type: "QStringList" }
         Property { name: "body"; type: "string" }
         Property { name: "calendarInvitationUrl"; type: "string"; isReadonly: true }
@@ -767,6 +777,15 @@ Module {
         Signal { name: "inlinePartsDownloaded" }
         Method { name: "cancelMessageDownload" }
         Method { name: "downloadMessage" }
+        Method {
+            name: "cancelAttachmentDownload"
+            Parameter { name: "location"; type: "string" }
+        }
+        Method {
+            name: "downloadAttachment"
+            type: "bool"
+            Parameter { name: "location"; type: "string" }
+        }
         Method { name: "getCalendarInvitation" }
         Method {
             name: "loadFromFile"
@@ -781,6 +800,7 @@ Module {
         }
         Method { name: "saveDraft" }
         Method { name: "verifySignature" }
+        Method { name: "decrypt" }
         Method {
             name: "getSignatureStatusForKey"
             type: "SignatureStatus"
