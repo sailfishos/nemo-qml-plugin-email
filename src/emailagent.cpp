@@ -13,6 +13,7 @@
 #include <QDBusObjectPath>
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
+#include <QDBusConnectionInterface>
 #include <QFile>
 #include <QMap>
 #include <QStandardPaths>
@@ -261,16 +262,11 @@ bool EmailAgent::hasMessagesInOutbox(const QMailAccountId &accountId)
 void EmailAgent::initMailServer()
 {
     // starts the messageserver if it is not already running.
-
-    QString lockfile = "messageserver-instance.lock";
-    int id = QMail::fileLock(lockfile);
-    if (id == -1) {
-        // Server is currently running
+    QDBusConnection sessionBus = QDBusConnection::sessionBus();
+    if (sessionBus.interface()->isServiceRegistered("org.qt.messageserver")) {
         return;
     }
-    QMail::fileUnlock(id);
 
-    QDBusConnection sessionBus = QDBusConnection::sessionBus();
     QDBusInterface systemd(QStringLiteral("org.freedesktop.systemd1"),
                            QStringLiteral("/org/freedesktop/systemd1"),
                            QStringLiteral("org.freedesktop.systemd1.Manager"),
