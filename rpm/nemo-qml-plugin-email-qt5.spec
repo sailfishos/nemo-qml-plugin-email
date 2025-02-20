@@ -15,7 +15,7 @@ BuildRequires:  pkgconfig(Qt5Network)
 BuildRequires:  pkgconfig(Qt5Concurrent)
 BuildRequires:  pkgconfig(Qt5Test)
 BuildRequires:  pkgconfig(QmfMessageServer) >= 4.0.4+git127
-BuildRequires:  pkgconfig(QmfClient) >= 4.0.4+git146
+BuildRequires:  pkgconfig(QmfClient) >= 4.0.4+git156
 BuildRequires:  pkgconfig(accounts-qt5)
 Conflicts: nemo-qml-plugin-email-qt5-offline
 

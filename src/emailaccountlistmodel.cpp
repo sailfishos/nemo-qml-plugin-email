@@ -10,6 +10,7 @@
 
 #include <qmailstore.h>
 #include <qmailnamespace.h>
+#include <qmailcrypto.h>
 
 #include "emailaccountlistmodel.h"
 #include "logging_p.h"
@@ -107,6 +108,21 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
         return m_unreadCountCache.value(accountId);
     }
 
+    if (role == CryptoSignatureType) {
+        QMailAccountConfiguration config(accountId);
+        return QMailCryptographicServiceConfiguration(&config).signatureType();
+    }
+
+    if (role == CryptoSignatureIds) {
+        QMailAccountConfiguration config(accountId);
+        return QMailCryptographicServiceConfiguration(&config).signatureKeys();
+    }
+
+    if (role == UseCryptoSignatureByDefault) {
+        QMailAccountConfiguration config(accountId);
+        return QMailCryptographicServiceConfiguration(&config).useSignatureByDefault();
+    }
+
     QMailAccount account(accountId);
 
     if (role == EmailAddress) {
@@ -149,18 +165,6 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
 
     if (role == HasPersistentConnection) {
         return (account.status() & QMailAccount::HasPersistentConnection) != 0;
-    }
-
-    if (role == CryptoSignatureType) {
-        return account.cryptoSignatureType();
-    }
-
-    if (role == CryptoSignatureIds) {
-        return account.cryptoSignatureIds();
-    }
-
-    if (role == UseCryptoSignatureByDefault) {
-        return (account.status() & QMailAccount::UseCryptoSignatureByDefault) != 0;
     }
 
     return QVariant();
