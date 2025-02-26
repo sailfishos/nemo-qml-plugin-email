@@ -24,8 +24,6 @@
 AttachmentDownloader::AttachmentDownloader(const QMailAccountId &account, QObject *parent)
     : QObject(parent)
     , m_account(account)
-    , m_action(this)
-    , m_qncm(this)
     , m_store(account)
 {
     connect(&m_store, &QMailStoreAccountFilter::messagesAdded,
@@ -34,7 +32,7 @@ AttachmentDownloader::AttachmentDownloader(const QMailAccountId &account, QObjec
     connect(&m_store, &QMailStoreAccountFilter::messagesUpdated,
             this, &AttachmentDownloader::messagesUpdated);
 
-    connect(&m_qncm, &QNetworkConfigurationManager::onlineStateChanged,
+    connect(&m_networkConfiguration, &QNetworkConfigurationManager::onlineStateChanged,
             this, &AttachmentDownloader::onlineStateChanged);
 
     connect(&m_action, &QMailRetrievalAction::activityChanged,
@@ -73,7 +71,7 @@ void AttachmentDownloader::activityChanged(QMailServiceAction::Activity activity
         qMailLog(Messaging) << Q_FUNC_INFO << "Attachment download failed, account: " << m_account
                             << "error code:" << status.errorCode << "error text:" << status.text
                             << "account:" << status.accountId << "connection status:" << m_action.connectivity()
-                            << "online:" << m_qncm.isOnline();
+                            << "online:" << m_networkConfiguration.isOnline();
         // If failure was due to not being connected, requeue
         if (status.errorCode == QMailServiceAction::Status::ErrNoConnection
                 || status.errorCode == QMailServiceAction::Status::ErrConnectionNotReady)
@@ -126,7 +124,7 @@ bool AttachmentDownloader::enqueue(const QMailMessagePart::Location &location)
 
 void AttachmentDownloader::processNext()
 {
-    if (!m_locationQueue.isEmpty() && m_qncm.isOnline() && !m_action.isRunning()) {
+    if (!m_locationQueue.isEmpty() && m_networkConfiguration.isOnline() && !m_action.isRunning()) {
         Q_ASSERT(m_action.activity() == QMailServiceAction::Pending);
         qMailLog(Messaging) << Q_FUNC_INFO << "Executing next attachment download action for account" << m_account;
         m_action.retrieveMessagePart(m_locationQueue.constFirst());
