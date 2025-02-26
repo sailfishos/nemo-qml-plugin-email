@@ -26,6 +26,22 @@
 
 class AttachmentDownloader;
 
+class AttachmentDownloaderService : public QMailMessageServerService
+{
+    Q_OBJECT
+
+public:
+    AttachmentDownloaderService();
+    ~AttachmentDownloaderService();
+
+private slots:
+    void accountsAdded(const QMailAccountIdList &ids);
+    void accountsRemoved(const QMailAccountIdList &ids);
+
+private:
+    QHash<int, QSharedPointer<AttachmentDownloader>> m_downloaders;
+};
+
 class AttachmentDownloaderPlugin : public QMailMessageServerPlugin
 {
     Q_OBJECT
@@ -36,15 +52,7 @@ public:
     ~AttachmentDownloaderPlugin();
 
     virtual QString key() const;
-    virtual void exec();
-    virtual AttachmentDownloaderPlugin* createService();
-
-private slots:
-    void accountsAdded(const QMailAccountIdList &ids);
-    void accountsRemoved(const QMailAccountIdList &ids);
-
-private:
-    QHash<int, QSharedPointer<AttachmentDownloader>> m_downloaders;
+    virtual QMailMessageServerService* createService();
 };
 
 #endif
