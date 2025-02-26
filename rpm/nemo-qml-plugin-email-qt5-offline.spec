@@ -43,7 +43,7 @@ Requires:   %{name} = %{version}-%{release}
 echo "DEFINES+=OFFLINE" > .qmake.conf
 %qmake5 "VERSION=%{version}" "DEFINES+=OFFLINE"
 
-make %{?_smp_mflags}
+%make_build
 
 %install
 %qmake5_install
@@ -58,7 +58,6 @@ sed 's/Nemo.Email/org.nemomobile.email/' < src/plugin/qmldir > %{buildroot}%{_li
 %postun -p /sbin/ldconfig
 
 %files
-%defattr(-,root,root,-)
 %license LICENSE.ASL2 LICENSE.LGPL LICENSE.BSD
 %{_libdir}/libnemoemail-qt5.so.*
 %dir %{_libdir}/qt5/qml/Nemo/Email
@@ -75,12 +74,10 @@ sed 's/Nemo.Email/org.nemomobile.email/' < src/plugin/qmldir > %{buildroot}%{_li
 %{_libdir}/qt5/qml/org/nemomobile/email/qmldir
 
 %files devel
-%defattr(-,root,root,-)
 %{_libdir}/libnemoemail-qt5.so
 %{_libdir}/libnemoemail-qt5.prl
 %{_includedir}/nemoemail-qt5/*.h
 %{_libdir}/pkgconfig/nemoemail-qt5.pc
 
 %files tests
-%defattr(-,root,root,-)
-/opt/tests/nemo-qml-plugins/email/*
+/opt/tests/nemo-qml-plugin-email-qt5/*

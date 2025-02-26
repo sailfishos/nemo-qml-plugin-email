@@ -4,5 +4,5 @@ TARGET = tst_emailmessage
 SOURCES += tst_emailmessage.cpp
 
 attachments.files = attachments/*
-attachments.path = /opt/tests/nemo-qml-plugins/email
+attachments.path = /opt/tests/nemo-qml-plugin-email-qt5
 INSTALLS += attachments

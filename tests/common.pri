@@ -9,4 +9,4 @@ CONFIG -= app_bundle
 CONFIG += testcase link_pkgconfig
 PKGCONFIG += QmfMessageServer QmfClient
 
-target.path = /opt/tests/nemo-qml-plugins/email
+target.path = /opt/tests/nemo-qml-plugin-email-qt5
