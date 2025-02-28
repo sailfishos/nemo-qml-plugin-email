@@ -42,7 +42,7 @@ private:
     QMailAccountId m_account;
     QMailRetrievalAction m_action;
     QList<QMailMessagePart::Location> m_locationQueue;
-    QNetworkConfigurationManager m_qncm;
+    QNetworkConfigurationManager m_networkConfiguration;
     QMailStoreAccountFilter m_store;
 
     void autoDownloadAttachments(const QMailMessageId &messageId);
