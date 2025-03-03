@@ -371,7 +371,6 @@ void EmailMessageListModel::setSearch(const QString &search)
         }
 
         if (m_key.isNonMatching()) {
-            // This just for robustness now, TODO: fix messageserver crashing on imap plugin
             qCWarning(lcEmail) << "EmailMessageListModel not having proper key set for searching";
             return;
         }
