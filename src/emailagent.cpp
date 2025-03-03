@@ -227,7 +227,8 @@ void EmailAgent::cancelAction(quint64 actionId)
     }
 }
 
-quint64 EmailAgent::downloadMessages(const QMailMessageIdList &messageIds, QMailRetrievalAction::RetrievalSpecification spec)
+quint64 EmailAgent::downloadMessages(const QMailMessageIdList &messageIds,
+                                     QMailRetrievalAction::RetrievalSpecification spec)
 {
     return enqueue(new RetrieveMessages(m_retrievalAction.data(), messageIds, spec));
 }
@@ -253,7 +254,8 @@ void EmailAgent::exportUpdates(const QMailAccountIdList &accountIdList)
 bool EmailAgent::hasMessagesInOutbox(const QMailAccountId &accountId)
 {
     // Local folders can have messages from several accounts.
-    QMailMessageKey outboxFilter(QMailMessageKey::status(QMailMessage::Outbox) & ~QMailMessageKey::status(QMailMessage::Trash));
+    QMailMessageKey outboxFilter(QMailMessageKey::status(QMailMessage::Outbox)
+                                 & ~QMailMessageKey::status(QMailMessage::Trash));
     QMailMessageKey accountKey(QMailMessageKey::parentAccountId(accountId));
 
     return (QMailStore::instance()->countMessages(accountKey & outboxFilter) > 0);
@@ -1526,7 +1528,8 @@ void EmailAgent::emitSearchStatusChanges(QSharedPointer<EmailAction> action, Ema
     SearchMessages* searchAction = static_cast<SearchMessages *>(action.data());
     if (searchAction) {
         qCDebug(lcEmail) << "Search completed for" << searchAction->searchText();
-        emit searchCompleted(searchAction->searchText(), m_searchAction->matchingMessageIds(), searchAction->isRemote(), m_searchAction->remainingMessagesCount(), status);
+        emit searchCompleted(searchAction->searchText(), m_searchAction->matchingMessageIds(),
+                             searchAction->isRemote(), m_searchAction->remainingMessagesCount(), status);
     } else {
         qCDebug(lcEmail) << "Error: Invalid search action.";
     }

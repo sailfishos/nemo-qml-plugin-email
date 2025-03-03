@@ -99,7 +99,7 @@ public:
     bool hasMessagesInOutbox(const QMailAccountId &accountId);
     void initMailServer();
     bool ipcConnected();
-    Q_INVOKABLE bool isOnline();
+
     void searchMessages(const QMailMessageKey &filter, const QString &bodyText, QMailSearchAction::SearchSpecification spec,
                         quint64 limit, bool searchBody, const QMailMessageSortKey &sort = QMailMessageSortKey());
     void cancelSearch();
@@ -114,6 +114,7 @@ public:
     void setupAccountFlags();
     int standardFolderId(int accountId, QMailFolder::StandardFolder folder) const;
 
+    Q_INVOKABLE bool isOnline();
     Q_INVOKABLE void accountsSyncInbox(uint minimum = 20);
     Q_INVOKABLE void accountsSyncAllFolders(uint minimum = 20);
     Q_INVOKABLE void createFolder(const QString &name, int mailAccountId, int parentFolderId);

@@ -709,7 +709,8 @@ QMailMessageIdList RetrieveMessages::messageIds() const
 */
 SearchMessages::SearchMessages(QMailSearchAction *searchAction,
                                const QMailMessageKey &filter, const QString &bodyText,
-                               QMailSearchAction::SearchSpecification spec, quint64 limit, bool searchBody, const QMailMessageSortKey &sort)
+                               QMailSearchAction::SearchSpecification spec, quint64 limit,
+                               bool searchBody, const QMailMessageSortKey &sort)
     : EmailAction(spec != QMailSearchAction::Local)
     , _searchAction(searchAction)
     , _filter(filter)
