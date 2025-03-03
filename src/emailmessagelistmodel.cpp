@@ -795,12 +795,14 @@ void EmailMessageListModel::searchOnline()
     // if changed we skip online search until local search returns again
     if (!m_searchCanceled && (m_remoteSearch == m_search)) {
         qCDebug(lcEmail) << "Starting remote search for" << m_search;
-        EmailAgent::instance()->searchMessages(m_searchKey, m_search, QMailSearchAction::Remote, m_searchLimit, m_searchBody);
+        EmailAgent::instance()->searchMessages(m_searchKey, m_search, QMailSearchAction::Remote,
+                                               m_searchLimit, m_searchBody);
     }
 }
 
 void EmailMessageListModel::onSearchCompleted(const QString &search, const QMailMessageIdList &matchedIds,
-                                              bool isRemote, int remainingMessagesOnRemote, EmailAgent::SearchStatus status)
+                                              bool isRemote, int remainingMessagesOnRemote,
+                                              EmailAgent::SearchStatus status)
 {
     if (m_search.isEmpty()) {
         return;
@@ -819,7 +821,8 @@ void EmailMessageListModel::onSearchCompleted(const QString &search, const QMail
             qCDebug(lcEmail) << "We have more messages on remote, remaining count:" << remainingMessagesOnRemote;
         } else {
             setKey(m_searchKey | QMailMessageKey::id(matchedIds));
-            if ((m_searchOn == EmailMessageListModel::LocalAndRemote) && EmailAgent::instance()->isOnline() && !m_searchCanceled) {
+            if ((m_searchOn == EmailMessageListModel::LocalAndRemote)
+                    && EmailAgent::instance()->isOnline() && !m_searchCanceled) {
                 m_remoteSearch = search;
                 // start online search after 2 seconds to avoid flooding the server with incomplete queries
                 m_remoteSearchTimer.start(2000);
