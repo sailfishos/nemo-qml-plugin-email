@@ -34,6 +34,7 @@ PRIVATE_HEADERS += \
     $$PWD/emailaccountlistmodel.h \
     $$PWD/emailfolder.h \
     $$PWD/emailmessagelistmodel.h \
+    $$PWD/emailutils.h \
     $$PWD/folderaccessor.h \
     $$PWD/folderlistmodel.h \
     $$PWD/folderlistproxymodel.h \

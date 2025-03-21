@@ -18,14 +18,21 @@
 
 #include <qmaillog.h>
 #include <qmailstore.h>
+
 #include "attachmentdownloader.h"
 #include "emailutils.h"
+
+#include <QDebug>
 
 AttachmentDownloader::AttachmentDownloader(const QMailAccountId &account, QObject *parent)
     : QObject(parent)
     , m_account(account)
     , m_store(account)
 {
+    if (offlineForced()) {
+        qWarning() << "Nemo-email forced to offline mode, attachment downloader disabled";
+    }
+
     connect(&m_store, &QMailStoreAccountFilter::messagesAdded,
             this, &AttachmentDownloader::messagesUpdated);
 

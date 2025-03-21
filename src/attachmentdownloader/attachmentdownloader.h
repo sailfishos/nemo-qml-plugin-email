@@ -19,8 +19,10 @@
 #ifndef DOWNLOADER_H
 #define DOWNLOADER_H
 
+#include <QObject>
 #include <QList>
 #include <QNetworkConfigurationManager>
+
 #include <qmailmessageserverplugin.h>
 #include <qmailserviceaction.h>
 #include <qmailstoreaccountfilter.h>
