@@ -28,6 +28,7 @@
 
 #include "emailagent.h"
 #include "emailaction.h"
+#include "emailutils.h"
 #include "folderutils.h"
 #include "folderaccessor.h"
 #include "logging_p.h"
@@ -1250,52 +1251,30 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
     QSharedPointer<EmailAction> action(actionPointer);
     bool foundAction = actionInQueue(action);
 
-#ifdef OFFLINE
-    if (!foundAction) {
-        if (action->needsNetworkConnection()) {
-            //discard action in this case
-            qCDebug(lcEmail) << "Discarding online action!!";
-            return quint64(0);
-        } else {
-            // It's a new action.
-            action->setId(newAction());
+    static bool forceOffline = false;
+    static bool forceOfflineChecked = false;
 
-            // Attachment download
-            if (action->type() == EmailAction::RetrieveMessagePart) {
-                RetrieveMessagePart* messagePartAction = static_cast<RetrieveMessagePart *>(action.data());
-                if (messagePartAction->isAttachment()) {
-                    AttachmentInfo attInfo;
-                    attInfo.status = Queued;
-                    attInfo.actionId = action->id();
-                    attInfo.progress = 0;
-                    m_attachmentDownloadQueue.insert(messagePartAction->partLocation(), attInfo);
-                    emit attachmentDownloadStatusChanged(messagePartAction->partLocation(), attInfo.status);
-                }
-            }
-
-            m_actionQueue.append(action);
-
-            if (!m_enqueing && m_currentAction.isNull()) {
-                // Nothing is running, start first action.
-                m_currentAction = getNext();
-                executeCurrent();
-            }
+    if (!forceOfflineChecked) {
+        forceOfflineChecked = true;
+        forceOffline = offlineForced();
+        if (forceOffline) {
+            qWarning() << "Nemo-email EmailAgent forced to offline mode";
         }
-        return action->id();
-    } else {
-        qCDebug(lcEmail) << "This request already exists in the queue:" << action->description();
-        qCDebug(lcEmail) << "Number of actions in the queue:" << m_actionQueue.size();
-        return actionInQueueId(action);
     }
-#else
 
-    if (action->needsNetworkConnection() && !isOnline()) {
+    if (!forceOffline && action->needsNetworkConnection() && !isOnline()) {
         // Request connection. Expecting the application to handle this.
         // Actions will be resumed on onlineStateChanged signal.
         emit networkConnectionRequested();
     }
 
     if (!foundAction) {
+        if (forceOffline && action->needsNetworkConnection()) {
+            //discard action in this case
+            qCDebug(lcEmail) << "Discarding online action!!";
+            return quint64(0);
+        }
+
         // It's a new action.
         action->setId(newAction());
 
@@ -1317,7 +1296,8 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
     if (!m_enqueing && (m_currentAction.isNull() || !m_currentAction->serviceAction()->isRunning())) {
         // Nothing is running or current action is in waiting state, start first action.
         QSharedPointer<EmailAction> nextAction = getNext();
-        if (m_currentAction.isNull() || (!nextAction.isNull() && (*(m_currentAction.data()) != *(nextAction.data())))) {
+        if (m_currentAction.isNull()
+                || (!nextAction.isNull() && (*(m_currentAction.data()) != *(nextAction.data())))) {
             m_currentAction = nextAction;
             executeCurrent();
         }
@@ -1330,7 +1310,6 @@ quint64 EmailAgent::enqueue(EmailAction *actionPointer)
         qCDebug(lcEmail) << "Number of actions in the queue:" << m_actionQueue.size();
         return actionInQueueId(action);
     }
-#endif
 }
 
 void EmailAgent::executeCurrent()
