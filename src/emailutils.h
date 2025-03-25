@@ -10,6 +10,7 @@
 #define EMAILUTILS_H
 
 #include <QMailMessagePart>
+#include <QFile>
 
 const static auto EML_EXTENSION = QStringLiteral(".eml");
 
@@ -76,6 +77,12 @@ inline bool attachmentPartDownloaded(const QMailMessagePart &part)
 {
     // Addresses the case where content size is missing
     return part.contentAvailable() || part.contentDisposition().size() <= 0;
+}
+
+inline bool offlineForced()
+{
+    // here the file should be checkable regardless of sandboxing etc.
+    return QFile::exists("/usr/lib/nemo-email/force_offline");
 }
 
 #endif

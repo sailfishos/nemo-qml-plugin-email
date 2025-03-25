@@ -17,10 +17,17 @@ BuildRequires:  pkgconfig(Qt5Test)
 BuildRequires:  pkgconfig(QmfMessageServer) >= 4.0.4+git127
 BuildRequires:  pkgconfig(QmfClient) >= 4.0.4+git156
 BuildRequires:  pkgconfig(accounts-qt5)
-Conflicts: nemo-qml-plugin-email-qt5-offline
 
 %description
 %{summary}.
+
+%package offline
+Summary:    Nemo email plugin configuration for forcing offline mode
+Requires:   %{name} = %{version}-%{release}
+
+%description offline
+Installing this package forces the email agent to work in offline mode.
+Mostly for demo purposes.
 
 %package devel
 Summary:    Nemo email plugin support for C++ applications
@@ -52,6 +59,8 @@ mkdir -p %{buildroot}%{_libdir}/qt5/qml/org/nemomobile/email/
 ln -sf %{_libdir}/qt5/qml/Nemo/Email/libnemoemail.so %{buildroot}%{_libdir}/qt5/qml/org/nemomobile/email/
 sed 's/Nemo.Email/org.nemomobile.email/' < src/plugin/qmldir > %{buildroot}%{_libdir}/qt5/qml/org/nemomobile/email/qmldir
 
+mkdir -p %{buildroot}/usr/lib/nemo-email
+touch %{buildroot}/usr/lib/nemo-email/force_offline
 
 %post -p /sbin/ldconfig
 
@@ -72,6 +81,9 @@ sed 's/Nemo.Email/org.nemomobile.email/' < src/plugin/qmldir > %{buildroot}%{_li
 %dir %{_libdir}/qt5/qml/org/nemomobile/email
 %{_libdir}/qt5/qml/org/nemomobile/email/libnemoemail.so
 %{_libdir}/qt5/qml/org/nemomobile/email/qmldir
+
+%files offline
+/usr/lib/nemo-email/force_offline
 
 %files devel
 %{_libdir}/libnemoemail-qt5.so
