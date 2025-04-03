@@ -1160,6 +1160,14 @@ bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,
         return false;
     }
 
+    if (response != InvitationResponseAccept
+            && response != InvitationResponseTentative
+            && response != InvitationResponseDecline) {
+        qCDebug(lcEmail) << "EAS: Invalid calendar response specified";
+        emit calendarInvitationResponded(response, false);
+        return true;
+    }
+
     QMailMessage responseMsg;
     responseMsg.setStatus(QMailMessage::LocalOnly, true);
 
@@ -1186,30 +1194,9 @@ bool EmailAgent::easCalendarInvitationResponse(const QMailMessage &message,
         emit calendarInvitationResponded(response, false);
         return true;
     }
-    QVariantMap data;
-    data.insert("messageId", message.id().toULongLong());
-    QString responseString;
-    switch (response) {
-    case InvitationResponseAccept:
-        responseString = "accept";
-        break;
-    case InvitationResponseTentative:
-        responseString = "tentative";
-        break;
-    case InvitationResponseDecline:
-        responseString = "decline";
-        break;
-    default:
-        qCDebug(lcEmail) << "EAS: Invalid calendar response specified";
-        emit calendarInvitationResponded(response, false);
-        return true;
-    }
-
-    data.insert("response", responseString);
-    data.insert("replyMessageId", responseMsg.id().toULongLong());
 
     enqueue(new EasInvitationResponse(m_protocolAction.data(), message.parentAccountId(),
-                                      response, data));
+                                      response, message.id(), responseMsg.id()));
     exportUpdates(QMailAccountIdList() << message.parentAccountId());
     return true;
 }

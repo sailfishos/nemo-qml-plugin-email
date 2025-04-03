@@ -8,6 +8,8 @@
  */
 
 #include "emailaction.h"
+#include "emailagent.h"
+#include "logging_p.h"
 
 template<typename T>
 QString idListToString(const QList<T> &ids)
@@ -858,14 +860,19 @@ QMailAccountId TransmitMessages::accountId() const
 EasInvitationResponse::EasInvitationResponse(QMailProtocolAction* protocolAction,
                                              const QMailAccountId &accountId,
                                              int response,
-                                             const QVariant &responseData)
+                                             QMailMessageId message,
+                                             QMailMessageId replyMessage)
     : EmailAction()
     , _protocolAction(protocolAction)
     , _accountId(accountId)
     , _response(response)
-    , _responseData(responseData)
+    , _messageId(message)
+    , _replyMessageId(replyMessage)
 {
-    _description = QString("eas-invitation-response=%1").arg(_responseData.toString());
+    _description = QString("eas-invitation-response=%1;message-id=%2;reply-message-id=%3")
+            .arg(_response)
+            .arg(_messageId.toULongLong())
+            .arg(_replyMessageId.toULongLong());
     _type = EmailAction::CalendarInvitationResponse;
 }
 
@@ -875,7 +882,28 @@ EasInvitationResponse::~EasInvitationResponse()
 
 void EasInvitationResponse::execute()
 {
-    _protocolAction->protocolRequest(_accountId, "meetingresponse", _responseData);
+    QString responseString;
+    switch (_response) {
+    case EmailAgent::InvitationResponseAccept:
+        responseString = "accept";
+        break;
+    case EmailAgent::InvitationResponseTentative:
+        responseString = "tentative";
+        break;
+    case EmailAgent::InvitationResponseDecline:
+        responseString = "decline";
+        break;
+    default:
+        qCDebug(lcEmail) << "EAS: Invalid calendar response specified";
+        return;
+    }
+
+    QVariantMap data;
+    data.insert("messageId", _messageId.toULongLong());
+    data.insert("response", responseString);
+    data.insert("replyMessageId", _replyMessageId.toULongLong());
+
+    _protocolAction->protocolRequest(_accountId, "meetingresponse", data);
 }
 
 QMailServiceAction* EasInvitationResponse::serviceAction() const
