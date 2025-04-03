@@ -445,7 +445,8 @@ public:
     EasInvitationResponse(QMailProtocolAction* protocolAction,
                           const QMailAccountId &accountId,
                           int response,
-                          const QVariant &responseData);
+                          QMailMessageId message,
+                          QMailMessageId replyMessage);
     ~EasInvitationResponse();
 
     void execute();
@@ -457,7 +458,8 @@ private:
     QMailProtocolAction* _protocolAction;
     QMailAccountId _accountId;
     int _response;
-    QVariant _responseData;
+    QMailMessageId _messageId;
+    QMailMessageId _replyMessageId;
 };
 
 #endif // EMAILACTION_H
