@@ -27,6 +27,7 @@ public:
         CombinedInbox,
         AccountWideSearch
     };
+
     FolderAccessor(QObject *parent = nullptr);
     FolderAccessor(QMailFolderId mailFolderId, EmailFolder::FolderType mailFolderType, QMailMessageKey folderMessageKey,
                    QObject *parent = nullptr);

@@ -78,9 +78,6 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(QStringList toEmailAddresses READ toEmailAddresses NOTIFY toChanged)
 
 public:
-    explicit EmailMessage(QObject *parent = 0);
-    ~EmailMessage();
-
     enum Priority { LowPriority, NormalPriority, HighPriority };
     enum ContentType { Plain, HTML };
 
@@ -131,6 +128,9 @@ public:
         OpenPGP,
         SecureMIME
     };
+
+    explicit EmailMessage(QObject *parent = nullptr);
+    ~EmailMessage();
 
     Q_INVOKABLE void cancelMessageDownload();
     Q_INVOKABLE void downloadMessage();

@@ -1066,8 +1066,7 @@ void EmailAgent::synchronizeInbox(int accountId, uint minimum)
         connect(this, &EmailAgent::standardFoldersCreated,
                 this, [=](const QMailAccountId &acctId) {
                     QMailAccount account(acctId);
-                    QMailFolderId foldId =
-                        account.standardFolder(QMailFolder::InboxFolder);
+                    QMailFolderId foldId = account.standardFolder(QMailFolder::InboxFolder);
                     if (foldId.isValid()) {
                         synchronizeInbox(acctId.toULongLong(), minimum);
                     } else {

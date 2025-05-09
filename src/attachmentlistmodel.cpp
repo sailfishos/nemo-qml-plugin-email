@@ -17,10 +17,10 @@
 #include "emailagent.h"
 #include "emailmessage.h"
 
-AttachmentListModel::AttachmentListModel(EmailMessage *parent) :
-    QAbstractListModel(parent)
-  , m_message(parent)
-  , m_attachmentFileWatcher(new QFileSystemWatcher(this))
+AttachmentListModel::AttachmentListModel(EmailMessage *parent)
+    : QAbstractListModel(parent)
+    , m_message(parent)
+    , m_attachmentFileWatcher(new QFileSystemWatcher(this))
 {
     roles.insert(ContentLocation, "contentLocation");
     roles.insert(DisplayName, "displayName");

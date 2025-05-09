@@ -774,7 +774,9 @@ QString EmailMessage::htmlBody()
                 } else {
                     bodyData = QString::fromLatin1(m_msg.body().data(QMailMessageBody::Decoded).toBase64());
                 }
-                m_htmlText = QString::fromLocal8Bit("<html><body><img src=\"data:%1;base64,%2\" nemo-inline-image-loading=\"no\" /></body></html>").arg(m_msg.contentDisposition().filename(), bodyData);
+                m_htmlText
+                    = QString::fromLocal8Bit("<html><body><img src=\"data:%1;base64,%2\" nemo-inline-image-loading=\"no\" /></body></html>")
+                          .arg(m_msg.contentDisposition().filename(), bodyData);
                 m_htmlBodyConstructed = true;
                 return m_htmlText;
             } else {
@@ -1040,10 +1042,12 @@ void EmailMessage::setMessageId(int messageId)
         m_partsToDownload.clear();
 
         if (!m_msg.headerField(READ_RECEIPT_HEADER_ID).isNull() && !m_requestReadReceipt) {
-            // we have a header field in a message, but m_requestReadReceipt is false, so we need to update m_requestReadReceipt value.
+            // we have a header field in a message, but m_requestReadReceipt is false,
+            // so we need to update m_requestReadReceipt value.
             m_requestReadReceipt = true;
         } else if (m_msg.headerField(READ_RECEIPT_HEADER_ID).isNull() && m_requestReadReceipt) {
-            // we do not have a header field in a message, but m_requestReadReceipt is true, so we need to update m_requestReadReceipt value.
+            // we do not have a header field in a message, but m_requestReadReceipt is true,
+            // so we need to update m_requestReadReceipt value.
             m_requestReadReceipt = false;
         }
 
@@ -1417,8 +1421,9 @@ QString EmailMessage::imageMimeType(const QMailMessageContentType &contentType, 
         if (supportedImageTypes.contains(fileType)) {
             return QString("image/%1").arg(fileType);
         } else {
-            qCWarning(lcEmail) << "Unsupported content type:" << contentType.type().toLower() + "/" + contentType.subType().toLower()
-                     << " from file: " << fileName;
+            qCWarning(lcEmail) << "Unsupported content type:"
+                               << contentType.type().toLower() + "/" + contentType.subType().toLower()
+                               << " from file: " << fileName;
             return QString();
         }
     }

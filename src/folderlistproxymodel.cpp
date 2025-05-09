@@ -9,9 +9,9 @@
 #include "folderlistproxymodel.h"
 #include "folderlistmodel.h"
 
-FolderListProxyModel::FolderListProxyModel(QObject *parent) :
-    QAbstractProxyModel(parent)
-  , m_includeRoot(false)
+FolderListProxyModel::FolderListProxyModel(QObject *parent)
+    : QAbstractProxyModel(parent)
+    , m_includeRoot(false)
 {
 }
 
