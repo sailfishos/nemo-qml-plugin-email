@@ -43,7 +43,6 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
     connect(QMailStore::instance(), SIGNAL(accountsUpdated(const QMailAccountIdList&)),
             this, SLOT(onAccountsUpdated(const QMailAccountIdList&)));
 
-    QMailAccountListModel::setSynchronizeEnabled(true);
     QMailAccountListModel::setKey(QMailAccountKey::status(QMailAccount::Enabled));
     m_onlyTransmitAccounts = false;
 
