@@ -38,10 +38,11 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent)
             this,SLOT(onAccountsAdded(QModelIndex,int,int)));
     connect(this, SIGNAL(rowsRemoved(QModelIndex,int,int)),
             this,SLOT(onAccountsRemoved(QModelIndex,int,int)));
-    connect(QMailStore::instance(), SIGNAL(accountContentsModified(const QMailAccountIdList&)),
-            this, SLOT(onAccountContentsModified(const QMailAccountIdList&)));
-    connect(QMailStore::instance(), SIGNAL(accountsUpdated(const QMailAccountIdList&)),
-            this, SLOT(onAccountsUpdated(const QMailAccountIdList&)));
+
+    connect(QMailStore::instance(), &QMailStore::accountContentsModified,
+            this, &EmailAccountListModel::onAccountContentsModified);
+    connect(QMailStore::instance(), &QMailStore::accountsUpdated,
+            this, &EmailAccountListModel::onAccountsUpdated);
 
     QMailAccountListModel::setKey(QMailAccountKey::status(QMailAccount::Enabled));
     m_onlyTransmitAccounts = false;

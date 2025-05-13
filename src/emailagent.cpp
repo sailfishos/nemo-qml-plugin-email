@@ -134,37 +134,38 @@ EmailAgent::EmailAgent(QObject *parent)
     , m_protocolAction(new QMailProtocolAction(this))
     , m_nmanager(new QNetworkConfigurationManager(this))
 {
-    connect(QMailStore::instance(), SIGNAL(ipcConnectionEstablished()),
-            this, SLOT(onIpcConnectionEstablished()));
+    connect(QMailStore::instance(), &QMailStore::ipcConnectionEstablished,
+            this, &EmailAgent::onIpcConnectionEstablished);
 
     initMailServer();
     setupAccountFlags();
 
-    connect(m_transmitAction.data(), SIGNAL(progressChanged(uint, uint)),
-            this, SLOT(progressChanged(uint,uint)));
+    connect(m_transmitAction.data(), &QMailTransmitAction::progressChanged,
+            this, &EmailAgent::progressChanged);
 
-    connect(m_retrievalAction.data(), SIGNAL(activityChanged(QMailServiceAction::Activity)),
-            this, SLOT(activityChanged(QMailServiceAction::Activity)));
+    connect(m_retrievalAction.data(), &QMailRetrievalAction::activityChanged,
+            this, &EmailAgent::activityChanged);
 
-    connect(m_retrievalAction.data(), SIGNAL(progressChanged(uint, uint)),
-            this, SLOT(progressChanged(uint,uint)));
+    connect(m_retrievalAction.data(), &QMailRetrievalAction::progressChanged,
+            this, &EmailAgent::progressChanged);
 
-    connect(m_storageAction.data(), SIGNAL(activityChanged(QMailServiceAction::Activity)),
-            this, SLOT(activityChanged(QMailServiceAction::Activity)));
+    connect(m_storageAction.data(), &QMailStorageAction::activityChanged,
+            this, &EmailAgent::activityChanged);
 
-    connect(m_transmitAction.data(), SIGNAL(activityChanged(QMailServiceAction::Activity)),
-            this, SLOT(activityChanged(QMailServiceAction::Activity)));
+    connect(m_transmitAction.data(), &QMailTransmitAction::activityChanged,
+            this, &EmailAgent::activityChanged);
 
-    connect(m_searchAction.data(), SIGNAL(activityChanged(QMailServiceAction::Activity)),
-            this, SLOT(activityChanged(QMailServiceAction::Activity)));
+    connect(m_searchAction.data(), &QMailSearchAction::activityChanged,
+            this, &EmailAgent::activityChanged);
 
-    connect(m_protocolAction.data(), SIGNAL(activityChanged(QMailServiceAction::Activity)),
-            this, SLOT(activityChanged(QMailServiceAction::Activity)));
+    connect(m_protocolAction.data(), &QMailProtocolAction::activityChanged,
+            this, &EmailAgent::activityChanged);
 
-    connect(m_searchAction.data(), SIGNAL(messageIdsMatched(const QMailMessageIdList&)),
-            this, SIGNAL(searchMessageIdsMatched(const QMailMessageIdList&)));
+    connect(m_searchAction.data(), &QMailSearchAction::messageIdsMatched,
+            this, &EmailAgent::searchMessageIdsMatched);
 
-    connect(m_nmanager, SIGNAL(onlineStateChanged(bool)), this, SLOT(onOnlineStateChanged(bool)));
+    connect(m_nmanager, &QNetworkConfigurationManager::onlineStateChanged,
+            this, &EmailAgent::onOnlineStateChanged);
 
     m_waitForIpc = !QMailStore::instance()->isIpcConnectionEstablished();
     m_instance = this;
