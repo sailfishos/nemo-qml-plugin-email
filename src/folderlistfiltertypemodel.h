@@ -29,9 +29,9 @@ class Q_DECL_EXPORT FolderListFilterTypeModel : public QSortFilterProxyModel
     Q_PROPERTY(QList<int> typeFilter READ typeFilter WRITE setTypeFilter NOTIFY typeFilterChanged FINAL)
 
 public:
-    explicit FolderListFilterTypeModel(QObject *parent = 0);
+    explicit FolderListFilterTypeModel(QObject *parent = nullptr);
 
-    virtual bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
+    bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
 
     void setAccountKey(int id);
     int accountKey() const;

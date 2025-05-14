@@ -27,9 +27,6 @@ class Q_DECL_EXPORT FolderListModel : public QAbstractListModel
     Q_PROPERTY(bool supportsFolderActions READ supportsFolderActions NOTIFY supportsFolderActionsChanged FINAL)
 
 public:
-    explicit FolderListModel(QObject *parent = 0);
-    ~FolderListModel();
-
     enum Role {
         FolderName = Qt::UserRole + 1,
         FolderId,
@@ -47,9 +44,12 @@ public:
         Index
     };
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const;
-    QVariant data(const QModelIndex &index, int role) const;
-    bool setData(const QModelIndex &index, const QVariant &value, int role);
+    explicit FolderListModel(QObject *parent = nullptr);
+    ~FolderListModel();
+
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex &index, int role) const override;
+    bool setData(const QModelIndex &index, const QVariant &value, int role) override;
 
     bool canCreateTopLevelFolders() const;
     bool supportsFolderActions() const;
@@ -71,7 +71,7 @@ signals:
     void countChanged();
 
 protected:
-    virtual QHash<int, QByteArray> roleNames() const;
+    QHash<int, QByteArray> roleNames() const override;
 
 private slots:
     void onFoldersChanged(const QMailFolderIdList &ids);

@@ -40,7 +40,7 @@ public:
         JunkFolder
     };
 
-    explicit EmailFolder(QObject *parent = 0);
+    explicit EmailFolder(QObject *parent = nullptr);
      ~EmailFolder();
 
     FolderAccessor *folderAccessor() const;

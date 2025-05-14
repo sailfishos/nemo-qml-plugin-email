@@ -15,9 +15,9 @@
 #include "emailaccountlistmodel.h"
 #include "logging_p.h"
 
-EmailAccountListModel::EmailAccountListModel(QObject *parent) :
-    QMailAccountListModel(parent),
-    m_persistentConnectionActive(false)
+EmailAccountListModel::EmailAccountListModel(QObject *parent)
+    : QMailAccountListModel(parent)
+    , m_persistentConnectionActive(false)
 {
     roles.insert(DisplayName, "displayName");
     roles.insert(EmailAddress, "emailAddress");
@@ -38,12 +38,12 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent) :
             this,SLOT(onAccountsAdded(QModelIndex,int,int)));
     connect(this, SIGNAL(rowsRemoved(QModelIndex,int,int)),
             this,SLOT(onAccountsRemoved(QModelIndex,int,int)));
-    connect(QMailStore::instance(), SIGNAL(accountContentsModified(const QMailAccountIdList&)),
-            this, SLOT(onAccountContentsModified(const QMailAccountIdList&)));
-    connect(QMailStore::instance(), SIGNAL(accountsUpdated(const QMailAccountIdList&)),
-            this, SLOT(onAccountsUpdated(const QMailAccountIdList&)));
 
-    QMailAccountListModel::setSynchronizeEnabled(true);
+    connect(QMailStore::instance(), &QMailStore::accountContentsModified,
+            this, &EmailAccountListModel::onAccountContentsModified);
+    connect(QMailStore::instance(), &QMailStore::accountsUpdated,
+            this, &EmailAccountListModel::onAccountsUpdated);
+
     QMailAccountListModel::setKey(QMailAccountKey::status(QMailAccount::Enabled));
     m_onlyTransmitAccounts = false;
 
@@ -74,13 +74,13 @@ int EmailAccountListModel::accountUnreadCount(const QMailAccountId &accountId)
 
     QMailMessageKey accountKey(QMailMessageKey::parentAccountId(accountId));
     QMailMessageKey folderKey(QMailMessageKey::parentFolderId(folderIds));
-    QMailMessageKey unreadKey(QMailMessageKey::status(QMailMessage::Read, QMailDataComparator::Excludes) &
-                              QMailMessageKey::status(QMailMessage::Trash, QMailDataComparator::Excludes) &
-                              QMailMessageKey::status(QMailMessage::Removed, QMailDataComparator::Excludes) &
-                              QMailMessageKey::status(QMailMessage::Junk, QMailDataComparator::Excludes) &
-                              QMailMessageKey::status(QMailMessage::Outgoing, QMailDataComparator::Excludes) &
-                              QMailMessageKey::status(QMailMessage::Sent, QMailDataComparator::Excludes) &
-                              QMailMessageKey::status(QMailMessage::Draft, QMailDataComparator::Excludes));
+    QMailMessageKey unreadKey(QMailMessageKey::status(QMailMessage::Read, QMailDataComparator::Excludes)
+                              & QMailMessageKey::status(QMailMessage::Trash, QMailDataComparator::Excludes)
+                              & QMailMessageKey::status(QMailMessage::Removed, QMailDataComparator::Excludes)
+                              & QMailMessageKey::status(QMailMessage::Junk, QMailDataComparator::Excludes)
+                              & QMailMessageKey::status(QMailMessage::Outgoing, QMailDataComparator::Excludes)
+                              & QMailMessageKey::status(QMailMessage::Sent, QMailDataComparator::Excludes)
+                              & QMailMessageKey::status(QMailMessage::Draft, QMailDataComparator::Excludes));
     return (QMailStore::instance()->countMessages(accountKey & folderKey & unreadKey));
 }
 
@@ -327,8 +327,8 @@ void EmailAccountListModel::setOnlyTransmitAccounts(bool value)
 {
     if (value != m_onlyTransmitAccounts) {
         if (value) {
-            QMailAccountKey transmitKey = QMailAccountKey::status(QMailAccount::Enabled)  &
-                    QMailAccountKey::status(QMailAccount::CanTransmit);
+            QMailAccountKey transmitKey = QMailAccountKey::status(QMailAccount::Enabled)
+                    & QMailAccountKey::status(QMailAccount::CanTransmit);
             QMailAccountListModel::setKey(transmitKey);
         } else {
             QMailAccountListModel::setKey(QMailAccountKey::status(QMailAccount::Enabled));

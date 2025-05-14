@@ -12,11 +12,11 @@
 #include "folderlistfiltertypemodel.h"
 #include "folderlistmodel.h"
 
-FolderListFilterTypeModel::FolderListFilterTypeModel(QObject *parent) :
-    QSortFilterProxyModel(parent),
-    m_count(0),
-    m_syncFolderList(),
-    updateSyncFolderListTimer(-1)
+FolderListFilterTypeModel::FolderListFilterTypeModel(QObject *parent)
+    : QSortFilterProxyModel(parent)
+    , m_count(0)
+    , m_syncFolderList()
+    , updateSyncFolderListTimer(-1)
 {
     // Default to email folders
     m_typeFilter << EmailFolder::NormalFolder
@@ -139,4 +139,3 @@ void FolderListFilterTypeModel::setTypeFilter(QList<int> typeFilter)
         updateData();
     }
 }
-

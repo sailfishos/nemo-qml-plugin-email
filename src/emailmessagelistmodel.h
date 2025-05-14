@@ -85,11 +85,11 @@ public:
 
     enum SearchOn { LocalAndRemote, Local, Remote };
 
-    EmailMessageListModel(QObject *parent = 0);
+    EmailMessageListModel(QObject *parent = nullptr);
     ~EmailMessageListModel();
 
-    int rowCount(const QModelIndex & parent = QModelIndex()) const;
-    QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
+    int rowCount(const QModelIndex & parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override;
 
     FolderAccessor *folderAccessor() const;
     void setFolderAccessor(FolderAccessor *accessor);
@@ -157,7 +157,7 @@ private slots:
     void accountsChanged();
 
 protected:
-    virtual QHash<int, QByteArray> roleNames() const;
+    QHash<int, QByteArray> roleNames() const override;
 
 private:
     void useCombinedInbox();

@@ -35,11 +35,6 @@ class Q_DECL_EXPORT EmailAgent : public QObject
     Q_PROPERTY(int currentSynchronizingAccountId READ currentSynchronizingAccountId NOTIFY currentSynchronizingAccountIdChanged)
 
 public:
-    static EmailAgent *instance();
-
-    explicit EmailAgent(QObject *parent = 0);
-    ~EmailAgent();
-
     enum AttachmentStatus {
         Unknown,
         Queued,
@@ -84,6 +79,11 @@ public:
         ActionOnlineRenameFolder,
         ActionOnlineMoveFolder
     };
+
+    static EmailAgent *instance();
+
+    explicit EmailAgent(QObject *parent = nullptr);
+    ~EmailAgent();
 
     int currentSynchronizingAccountId() const;
     EmailAgent::AttachmentStatus attachmentDownloadStatus(const QMailMessage &message,

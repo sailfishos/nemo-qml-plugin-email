@@ -25,9 +25,6 @@ class Q_DECL_EXPORT EmailAccountListModel : public QMailAccountListModel
     Q_PROPERTY(bool persistentConnectionActive READ persistentConnectionActive NOTIFY persistentConnectionActiveChanged)
 
 public:
-    explicit EmailAccountListModel(QObject *parent = 0);
-    ~EmailAccountListModel();
-
     enum Role {
         DisplayName = Qt::UserRole + 4,
         EmailAddress,
@@ -46,8 +43,11 @@ public:
         UseCryptoSignatureByDefault
     };
 
-    virtual QVariant data(const QModelIndex &index, int role) const;
-    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    explicit EmailAccountListModel(QObject *parent = nullptr);
+    ~EmailAccountListModel();
+
+    QVariant data(const QModelIndex &index, int role) const override;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
 public:
     int numberOfAccounts() const;
@@ -102,7 +102,6 @@ private:
     bool m_persistentConnectionActive;
 
     int accountUnreadCount(const QMailAccountId &accountId);
-
 };
 
 #endif

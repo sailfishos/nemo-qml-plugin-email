@@ -140,14 +140,14 @@ FolderListModel::FolderListModel(QObject *parent)
     roles.insert(FolderSyncEnabled, "syncEnabled");
     roles.insert(FolderParentId, "parentFolderId");
 
-    connect(QMailStore::instance(), SIGNAL(foldersAdded(const QMailFolderIdList &)),
-            this, SLOT(onFoldersAdded(const QMailFolderIdList &)));
-    connect(QMailStore::instance(), SIGNAL(foldersRemoved(const QMailFolderIdList &)),
-            this, SLOT(onFoldersRemoved(const QMailFolderIdList &)));
-    connect(QMailStore::instance(), SIGNAL(foldersUpdated(const QMailFolderIdList &)),
-            this, SLOT(onFoldersChanged(const QMailFolderIdList &)));
-    connect(QMailStore::instance(), SIGNAL(folderContentsModified(const QMailFolderIdList&)),
-            this, SLOT(updateUnreadCount(const QMailFolderIdList&)));
+    connect(QMailStore::instance(), &QMailStore::foldersAdded,
+            this, &FolderListModel::onFoldersAdded);
+    connect(QMailStore::instance(), &QMailStore::foldersRemoved,
+            this, &FolderListModel::onFoldersRemoved);
+    connect(QMailStore::instance(), &QMailStore::foldersUpdated,
+            this, &FolderListModel::onFoldersChanged);
+    connect(QMailStore::instance(), &QMailStore::folderContentsModified,
+            this, &FolderListModel::updateUnreadCount);
 }
 
 FolderListModel::~FolderListModel()

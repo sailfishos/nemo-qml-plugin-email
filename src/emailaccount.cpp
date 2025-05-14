@@ -126,8 +126,10 @@ void EmailAccount::init()
     mRecvCfg->setType(QMailServiceConfiguration::Source);
     mRecvCfg->setVersion(100);
 
-    connect(mRetrievalAction, SIGNAL(activityChanged(QMailServiceAction::Activity)), this, SLOT(activityChanged(QMailServiceAction::Activity)));
-    connect(mTransmitAction, SIGNAL(activityChanged(QMailServiceAction::Activity)), this, SLOT(activityChanged(QMailServiceAction::Activity)));
+    connect(mRetrievalAction, &QMailRetrievalAction::activityChanged,
+            this, &EmailAccount::activityChanged);
+    connect(mTransmitAction, &QMailTransmitAction::activityChanged,
+            this, &EmailAccount::activityChanged);
 }
 
 void EmailAccount::clear()
@@ -180,7 +182,8 @@ void EmailAccount::test(int timeout)
     stopTimeout();
 
     if (mAccount->id().isValid()) {
-        connect(mTimeoutTimer, SIGNAL(timeout()), this, SLOT(timeout()));
+        connect(mTimeoutTimer, &QTimer::timeout,
+                this, &EmailAccount::timeout);
         mTimeoutTimer->start(timeout * 1000);
         mRetrievalAction->retrieveFolderList(mAccount->id(), QMailFolderId(), true);
     } else {

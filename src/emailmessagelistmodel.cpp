@@ -83,20 +83,21 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
     connect(this, SIGNAL(modelReset()),
             this, SIGNAL(countChanged()));
 
-    connect(QMailStore::instance(), SIGNAL(messagesAdded(QMailMessageIdList)),
-            this, SLOT(messagesAdded(QMailMessageIdList)));
+    connect(QMailStore::instance(), &QMailStore::messagesAdded,
+            this, &EmailMessageListModel::messagesAdded);
 
-    connect(QMailStore::instance(), SIGNAL(messagesRemoved(QMailMessageIdList)),
-            this, SLOT(messagesRemoved(QMailMessageIdList)));
+    connect(QMailStore::instance(), &QMailStore::messagesRemoved,
+            this, &EmailMessageListModel::messagesRemoved);
 
-    connect(QMailStore::instance(), SIGNAL(accountsUpdated(QMailAccountIdList)),
-            this, SLOT(accountsChanged()));
+    connect(QMailStore::instance(), &QMailStore::accountsUpdated,
+            this, &EmailMessageListModel::accountsChanged);
 
-    connect(EmailAgent::instance(), SIGNAL(searchCompleted(QString,const QMailMessageIdList&,bool,int,EmailAgent::SearchStatus)),
-            this, SLOT(onSearchCompleted(QString,const QMailMessageIdList&,bool,int,EmailAgent::SearchStatus)));
+    connect(EmailAgent::instance(), &EmailAgent::searchCompleted,
+            this, &EmailMessageListModel::onSearchCompleted);
 
     m_remoteSearchTimer.setSingleShot(true);
-    connect(&m_remoteSearchTimer, SIGNAL(timeout()), this, SLOT(searchOnline()));
+    connect(&m_remoteSearchTimer, &QTimer::timeout,
+            this, &EmailMessageListModel::searchOnline);
 }
 
 EmailMessageListModel::~EmailMessageListModel()

@@ -20,10 +20,10 @@ EmailFolder::EmailFolder(QObject *parent)
     , m_folder(QMailFolder())
     , m_accessor(new FolderAccessor(this))
 {
-    connect(QMailStore::instance(), SIGNAL(foldersUpdated(const QMailFolderIdList &)),
-            this, SLOT(onFoldersUpdated(const QMailFolderIdList &)));
-    connect(QMailStore::instance(), SIGNAL(folderContentsModified(const QMailFolderIdList&)),
-            this, SLOT(checkUnreadCount(const QMailFolderIdList&)));
+    connect(QMailStore::instance(), &QMailStore::foldersUpdated,
+            this, &EmailFolder::onFoldersUpdated);
+    connect(QMailStore::instance(), &QMailStore::folderContentsModified,
+            this, &EmailFolder::checkUnreadCount);
 }
 
 EmailFolder::~EmailFolder()

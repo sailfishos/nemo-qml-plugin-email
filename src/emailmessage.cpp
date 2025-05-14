@@ -84,8 +84,8 @@ void EmailMessage::onMessagesDownloaded(const QMailMessageIdList &ids, bool succ
 {
     for (const QMailMessageId &id : ids) {
         if (id == m_id) {
-            disconnect(EmailAgent::instance(), SIGNAL(messagesDownloaded(QMailMessageIdList,bool)),
-                    this, SLOT(onMessagesDownloaded(QMailMessageIdList,bool)));
+            disconnect(EmailAgent::instance(), &EmailAgent::messagesDownloaded,
+                       this, &EmailMessage::onMessagesDownloaded);
             if (success) {
                 // Reload the message
                 m_msg = QMailMessage(m_id);
@@ -110,8 +110,8 @@ void EmailMessage::onMessagePartDownloaded(const QMailMessageId &messageId, cons
         if (QMailMessagePartContainer *container = m_msg.findHtmlContainer()) {
             QMailMessagePart::Location location = static_cast<const QMailMessagePart *>(container)->location();
             if (location.toString(true) == partLocation) {
-                disconnect(EmailAgent::instance(), SIGNAL(messagePartDownloaded(QMailMessageId,QString,bool)),
-                        this, SLOT(onMessagePartDownloaded(QMailMessageId,QString,bool)));
+                disconnect(EmailAgent::instance(), &EmailAgent::messagePartDownloaded,
+                           this, &EmailMessage::onMessagePartDownloaded);
                 if (success) {
                     emit htmlBodyChanged();
                     // If plain text body is not present we also refresh quotedBody here
@@ -127,8 +127,8 @@ void EmailMessage::onMessagePartDownloaded(const QMailMessageId &messageId, cons
             QMailMessagePart::Location location = static_cast<const QMailMessagePart *>(plainTextcontainer)->location();
             if (location.toString(true) == partLocation) {
                 m_bodyText = EmailAgent::instance()->bodyPlainText(m_msg);
-                disconnect(EmailAgent::instance(), SIGNAL(messagePartDownloaded(QMailMessageId,QString,bool)),
-                        this, SLOT(onMessagePartDownloaded(QMailMessageId,QString,bool)));
+                disconnect(EmailAgent::instance(), &EmailAgent::messagePartDownloaded,
+                           this, &EmailMessage::onMessagePartDownloaded);
                 if (success) {
                     emit bodyChanged();
                     emit quotedBodyChanged();
@@ -140,8 +140,8 @@ void EmailMessage::onMessagePartDownloaded(const QMailMessageId &messageId, cons
         if (const QMailMessagePart *calendarPart = getCalendarPart()) {
             QMailMessagePart::Location location = calendarPart->location();
             if (location.toString(true) == partLocation) {
-                disconnect(EmailAgent::instance(), SIGNAL(messagePartDownloaded(QMailMessageId,QString,bool)),
-                        this, SLOT(onMessagePartDownloaded(QMailMessageId,QString,bool)));
+                disconnect(EmailAgent::instance(), &EmailAgent::messagePartDownloaded,
+                           this, &EmailMessage::onMessagePartDownloaded);
                 if (success) {
                     m_calendarStatus = Downloaded;
                     saveTempCalendarInvitation(*calendarPart);
@@ -173,8 +173,8 @@ void EmailMessage::onInlinePartDownloaded(const QMailMessageId &messageId, const
         m_partsToDownload.remove(partLocation);
         if (m_partsToDownload.isEmpty()) {
             emit inlinePartsDownloaded();
-            disconnect(EmailAgent::instance(), SIGNAL(messagePartDownloaded(QMailMessageId,QString,bool)),
-                    this, SLOT(onInlinePartDownloaded(QMailMessageId,QString,bool)));
+            disconnect(EmailAgent::instance(), &EmailAgent::messagePartDownloaded,
+                       this, &EmailMessage::onInlinePartDownloaded);
         }
     }
 }
@@ -189,8 +189,10 @@ void EmailMessage::cancelMessageDownload()
 {
     if (m_downloadActionId) {
         EmailAgent::instance()->cancelAction(m_downloadActionId);
-        disconnect(this, SLOT(onMessagesDownloaded(QMailMessageIdList,bool)));
-        disconnect(this, SLOT(onMessagePartDownloaded(QMailMessageId,QString,bool)));
+        disconnect(EmailAgent::instance(), &EmailAgent::messagesDownloaded,
+                   this, &EmailMessage::onMessagesDownloaded);
+        disconnect(EmailAgent::instance(), &EmailAgent::messagePartDownloaded,
+                   this, &EmailMessage::onMessagePartDownloaded);
     }
 }
 
@@ -335,7 +337,7 @@ void EmailMessage::sendBuiltMessage()
 
     EmailAgent *emailAgent = EmailAgent::instance();
     if (stored) {
-        connect(emailAgent, SIGNAL(sendCompleted(bool)), this, SLOT(onSendCompleted(bool)));
+        connect(emailAgent, &EmailAgent::sendCompleted, this, &EmailMessage::onSendCompleted);
         emailAgent->sendMessage(m_msg.id());
         if (m_idToRemove.isValid()) {
             emailAgent->expungeMessages(QMailMessageIdList() << m_idToRemove);
@@ -774,7 +776,9 @@ QString EmailMessage::htmlBody()
                 } else {
                     bodyData = QString::fromLatin1(m_msg.body().data(QMailMessageBody::Decoded).toBase64());
                 }
-                m_htmlText = QString::fromLocal8Bit("<html><body><img src=\"data:%1;base64,%2\" nemo-inline-image-loading=\"no\" /></body></html>").arg(m_msg.contentDisposition().filename(), bodyData);
+                m_htmlText
+                    = QString::fromLocal8Bit("<html><body><img src=\"data:%1;base64,%2\" nemo-inline-image-loading=\"no\" /></body></html>")
+                          .arg(m_msg.contentDisposition().filename(), bodyData);
                 m_htmlBodyConstructed = true;
                 return m_htmlText;
             } else {
@@ -1040,10 +1044,12 @@ void EmailMessage::setMessageId(int messageId)
         m_partsToDownload.clear();
 
         if (!m_msg.headerField(READ_RECEIPT_HEADER_ID).isNull() && !m_requestReadReceipt) {
-            // we have a header field in a message, but m_requestReadReceipt is false, so we need to update m_requestReadReceipt value.
+            // we have a header field in a message, but m_requestReadReceipt is false,
+            // so we need to update m_requestReadReceipt value.
             m_requestReadReceipt = true;
         } else if (m_msg.headerField(READ_RECEIPT_HEADER_ID).isNull() && m_requestReadReceipt) {
-            // we do not have a header field in a message, but m_requestReadReceipt is true, so we need to update m_requestReadReceipt value.
+            // we do not have a header field in a message, but m_requestReadReceipt is true,
+            // so we need to update m_requestReadReceipt value.
             m_requestReadReceipt = false;
         }
 
@@ -1360,15 +1366,17 @@ void EmailMessage::emitMessageReloadedSignals()
 
 void EmailMessage::requestMessageDownload()
 {
-    connect(EmailAgent::instance(), SIGNAL(messagesDownloaded(QMailMessageIdList, bool)),
-            this, SLOT(onMessagesDownloaded(QMailMessageIdList, bool)));
-     m_downloadActionId = EmailAgent::instance()->downloadMessages(QMailMessageIdList() << m_id, QMailRetrievalAction::Content);
+    connect(EmailAgent::instance(), &EmailAgent::messagesDownloaded,
+            this, &EmailMessage::onMessagesDownloaded);
+
+    m_downloadActionId = EmailAgent::instance()->downloadMessages(QMailMessageIdList() << m_id,
+                                                                  QMailRetrievalAction::Content);
 }
 
 void EmailMessage::requestMessagePartDownload(const QMailMessagePartContainer *container)
 {
-    connect(EmailAgent::instance(), SIGNAL(messagePartDownloaded(QMailMessageId,QString, bool)),
-            this, SLOT(onMessagePartDownloaded(QMailMessageId,QString, bool)));
+    connect(EmailAgent::instance(), &EmailAgent::messagePartDownloaded,
+            this, &EmailMessage::onMessagePartDownloaded);
 
     QMailMessagePart::Location location = static_cast<const QMailMessagePart *>(container)->location();
     m_downloadActionId = EmailAgent::instance()->downloadMessagePart(location);
@@ -1376,8 +1384,8 @@ void EmailMessage::requestMessagePartDownload(const QMailMessagePartContainer *c
 
 void EmailMessage::requestInlinePartsDownload(const QMap<QString, QMailMessagePartContainer::Location> &inlineParts)
 {
-    connect(EmailAgent::instance(), SIGNAL(messagePartDownloaded(QMailMessageId,QString, bool)),
-            this, SLOT(onInlinePartDownloaded(QMailMessageId,QString,bool)));
+    connect(EmailAgent::instance(), &EmailAgent::messagePartDownloaded,
+            this, &EmailMessage::onInlinePartDownloaded);
 
     QMapIterator<QString, QMailMessagePartContainer::Location> iter(inlineParts);
     while (iter.hasNext()) {
@@ -1417,8 +1425,9 @@ QString EmailMessage::imageMimeType(const QMailMessageContentType &contentType, 
         if (supportedImageTypes.contains(fileType)) {
             return QString("image/%1").arg(fileType);
         } else {
-            qCWarning(lcEmail) << "Unsupported content type:" << contentType.type().toLower() + "/" + contentType.subType().toLower()
-                     << " from file: " << fileName;
+            qCWarning(lcEmail) << "Unsupported content type:"
+                               << contentType.type().toLower() + "/" + contentType.subType().toLower()
+                               << " from file: " << fileName;
             return QString();
         }
     }
@@ -1534,8 +1543,7 @@ void EmailMessage::onAttachmentDownloadStatusChanged(const QString &attachmentLo
         || status == EmailAgent::NotDownloaded)
         return;
 
-    disconnect(EmailAgent::instance(),
-               &EmailAgent::attachmentDownloadStatusChanged,
+    disconnect(EmailAgent::instance(), &EmailAgent::attachmentDownloadStatusChanged,
                this, &EmailMessage::onAttachmentDownloadStatusChanged);
     if (attachmentLocation == m_signatureLocation) {
         if (status == EmailAgent::Downloaded) {
@@ -1629,8 +1637,7 @@ void EmailMessage::verifySignature()
                 m_signatureLocation = signature.location().toString(true);
                 setSignatureStatus(EmailMessage::SignatureDownloading);
 
-                connect(EmailAgent::instance(),
-                        &EmailAgent::attachmentDownloadStatusChanged,
+                connect(EmailAgent::instance(), &EmailAgent::attachmentDownloadStatusChanged,
                         this, &EmailMessage::onAttachmentDownloadStatusChanged);
                 EmailAgent::instance()->downloadAttachment(m_msg.id().toULongLong(),
                                                            m_signatureLocation);
@@ -1718,8 +1725,7 @@ void EmailMessage::decrypt()
             m_cryptedDataLocation = encoded.location().toString(true);
             setEncryptionStatus(EmailMessage::EncryptedDataDownloading);
 
-            connect(EmailAgent::instance(),
-                    &EmailAgent::attachmentDownloadStatusChanged,
+            connect(EmailAgent::instance(), &EmailAgent::attachmentDownloadStatusChanged,
                     this, &EmailMessage::onAttachmentDownloadStatusChanged);
             EmailAgent::instance()->downloadAttachment(m_msg.id().toULongLong(),
                                                        m_cryptedDataLocation);
