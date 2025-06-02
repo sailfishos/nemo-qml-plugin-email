@@ -33,7 +33,7 @@ AttachmentDownloaderService::AttachmentDownloaderService()
         m_downloaders.insert(account.toULongLong(),
                              QSharedPointer<AttachmentDownloader>(new AttachmentDownloader(account, this)));
     }
-    qMailLog(Messaging) << "Initiating attachment auto-download plugin";
+    qCDebug(lcMessaging) << "Initiating attachment auto-download plugin";
 }
 
 AttachmentDownloaderService::~AttachmentDownloaderService()
