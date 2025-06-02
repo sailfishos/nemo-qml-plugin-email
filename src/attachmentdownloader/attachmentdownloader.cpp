@@ -16,13 +16,14 @@
  *
  */
 
-#include <qmaillog.h>
 #include <qmailstore.h>
 
 #include "attachmentdownloader.h"
 #include "emailutils.h"
 
-#include <QDebug>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(lcAD, "org.qt.messageserver.attachmentdownloader", QtWarningMsg)
 
 AttachmentDownloader::AttachmentDownloader(const QMailAccountId &account, QObject *parent)
     : QObject(parent)
@@ -30,7 +31,7 @@ AttachmentDownloader::AttachmentDownloader(const QMailAccountId &account, QObjec
     , m_store(account)
 {
     if (offlineForced()) {
-        qWarning() << "Nemo-email forced to offline mode, attachment downloader disabled";
+        qCWarning(lcAD) << "Nemo-email forced to offline mode, attachment downloader disabled";
     }
 
     connect(&m_store, &QMailStoreAccountFilter::messagesAdded,
@@ -52,7 +53,7 @@ AttachmentDownloader::~AttachmentDownloader()
 
 void AttachmentDownloader::messagesUpdated(const QMailMessageIdList &messageIds)
 {
-    qMailLog(Messaging) << "Checking for attachments to download";
+    qCDebug(lcAD) << "Checking for attachments to download";
     for (const auto &id : messageIds) {
         autoDownloadAttachments(id);
     }
@@ -60,7 +61,7 @@ void AttachmentDownloader::messagesUpdated(const QMailMessageIdList &messageIds)
 
 void AttachmentDownloader::onlineStateChanged(bool online)
 {
-    qMailLog(Messaging) << "Online state changed:" << online;
+    qCDebug(lcAD) << "Online state changed:" << online;
     if (online) {
         processNext();
     } else if (!m_locationQueue.isEmpty()) {
@@ -75,17 +76,17 @@ void AttachmentDownloader::activityChanged(QMailServiceAction::Activity activity
 
     switch (activity) {
     case QMailServiceAction::Failed:
-        qMailLog(Messaging) << Q_FUNC_INFO << "Attachment download failed, account: " << m_account
-                            << "error code:" << status.errorCode << "error text:" << status.text
-                            << "account:" << status.accountId << "connection status:" << m_action.connectivity()
-                            << "online:" << m_networkConfiguration.isOnline();
+        qCWarning(lcAD) << Q_FUNC_INFO << "Attachment download failed, account: " << m_account
+                        << "error code:" << status.errorCode << "error text:" << status.text
+                        << "account:" << status.accountId << "connection status:" << m_action.connectivity()
+                        << "online:" << m_networkConfiguration.isOnline();
         // If failure was due to not being connected, requeue
         if (status.errorCode == QMailServiceAction::Status::ErrNoConnection
                 || status.errorCode == QMailServiceAction::Status::ErrConnectionNotReady)
             requeue = true;
         break;
     case QMailServiceAction::Successful:
-        qMailLog(Messaging) << Q_FUNC_INFO << "Attachment download finished for account" << m_account;
+        qCDebug(lcAD) << Q_FUNC_INFO << "Attachment download finished for account" << m_account;
         break;
     case QMailServiceAction::Pending:
     case QMailServiceAction::InProgress:
@@ -98,7 +99,7 @@ void AttachmentDownloader::activityChanged(QMailServiceAction::Activity activity
         m_locationQueue.removeFirst();
         processNext();
     }
-    qMailLog(Messaging) << Q_FUNC_INFO << "Attachment download queue length is now" << m_locationQueue.size();
+    qCDebug(lcAD) << Q_FUNC_INFO << "Attachment download queue length is now" << m_locationQueue.size();
 }
 
 void AttachmentDownloader::autoDownloadAttachments(const QMailMessageId &messageId)
@@ -112,8 +113,8 @@ void AttachmentDownloader::autoDownloadAttachments(const QMailMessageId &message
         if (isEmailPart(attachmentPart) && !attachmentPart.contentAvailable()) {
             location.setContainingMessageId(messageId);
             if (enqueue(location)) {
-                qMailLog(Messaging) << Q_FUNC_INFO << "Auto download attachment for:" << location.toString(true)
-                    << "on account" << m_account << "queue size" << m_locationQueue.size();
+                qCDebug(lcAD) << Q_FUNC_INFO << "Auto download attachment for:" << location.toString(true)
+                              << "on account" << m_account << "queue size" << m_locationQueue.size();
             }
         }
     }
@@ -133,14 +134,14 @@ void AttachmentDownloader::processNext()
 {
     if (!m_locationQueue.isEmpty() && m_networkConfiguration.isOnline() && !m_action.isRunning()) {
         Q_ASSERT(m_action.activity() == QMailServiceAction::Pending);
-        qMailLog(Messaging) << Q_FUNC_INFO << "Executing next attachment download action for account" << m_account;
+        qCDebug(lcAD) << Q_FUNC_INFO << "Executing next attachment download action for account" << m_account;
         m_action.retrieveMessagePart(m_locationQueue.constFirst());
     }
 }
 
 void AttachmentDownloader::cancelAndRequeue()
 {
-    qMailLog(Messaging) << Q_FUNC_INFO << "Canceling and requeing attachment download action for account" << m_account;
+    qCDebug(lcAD) << Q_FUNC_INFO << "Canceling and requeing attachment download action for account" << m_account;
     if (m_action.isRunning())
         m_action.cancelOperation();
     if (!m_locationQueue.isEmpty())
