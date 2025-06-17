@@ -16,7 +16,6 @@
  *
  */
 
-#include <qmaillog.h>
 #include "attachmentdownloaderplugin.h"
 #include "attachmentdownloader.h"
 
@@ -33,7 +32,6 @@ AttachmentDownloaderService::AttachmentDownloaderService()
         m_downloaders.insert(account.toULongLong(),
                              QSharedPointer<AttachmentDownloader>(new AttachmentDownloader(account, this)));
     }
-    qMailLog(Messaging) << "Initiating attachment auto-download plugin";
 }
 
 AttachmentDownloaderService::~AttachmentDownloaderService()
