@@ -283,8 +283,6 @@ private:
     void insertInlineImages(const QList<QMailMessagePart::Location> &inlineParts);
     const QMailMessagePart *getCalendarPart() const;
     void saveTempCalendarInvitation(const QMailMessagePart &calendarPart);
-    void updateReadReceiptHeader();
-    QString readReceiptRequestEmail() const;
     void setSignatureStatus(SignatureStatus status);
     void setEncryptionStatus(EncryptionStatus status);
 
