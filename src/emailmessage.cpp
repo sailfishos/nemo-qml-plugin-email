@@ -32,10 +32,6 @@
 
 namespace {
 
-const QString READ_RECEIPT_HEADER_ID("Disposition-Notification-To");
-const QString READ_RECEIPT_REPORT_PARAM_ID("report-type");
-const QString READ_RECEIPT_REPORT_PARAM_VALUE("disposition-notification");
-
 struct PartFinder {
     PartFinder(const QByteArray &type, const QByteArray &subType, const QMailMessagePart *&part) : type(type), subType(subType), partFound(part) {}
 
@@ -268,8 +264,6 @@ void EmailMessage::loadFromFile(const QString &path)
 
 void EmailMessage::send()
 {
-    //setting header here to make sure that used email address in a header is the latest one set for email message
-    updateReadReceiptHeader();
     // Check if we are about to send a existent draft message
     // if so create a new message with the draft content
     if (m_msg.id().isValid()) {
@@ -397,55 +391,10 @@ bool EmailMessage::sendReadReceipt(const QString &subjectPrefix, const QString &
     if (!requestReadReceipt()) {
         return false;
     }
-    const QString &toEmailAddress = readReceiptRequestEmail();
-    if (toEmailAddress.isEmpty()) {
-        qCWarning(lcEmail) << "Read receipt requested for email with invalid header value:" << toEmailAddress;
-        return false;
-    }
-    QMailMessage outgoingMessage;
-    QMailAccount account(m_msg.parentAccountId());
-    const QString &ownEmail = account.fromAddress().address();
-    outgoingMessage.setMultipartType(QMailMessagePartContainerFwd::MultipartReport,
-                                     QList<QMailMessageHeaderField::ParameterType>()
-                                     << QMailMessageHeaderField::ParameterType(READ_RECEIPT_REPORT_PARAM_ID.toUtf8(),
-                                                                               READ_RECEIPT_REPORT_PARAM_VALUE.toUtf8()));
-
-    QMailMessagePart body = QMailMessagePart::fromData(
-                readReceiptBodyText.toUtf8(),
-                QMailMessageContentDisposition(QMailMessageContentDisposition::None),
-                QMailMessageContentType("text/plain"),
-                QMailMessageBody::Base64);
-    body.removeHeaderField("Content-Disposition");
-
-    // creating report part
-    QMailMessagePart disposition = QMailMessagePart::fromData(QString(),
-                                                              QMailMessageContentDisposition(QMailMessageContentDisposition::None),
-                                                              QMailMessageContentType("message/disposition-notification"),
-                                                              QMailMessageBodyFwd::NoEncoding);
-    disposition.removeHeaderField("Content-Disposition");
-    disposition.setHeaderField("Reporting-UA", "sailfishos.org; Email application");
-    disposition.setHeaderField("Original-Recipient", ownEmail);
-    disposition.setHeaderField("Final-Recipient", ownEmail);
-    disposition.setHeaderField("Original-Message-ID", m_msg.headerField("Message-ID").content());
-    disposition.setHeaderField("Disposition", "manual-action/MDN-sent-manually; displayed");
-    QMailMessagePart alternative = QMailMessagePart::fromData(QString(),
-                                                              QMailMessageContentDisposition(QMailMessageContentDisposition::None),
-                                                              QMailMessageContentType(),
-                                                              QMailMessageBodyFwd::NoEncoding);
-    alternative.setMultipartType(QMailMessage::MultipartAlternative);
-    alternative.removeHeaderField("Content-Disposition");
-    alternative.appendPart(body);
-    alternative.appendPart(disposition);
-    outgoingMessage.appendPart(alternative);
-
-    outgoingMessage.setResponseType(QMailMessageMetaDataFwd::Reply);
-    outgoingMessage.setParentAccountId(m_msg.parentAccountId());
-    outgoingMessage.setFrom(account.fromAddress());
-    outgoingMessage.setTo(QMailAddress(toEmailAddress));
-    outgoingMessage.setSubject(m_msg.subject().prepend(subjectPrefix));
+    QMailMessage outgoingMessage = QMailMessage::asReadReceipt(m_msg, readReceiptBodyText,
+                                                               subjectPrefix, QStringLiteral("sailfishos.org; Email application"));
 
     // set message basic attributes
-    outgoingMessage.setDate(QMailTimeStamp::currentDateTime());
     outgoingMessage.setStatus(QMailMessage::Outgoing, true);
     outgoingMessage.setStatus(QMailMessage::ContentAvailable, true);
     outgoingMessage.setStatus(QMailMessage::PartialContentAvailable, true);
@@ -454,7 +403,6 @@ bool EmailMessage::sendReadReceipt(const QString &subjectPrefix, const QString &
 
     outgoingMessage.setParentFolderId(QMailFolder::LocalStorageFolderId);
 
-    outgoingMessage.setMessageType(QMailMessage::Email);
     outgoingMessage.setSize(m_msg.indicativeSize() * 1024);
 
     // Message present only on the local device until we externalise or send it
@@ -494,8 +442,6 @@ void EmailMessage::saveDraft()
     m_msg.setStatus(QMailMessage::Draft, true);
     // This message is present only on the local device until we externalise or send it
     m_msg.setStatus(QMailMessage::LocalOnly, true);
-    //setting readReceipt here to make sure that used email address is the latest one set for email message
-    updateReadReceiptHeader();
 
     if (!m_msg.id().isValid()) {
         saved = QMailStore::instance()->addMessage(&m_msg);
@@ -1043,15 +989,7 @@ void EmailMessage::setMessageId(int messageId)
         m_htmlBodyConstructed = false;
         m_partsToDownload.clear();
 
-        if (!m_msg.headerField(READ_RECEIPT_HEADER_ID).isNull() && !m_requestReadReceipt) {
-            // we have a header field in a message, but m_requestReadReceipt is false,
-            // so we need to update m_requestReadReceipt value.
-            m_requestReadReceipt = true;
-        } else if (m_msg.headerField(READ_RECEIPT_HEADER_ID).isNull() && m_requestReadReceipt) {
-            // we do not have a header field in a message, but m_requestReadReceipt is true,
-            // so we need to update m_requestReadReceipt value.
-            m_requestReadReceipt = false;
-        }
+        m_requestReadReceipt = !m_msg.readReceiptRequestAddress().isNull();
 
         // Message loaded from the store (or a empty message), all properties changes
         emitMessageReloadedSignals();
@@ -1278,6 +1216,9 @@ void EmailMessage::buildMessage(QMailMessage *msg)
         msg->setAttachments(messagePartPointers);
         msg->addAttachments(attachments);
     }
+
+    //setting readReceipt here to make sure that used email address is the latest one set for email message
+    msg->requestReadReceipt(requestReadReceipt() ? msg->from() : QMailAddress());
 
     // set message basic attributes
     msg->setDate(QMailTimeStamp::currentDateTime());
@@ -1514,24 +1455,6 @@ void EmailMessage::saveTempCalendarInvitation(const QMailMessagePart &calendarPa
         m_calendarStatus = FailedToSave;
         emit calendarInvitationStatusChanged();
     }
-}
-
-void EmailMessage::updateReadReceiptHeader()
-{
-    if (requestReadReceipt()) {
-        m_msg.setHeaderField(READ_RECEIPT_HEADER_ID, accountAddress());
-    } else {
-        m_msg.removeHeaderField(READ_RECEIPT_HEADER_ID);
-    }
-}
-
-QString EmailMessage::readReceiptRequestEmail() const
-{
-    if (!m_id.isValid()) {
-        return QString();
-    }
-    const QMailMessageHeaderField &header = m_msg.headerField(READ_RECEIPT_HEADER_ID);
-    return header.isNull() ? QString() : header.content();
 }
 
 void EmailMessage::onAttachmentDownloadStatusChanged(const QString &attachmentLocation,
