@@ -274,7 +274,7 @@ void EmailMessage::send()
         // Record any message properties we should retain
         newMessage.setResponseType(m_msg.responseType());
         newMessage.setParentAccountId(m_account.id());
-        newMessage.setFrom(m_account.fromAddress());
+        newMessage.setFrom(m_msg.from());
         if (!m_originalMessageId.isValid() && m_msg.inResponseTo().isValid()) {
             m_originalMessageId = m_msg.inResponseTo();
             if (newMessage.responseType() == QMailMessage::UnspecifiedResponse ||
@@ -919,25 +919,48 @@ void EmailMessage::setCc(const QStringList &ccList)
     }
 }
 
+static QMailAddress matchingAddress(const QMailAddress &address, const QString &value)
+{
+    if (address.isGroup()) {
+        for (const QMailAddress &sub : address.groupMembers()) {
+            if (!matchingAddress(sub, value).isNull())
+                return sub;
+        }
+    } else {
+        if (address.address() == value
+            || address.name() == value
+            || address.toString() == value)
+            return address;
+    }
+    return QMailAddress();
+}
+
 void EmailMessage::setFrom(const QString &sender)
 {
     if (!sender.isEmpty()) {
         QMailAccountIdList accountIds = QMailStore::instance()->queryAccounts(QMailAccountKey::messageType(QMailMessage::Email)
                                                                               & QMailAccountKey::status(QMailAccount::Enabled)
                                                                               , QMailAccountSortKey::name());
+        bool found = false;
         // look up the account id for the given sender
         for (const QMailAccountId &id : accountIds) {
-            QMailAccount account(id);
-            QMailAddress from = account.fromAddress();
-            if (from.address() == sender || from.toString() == sender || from.name() == sender) {
+            const QMailAccount account(id);
+            const QMailAddress from = matchingAddress(account.fromAliases(), sender);
+            if (!from.isNull()) {
                 m_account = account;
                 m_msg.setParentAccountId(id);
-                m_msg.setFrom(account.fromAddress());
+                m_msg.setFrom(from);
+                found = true;
+                break;
             }
         }
-        emit fromChanged();
-        emit accountIdChanged();
-        emit accountAddressChanged();
+        if (found) {
+            emit fromChanged();
+            emit accountIdChanged();
+            emit accountAddressChanged();
+        } else {
+            qCWarning(lcEmail) << Q_FUNC_INFO << "Can't find a matching 'From' address for" << sender;
+        }
     } else {
         qCWarning(lcEmail) << Q_FUNC_INFO << "Can't set a empty 'From' address.";
     }
