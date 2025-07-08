@@ -394,6 +394,7 @@ bool EmailMessage::sendReadReceipt(const QString &subjectPrefix, const QString &
     }
     QMailMessage outgoingMessage = QMailMessage::asReadReceipt(m_msg, readReceiptBodyText,
                                                                subjectPrefix, QStringLiteral("sailfishos.org; Email application"));
+    outgoingMessage.setFrom(QMailAddress(recipientAddress()));
 
     // set message basic attributes
     outgoingMessage.setStatus(QMailMessage::Outgoing, true);
@@ -542,6 +543,36 @@ int EmailMessage::accountId() const
 QString EmailMessage::accountAddress() const
 {
     QMailAccount account(m_msg.parentAccountId());
+    return account.fromAddress().address();
+}
+
+// Email address the message was sent to
+QString EmailMessage::recipientAddress() const
+{
+    const QMailAccount account(m_msg.parentAccountId());
+    const QMailAddress aliases(account.fromAliases());
+    if (!aliases.isNull()) {
+        // Try to match one of the group address with the
+        // to: and cc: fields of the message.
+        QSet<QString> recipients;
+        for (const QMailAddress &add : m_msg.to()) {
+            recipients.insert(add.address());
+        }
+        for (const QMailAddress &add : m_msg.cc()) {
+            recipients.insert(add.address());
+        }
+        if (aliases.isGroup()) {
+            for (const QMailAddress &sub : aliases.groupMembers()) {
+                if (recipients.contains(sub.address())) {
+                    return sub.address();
+                }
+            }
+        } else {
+            if (recipients.contains(aliases.address())) {
+                return aliases.address();
+            }
+        }
+    }
     return account.fromAddress().address();
 }
 
@@ -926,13 +957,12 @@ static QMailAddress matchingAddress(const QMailAddress &address, const QString &
             if (!matchingAddress(sub, value).isNull())
                 return sub;
         }
-    } else {
-        if (address.address() == value
-            || address.name() == value
-            || address.toString() == value)
-            return address;
+        return QMailAddress();
     }
-    return QMailAddress();
+    return (address.isNull()
+            || address.address() == value
+            || address.name() == value
+            || address.toString() == value) ? address : QMailAddress();
 }
 
 void EmailMessage::setFrom(const QString &sender)
@@ -945,7 +975,9 @@ void EmailMessage::setFrom(const QString &sender)
         // look up the account id for the given sender
         for (const QMailAccountId &id : accountIds) {
             const QMailAccount account(id);
-            const QMailAddress from = matchingAddress(account.fromAliases(), sender);
+            QMailAddress from = matchingAddress(account.fromAddress(), sender);
+            if (from.isNull())
+                from = matchingAddress(account.fromAliases(), sender);
             if (!from.isNull()) {
                 m_account = account;
                 m_msg.setParentAccountId(id);
