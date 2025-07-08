@@ -20,7 +20,7 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent)
     , m_persistentConnectionActive(false)
 {
     roles.insert(DisplayName, "displayName");
-    roles.insert(EmailAddress, "emailAddress");
+    roles.insert(EmailAddresses, "emailAddresses");
     roles.insert(MailServer, "mailServer");
     roles.insert(UnreadCount, "unreadCount");
     roles.insert(MailAccountId, "mailAccountId");
@@ -125,8 +125,17 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
 
     QMailAccount account(accountId);
 
-    if (role == EmailAddress) {
-        return account.fromAddress().address();
+    if (role == EmailAddresses) {
+        const QMailAddress fromAddress = account.fromAddress();
+        if (fromAddress.isGroup()) {
+            QStringList addresses;
+            for (const QMailAddress &sub : fromAddress.groupMembers()) {
+                addresses.append(sub.address());
+            }
+            return addresses;
+        } else {
+            return QStringList() << fromAddress.address();
+        }
     }
 
     if (role == MailServer) {
@@ -364,8 +373,8 @@ QStringList EmailAccountListModel::allEmailAddresses()
 {
     QStringList emailAddressList;
     for (int row = 0; row < rowCount(); row++) {
-        QString emailAddress = data(index(row), EmailAccountListModel::EmailAddress).toString();
-        emailAddressList << emailAddress;
+        const QStringList emailAddresses = data(index(row), EmailAccountListModel::EmailAddresses).toStringList();
+        emailAddressList.append(emailAddresses);
     }
     return emailAddressList;
 }
@@ -406,22 +415,6 @@ QString EmailAccountListModel::displayNameFromAccountId(int accountId)
     return data(index(accountIndex), EmailAccountListModel::DisplayName).toString();
 }
 
-
-QString EmailAccountListModel::emailAddress(int idx)
-{
-    return data(index(idx), EmailAccountListModel::EmailAddress).toString();
-}
-
-QString EmailAccountListModel::emailAddressFromAccountId(int accountId)
-{
-    int accountIndex = indexFromAccountId(accountId);
-
-    if (accountIndex < 0)
-        return QString();
-
-    return data(index(accountIndex), EmailAccountListModel::EmailAddress).toString();
-}
-
 int EmailAccountListModel::indexFromAccountId(int id)
 { 
     QMailAccountId accountId(id);
@@ -433,6 +426,16 @@ int EmailAccountListModel::indexFromAccountId(int id)
             return row;
     }
     return -1;
+}
+
+QString EmailAccountListModel::defaultAddressForAccountId(int accountId) const
+{
+    QMailAccountId acctId(accountId);
+    if (acctId.isValid()) {
+        const QMailAddress fromAddress = QMailAccount(acctId).fromAddress();
+        return fromAddress.isGroup() ? fromAddress.groupMembers().first().address() : fromAddress.address();
+    }
+    return QString();
 }
 
 bool EmailAccountListModel::standardFoldersRetrieved(int idx)
