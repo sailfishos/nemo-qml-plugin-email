@@ -6,6 +6,7 @@ PKGCONFIG += QmfMessageServer QmfClient accounts-qt5
 
 SOURCES += \
     $$PWD/emailaccountlistmodel.cpp \
+    $$PWD/emailtransmitaddresslistmodel.cpp \
     $$PWD/emailmessagelistmodel.cpp \
     $$PWD/folderaccessor.cpp \
     $$PWD/folderlistmodel.cpp \
@@ -33,6 +34,7 @@ PUBLIC_HEADERS += \
 PRIVATE_HEADERS += \
     $$PWD/attachmentlistmodel.h \
     $$PWD/emailaccountlistmodel.h \
+    $$PWD/emailtransmitaddresslistmodel.h \
     $$PWD/emailfolder.h \
     $$PWD/emailmessagelistmodel.h \
     $$PWD/emailutils.h \
