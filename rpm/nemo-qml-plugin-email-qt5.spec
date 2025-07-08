@@ -15,7 +15,7 @@ BuildRequires:  pkgconfig(Qt5Network)
 BuildRequires:  pkgconfig(Qt5Concurrent)
 BuildRequires:  pkgconfig(Qt5Test)
 BuildRequires:  pkgconfig(QmfMessageServer) >= 4.0.4+git127
-BuildRequires:  pkgconfig(QmfClient) >= 4.0.4+git165
+BuildRequires:  pkgconfig(QmfClient) >= 4.0.4+git166
 BuildRequires:  pkgconfig(accounts-qt5)
 
 %description
