@@ -393,6 +393,7 @@ bool EmailMessage::sendReadReceipt(const QString &subjectPrefix, const QString &
     }
     QMailMessage outgoingMessage = QMailMessage::asReadReceipt(m_msg, readReceiptBodyText,
                                                                subjectPrefix, QStringLiteral("sailfishos.org; Email application"));
+    outgoingMessage.setFrom(QMailAddress(accountAddress()));
 
     // set message basic attributes
     outgoingMessage.setStatus(QMailMessage::Outgoing, true);
@@ -540,9 +541,29 @@ int EmailMessage::accountId() const
 // Email address of the account having the message
 QString EmailMessage::accountAddress() const
 {
-    QMailAccount account(m_msg.parentAccountId());
-    return account.fromAddress().address();
+    const QMailAddress accountAddress(QMailAccount(m_msg.parentAccountId()).fromAddress());
+    if (accountAddress.isGroup()) {
+        // Try to match one of the group address with the
+        // to: and cc: fields of the message.
+        QSet<QString> addresses;
+        for (const QMailAddress &add : m_msg.to()) {
+            addresses.insert(add.address());
+        }
+        for (const QMailAddress &add : m_msg.cc()) {
+            addresses.insert(add.address());
+        }
+        for (const QMailAddress &sub : accountAddress.groupMembers()) {
+            if (addresses.contains(sub.address())) {
+                return sub.address();
+            }
+        }
+        qCWarning(lcEmail) << "Cannot find matching address, using first account address.";
+        return accountAddress.groupMembers().first().address();
+    } else {
+        return accountAddress.address();
+    }
 }
+
 
 int EmailMessage::folderId() const
 {
