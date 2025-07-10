@@ -15,33 +15,77 @@
 
 #include "emailaccount.h"
 #include "emailagent.h"
+#include "emailautoconfig.h"
 #include "logging_p.h"
 
 namespace {
-    QString securityType(const QString &securityType) {
-        if (securityType.toLower() == QLatin1String("ssl")) {
-            return QLatin1String("1");
-        } else if (securityType.toLower() == QLatin1String("starttls")) {
-            return QLatin1String("2");
+    void setFromAutoConfig(EmailAccount *acc, const EmailAutoConfig &autoConfig)
+    {
+        int port = 0;
+        QMailTransport::EncryptType security = QMailTransport::Encrypt_NONE;
+        const QString imapServer = autoConfig.imapServer();
+        if (!imapServer.isEmpty()) {
+            acc->setRecvType(QStringLiteral("imap4"));
+            acc->setRecvServer(imapServer);
+            security = QMailTransport::Encrypt_SSL;
+            port = autoConfig.imapPort(security);
+            if (!port) {
+                security = QMailTransport::Encrypt_TLS;
+                port = autoConfig.imapPort(security);
+                if (!port) {
+                    security = QMailTransport::Encrypt_NONE;
+                    port = autoConfig.imapPort(security);
+                }
+            }
+        } else {
+            const QString popServer = autoConfig.popServer();
+            if (!imapServer.isEmpty()) {
+                acc->setRecvType(QStringLiteral("pop3"));
+                acc->setRecvServer(popServer);
+                security = QMailTransport::Encrypt_SSL;
+                port = autoConfig.popPort(security);
+                if (!port) {
+                    security = QMailTransport::Encrypt_TLS;
+                    port = autoConfig.popPort(security);
+                    if (!port) {
+                        security = QMailTransport::Encrypt_NONE;
+                        port = autoConfig.popPort(security);
+                    }
+                }
+            }
+        }
+        if (port > 0) {
+            acc->setRecvSecurity(QString::number(security));
+            acc->setRecvPort(QString::number(port));
         }
 
-        if (securityType.toLower() != QLatin1String("none"))
-            qCWarning(lcEmail) << "Unknown security type:" << securityType;
-        return QLatin1String("0");
-    }
-
-    QString authorizationType(const QString &authType) {
-        if (authType.toLower() == QLatin1String("login")) {
-            return QLatin1String("1");
-        } else if (authType.toLower() == QLatin1String("plain")) {
-            return QLatin1String("2");
-        } else if (authType.toLower() == QLatin1String("cram-md5")) {
-            return QLatin1String("3");
+        const QString smtpServer = autoConfig.smtpServer();
+        if (!smtpServer.isEmpty()) {
+            acc->setSendServer(smtpServer);
+            security = QMailTransport::Encrypt_SSL;
+            port = autoConfig.smtpPort(security);
+            if (!port) {
+                security = QMailTransport::Encrypt_TLS;
+                port = autoConfig.smtpPort(security);
+                if (!port) {
+                    security = QMailTransport::Encrypt_NONE;
+                    port = autoConfig.smtpPort(security);
+                }
+            }
+            if (port > 0) {
+                EmailAutoConfig::AuthList auth = autoConfig.smtpAuthentication(security);
+                if (auth.first() == QMail::XOAuth2Mechanism) {
+                    // todo: UI doesn't support OAuth2 for generic accounts
+                    // fallback to plain.
+                    auth.takeFirst();
+                    if (auth.isEmpty())
+                        auth << QMail::PlainMechanism;
+                }
+                acc->setSendAuth(QString::number(auth.first()));
+                acc->setSendSecurity(QString::number(security));
+                acc->setSendPort(QString::number(port));
+            }
         }
-
-        if (authType.toLower() != QLatin1String("none"))
-            qCWarning(lcEmail) << "Unknown authorization type:" << authType;
-        return QLatin1String("0");
     }
 }
 
@@ -206,36 +250,19 @@ void EmailAccount::cancelTest()
 
 void EmailAccount::retrieveSettings(const QString &emailAdress)
 {
-    QString domain = QString(emailAdress).remove(QRegExp("^.*@")).toLower();
-    QSettings domains(QSettings::SystemScope, "nemo-qml-plugin-email", "domainSettings");
+    EmailAutoConfig *autoConfig = new EmailAutoConfig(this);
 
-    if (!domain.isEmpty() && domains.contains(domain + QLatin1String("/serviceProvider"))) {
-        domains.beginGroup(domain);
-        QString serviceName = domains.value("serviceProvider").toString();
-
-        QSettings services(QSettings::SystemScope, "nemo-qml-plugin-email", "serviceSettings");
-
-        if (services.contains(serviceName + QLatin1String("/incomingServer"))) {
-            services.beginGroup(serviceName);
-
-            setRecvType(services.value("incomingServerType").toString());
-            setRecvServer(services.value("incomingServer").toString());
-            setRecvSecurity(securityType(services.value("incomingSecureConnection").toString()));
-            setRecvPort(services.value("incomingPort").toString());
-
-            setSendServer(services.value("outgoingServer").toString());
-            setSendSecurity(securityType(services.value("outgoingSecureConnection").toString()));
-            setSendPort(services.value("outgoingPort").toString());
-            setSendAuth(authorizationType(services.value("outgoingAuthentication").toString()));
-
-            emit settingsRetrieved();
-
-        } else {
-            emit settingsRetrievalFailed();
-        }
-    }  else {
-        emit settingsRetrievalFailed();
-    }
+    connect(autoConfig, &EmailAutoConfig::configChanged,
+            this, [this, autoConfig] () {
+                      if (autoConfig->status() == EmailAutoConfig::Available) {
+                          setFromAutoConfig(this, *autoConfig);
+                          emit settingsRetrieved();
+                      } else {
+                          emit settingsRetrievalFailed();
+                      }
+                      autoConfig->deleteLater();
+                  });
+    autoConfig->setProvider(QString(emailAdress).remove(QRegExp("^.*@")).toLower());
 }
 
 void EmailAccount::timeout()

@@ -13,6 +13,9 @@
            <case manual="false" name="folderlistmodel">
                <step>/usr/sbin/run-blts-root /bin/su $USER -g privileged -c /opt/tests/nemo-qml-plugin-email-qt5/tst_folderlistmodel</step>
            </case>
+           <case manual="false" name="autoconfig">
+               <step>/usr/sbin/run-blts-root /bin/su $USER -g privileged -c /opt/tests/nemo-qml-plugin-email-qt5/tst_autoconfig</step>
+           </case>
        </set>
    </suite>
 </testdefinition>
