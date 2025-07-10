@@ -6,7 +6,7 @@ CONFIG += qt plugin hide_symbols link_pkgconfig
 
 INCLUDEPATH += ..
 
-QT += qml
+QT += qml xml
 PKGCONFIG += QmfMessageServer QmfClient
 LIBS += -L.. -lnemoemail-qt5
 target.path = $$[QT_INSTALL_QML]/$$PLUGIN_IMPORT_PATH

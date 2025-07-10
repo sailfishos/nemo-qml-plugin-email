@@ -44,6 +44,7 @@
 #include "emailaccountsettingsmodel.h"
 #include "emailaccount.h"
 #include "emailfolder.h"
+#include "emailautoconfig.h"
 #include "attachmentlistmodel.h"
 #include <QtGlobal>
 #include <QtQml>
@@ -85,6 +86,7 @@ public:
         qmlRegisterType<EmailAccountSettingsModel>(uri, 0, 1, "EmailAccountSettingsModel");
         qmlRegisterType<EmailAccount>(uri, 0, 1, "EmailAccount");
         qmlRegisterType<EmailFolder>(uri, 0, 1, "EmailFolder");
+        qmlRegisterType<EmailAutoConfig>(uri, 0, 1, "EmailAutoConfig");
         qmlRegisterUncreatableType<AttachmentListModel>(uri, 0, 1, "AttachmentListModel",
                                                         "AttachmentListModel is got from a EmailMessage");
         qmlRegisterUncreatableType<FolderAccessor>(uri, 0, 1, "FolderAccessor",
