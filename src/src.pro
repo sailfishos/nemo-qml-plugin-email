@@ -1,6 +1,6 @@
 TEMPLATE = lib
-QT += network dbus concurrent
-CONFIG += link_pkgconfig qt hide_symbols create_pc create_prl
+QT += network dbus concurrent xml
+CONFIG += moc link_pkgconfig qt hide_symbols create_pc create_prl
 TARGET = nemoemail-qt5
 PKGCONFIG += QmfMessageServer QmfClient accounts-qt5
 
@@ -19,6 +19,7 @@ SOURCES += \
     $$PWD/emailaccount.cpp \
     $$PWD/emailaction.cpp \
     $$PWD/emailfolder.cpp \
+    $$PWD/emailautoconfig.cpp \
     $$PWD/attachmentlistmodel.cpp \
     $$PWD/logging.cpp
 
@@ -37,6 +38,7 @@ PRIVATE_HEADERS += \
     $$PWD/emailfolder.h \
     $$PWD/emailmessagelistmodel.h \
     $$PWD/emailutils.h \
+    $$PWD/emailautoconfig.h \
     $$PWD/folderaccessor.h \
     $$PWD/folderlistmodel.h \
     $$PWD/folderlistproxymodel.h \
