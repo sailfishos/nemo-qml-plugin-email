@@ -1149,13 +1149,13 @@ QStringList EmailMessage::to() const
 // ############## Private API #########################
 void EmailMessage::buildMessage(QMailMessage *msg)
 {
-    if (msg->responseType() == QMailMessage::Reply || msg->responseType() == QMailMessage::ReplyToAll ||
-            msg->responseType() == QMailMessage::Forward) {
+    if (msg->responseType() == QMailMessage::Reply
+        || msg->responseType() == QMailMessage::ReplyToAll
+        || msg->responseType() == QMailMessage::Forward) {
         // Needed for conversations support
         if (m_originalMessageId.isValid()) {
-            msg->setInResponseTo(m_originalMessageId);
-            QMailMessage originalMessage(m_originalMessageId);
-            updateReferences(m_msg, originalMessage);
+            const QMailMessage originalMessage(m_originalMessageId);
+            m_msg.setReplyReferences(originalMessage);
         }
     }
 
@@ -1332,27 +1332,6 @@ void EmailMessage::requestInlinePartsDownload(const QMap<QString, QMailMessagePa
     while (iter.hasNext()) {
         iter.next();
         EmailAgent::instance()->downloadMessagePart(iter.value());
-    }
-}
-
-void EmailMessage::updateReferences(QMailMessage &message, const QMailMessage &originalMessage)
-{
-    QString references(originalMessage.headerFieldText("References"));
-    if (references.isEmpty()) {
-        references = originalMessage.headerFieldText("In-Reply-To");
-    }
-    QString precursorId(originalMessage.headerFieldText("Message-ID"));
-    if (!precursorId.isEmpty()) {
-        message.setHeaderField("In-Reply-To", precursorId);
-
-        if (!references.isEmpty()) {
-            references.append(' ');
-        }
-        references.append(precursorId);
-    }
-    if (!references.isEmpty()) {
-        // TODO: Truncate references if they're too long
-        message.setHeaderField("References", references);
     }
 }
 
