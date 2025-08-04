@@ -27,7 +27,7 @@ class Q_DECL_EXPORT EmailAccountListModel : public QMailAccountListModel
 public:
     enum Role {
         DisplayName = Qt::UserRole + 4,
-        EmailAddress,
+        EmailAddresses,
         MailServer,
         UnreadCount,
         MailAccountId,
@@ -64,8 +64,7 @@ public:
     Q_INVOKABLE QString customFieldFromAccountId(const QString &name, int accountId) const;
     Q_INVOKABLE QString displayName(int idx);
     Q_INVOKABLE QString displayNameFromAccountId(int accountId);
-    Q_INVOKABLE QString emailAddress(int idx);
-    Q_INVOKABLE QString emailAddressFromAccountId(int accountId);
+    Q_INVOKABLE QString defaultAddressForAccountId(int accountId) const;
     Q_INVOKABLE int indexFromAccountId(int accountId);
     Q_INVOKABLE bool standardFoldersRetrieved(int idx);
     Q_INVOKABLE bool appendSignature(int accountId);

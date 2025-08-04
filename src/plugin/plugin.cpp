@@ -37,12 +37,14 @@
 #include "folderlistproxymodel.h"
 #include "folderlistfiltertypemodel.h"
 #include "emailaccountlistmodel.h"
+#include "emailtransmitaddresslistmodel.h"
 #include "emailmessagelistmodel.h"
 #include "emailagent.h"
 #include "emailmessage.h"
 #include "emailaccountsettingsmodel.h"
 #include "emailaccount.h"
 #include "emailfolder.h"
+#include "emailautoconfig.h"
 #include "attachmentlistmodel.h"
 #include <QtGlobal>
 #include <QtQml>
@@ -77,12 +79,14 @@ public:
         qmlRegisterType<FolderListProxyModel>(uri, 0, 1, "FolderListProxyModel");
         qmlRegisterType<FolderListFilterTypeModel>(uri, 0, 1, "FolderListFilterTypeModel");
         qmlRegisterType<EmailAccountListModel>(uri, 0, 1, "EmailAccountListModel");
+        qmlRegisterType<EmailTransmitAddressListModel>(uri, 0, 1, "EmailTransmitAddressListModel");
         qmlRegisterType<EmailMessageListModel>(uri, 0, 1, "EmailMessageListModel");
         qmlRegisterType<EmailAgent>(uri, 0, 1, "EmailAgent");
         qmlRegisterType<EmailMessage>(uri, 0, 1, "EmailMessage");
         qmlRegisterType<EmailAccountSettingsModel>(uri, 0, 1, "EmailAccountSettingsModel");
         qmlRegisterType<EmailAccount>(uri, 0, 1, "EmailAccount");
         qmlRegisterType<EmailFolder>(uri, 0, 1, "EmailFolder");
+        qmlRegisterType<EmailAutoConfig>(uri, 0, 1, "EmailAutoConfig");
         qmlRegisterUncreatableType<AttachmentListModel>(uri, 0, 1, "AttachmentListModel",
                                                         "AttachmentListModel is got from a EmailMessage");
         qmlRegisterUncreatableType<FolderAccessor>(uri, 0, 1, "FolderAccessor",
