@@ -179,7 +179,7 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const
 
     switch (role) {
     case FolderName:
-        if (item->folderId == QMailFolder::LocalStorageFolderId) {
+        if (item->folderId == QMailFolderId::LocalStorageFolderId) {
             return localFolderName(item->folderType);
         } else {
             return folder.displayName();
@@ -208,15 +208,15 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const
         return item->folderType;
     case FolderRenamePermitted:
     case FolderMovePermitted:
-        return item->folderId != QMailFolder::LocalStorageFolderId
+        return item->folderId != QMailFolderId::LocalStorageFolderId
                 && !isStandardFolder(item->folderId)
                 && (folder.status() & QMailFolder::RenamePermitted);
     case FolderDeletionPermitted:
-        return item->folderId != QMailFolder::LocalStorageFolderId
+        return item->folderId != QMailFolderId::LocalStorageFolderId
                 && !isStandardFolder(item->folderId)
                 && (folder.status() & QMailFolder::DeletionPermitted);
     case FolderChildCreatePermitted:
-        return item->folderId != QMailFolder::LocalStorageFolderId
+        return item->folderId != QMailFolderId::LocalStorageFolderId
                 && folder.status() & QMailFolder::ChildCreationPermitted;
     case FolderMessagesPermitted:
         return folder.status() & QMailFolder::MessagesPermitted;
@@ -292,7 +292,7 @@ void FolderListModel::onFoldersAdded(const QMailFolderIdList &ids)
     if (ids.size() > 1) {
         for (const QMailFolderId &folderId : ids) {
             QMailFolder folder(folderId);
-            if (folderId == QMailFolder::LocalStorageFolderId || folder.parentAccountId() == m_accountId) {
+            if (folderId == QMailFolderId::LocalStorageFolderId || folder.parentAccountId() == m_accountId) {
                 resetModel(); //Many folders added, reload model
                 return;
             }
@@ -303,7 +303,7 @@ void FolderListModel::onFoldersAdded(const QMailFolderIdList &ids)
     }
     QMailFolderId folderId = ids.first();
     QMailFolder folder(folderId);
-    if (folderId == QMailFolder::LocalStorageFolderId) {
+    if (folderId == QMailFolderId::LocalStorageFolderId) {
         resetModel(); //local folder added
         return;
     }
@@ -345,7 +345,7 @@ void FolderListModel::onFoldersChanged(const QMailFolderIdList &ids)
     bool needCheckResync = false;
     for (const QMailFolderId &folderId : ids) {
         QMailFolder folder(folderId);
-        if (folderId == QMailFolder::LocalStorageFolderId || folder.parentAccountId() == m_accountId) {
+        if (folderId == QMailFolderId::LocalStorageFolderId || folder.parentAccountId() == m_accountId) {
             doReloadModel();
             emit dataChanged(createIndex(0, 0), createIndex(m_folderList.count() - 1, 0));
             needCheckResync = true;
@@ -377,7 +377,7 @@ void FolderListModel::updateUnreadCount(const QMailFolderIdList &folderIds)
     }
 }
 
-// Note that local folders all have same id (QMailFolder::LocalStorageFolderId)
+// Note that local folders all have same id (QMailFolderId::LocalStorageFolderId)
 int FolderListModel::folderId(int idx)
 {
     return data(index(idx,0), FolderId).toInt();
@@ -397,7 +397,7 @@ FolderAccessor *FolderListModel::folderAccessor(int index)
 }
 
 // For local folder first index found will be returned,
-// since folderId is always the same (QMailFolder::LocalStorageFolderId)
+// since folderId is always the same (QMailFolderId::LocalStorageFolderId)
 int FolderListModel::indexFromFolderId(int folderId)
 {
     QMailFolderId mailFolderId(folderId);
@@ -526,7 +526,7 @@ void FolderListModel::doReloadModel()
     QMailFolderId draftsFolderId = account.standardFolder(QMailFolder::DraftsFolder);
     if (!draftsFolderId.isValid()) {
         qCDebug(lcEmail) << "Creating local drafts folder!";
-        createAndAddFolderItem(QMailFolder::LocalStorageFolderId, EmailFolder::DraftsFolder,
+        createAndAddFolderItem(QMailFolderId::LocalStorageFolderId, EmailFolder::DraftsFolder,
                                QMailMessageKey::status(QMailMessage::Draft) &
                                ~QMailMessageKey::status(QMailMessage::Outbox) &
                                ~QMailMessageKey::status(QMailMessage::Trash) &
@@ -539,7 +539,7 @@ void FolderListModel::doReloadModel()
     QMailFolderId sentFolderId = account.standardFolder(QMailFolder::SentFolder);
     if (!sentFolderId.isValid()) {
         qCDebug(lcEmail) << "Creating local sent folder!";
-        createAndAddFolderItem(QMailFolder::LocalStorageFolderId, EmailFolder::SentFolder,
+        createAndAddFolderItem(QMailFolderId::LocalStorageFolderId, EmailFolder::SentFolder,
                                QMailMessageKey::status(QMailMessage::Sent) &
                                ~QMailMessageKey::status(QMailMessage::Trash) &
                                excludeRemovedKey);
@@ -551,7 +551,7 @@ void FolderListModel::doReloadModel()
     QMailFolderId trashFolderId = account.standardFolder(QMailFolder::TrashFolder);
     if (!trashFolderId.isValid()) {
         qCDebug(lcEmail) << "Creating local trash folder!";
-        createAndAddFolderItem(QMailFolder::LocalStorageFolderId, EmailFolder::TrashFolder,
+        createAndAddFolderItem(QMailFolderId::LocalStorageFolderId, EmailFolder::TrashFolder,
                                QMailMessageKey::status(QMailMessage::Trash) &
                                excludeRemovedKey);
     } else {
@@ -561,7 +561,7 @@ void FolderListModel::doReloadModel()
     // Outbox
     QMailFolderId outboxFolderId = account.standardFolder(QMailFolder::OutboxFolder);
     if (!outboxFolderId.isValid()) {
-        createAndAddFolderItem(QMailFolder::LocalStorageFolderId, EmailFolder::OutboxFolder,
+        createAndAddFolderItem(QMailFolderId::LocalStorageFolderId, EmailFolder::OutboxFolder,
                                QMailMessageKey::status(QMailMessage::Outbox) &
                                ~QMailMessageKey::status(QMailMessage::Trash) &
                                excludeRemovedKey);

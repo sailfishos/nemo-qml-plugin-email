@@ -769,7 +769,7 @@ void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
             // If standard folder is not valid we use local storage
             if (!trashFolderId.isValid()) {
                 qCDebug(lcEmail) << "Trash folder not found using local storage";
-                trashFolderId = QMailFolder::LocalStorageFolderId;
+                trashFolderId = QMailFolderId::LocalStorageFolderId;
             }
             m_enqueing = true;
             enqueue(new MoveToFolder(m_storageAction.data(), iter.value(), trashFolderId));
