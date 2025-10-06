@@ -14,6 +14,11 @@
 #include <qmailserviceconfiguration.h>
 #include <qmailserviceaction.h>
 
+#include <QObject>
+#include <QString>
+
+class QTimer;
+
 class Q_DECL_EXPORT EmailAccount : public QObject
 {
     Q_OBJECT
