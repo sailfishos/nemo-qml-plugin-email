@@ -15,7 +15,7 @@
 
 #include <qmailaccount.h>
 #include <qmailstore.h>
-#include <qmailcryptofwd.h>
+#include <qmailcrypto.h>
 
 #include "emailagent.h"
 #include "attachmentlistmodel.h"
@@ -81,7 +81,7 @@ public:
     enum Priority { LowPriority, NormalPriority, HighPriority };
     enum ContentType { Plain, HTML };
 
-    // Matches qmailmessagefwd enum
+    // Matches qmailmessage enum
     enum ResponseType {
         NoResponse          = 0,
         Reply               = 1,
@@ -262,8 +262,8 @@ private slots:
     void onMessagePartDownloaded(const QMailMessageId &messageId, const QString &partLocation, bool success);
     void onInlinePartDownloaded(const QMailMessageId &messageId, const QString &partLocation, bool success);
     void onAttachmentDownloadStatusChanged(const QString &attachmentLocation, EmailAgent::AttachmentStatus status);
-    void onSignCompleted(QMailCryptoFwd::SignatureResult result);
-    void onVerifyCompleted(QMailCryptoFwd::VerificationResult result);
+    void onSignCompleted(QMailCrypto::SignatureResult result);
+    void onVerifyCompleted(QMailCrypto::VerificationResult result);
     void onSendCompleted(bool success);
 
 private:
@@ -304,7 +304,7 @@ private:
     AttachedDataStatus m_calendarStatus;
     bool m_autoVerifySignature;
     SignatureStatus m_signatureStatus;
-    QMailCryptoFwd::VerificationResult m_cryptoResult;
+    QMailCrypto::VerificationResult m_cryptoResult;
     QString m_signatureLocation;
     QString m_cryptedDataLocation;
     EncryptionStatus m_encryptionStatus;

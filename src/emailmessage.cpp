@@ -21,6 +21,7 @@
 #include <qmailnamespace.h>
 #include <qmailcrypto.h>
 #include <qmaildisconnected.h>
+
 #include <QTextDocument>
 #include <QTemporaryFile>
 #include <QStandardPaths>
@@ -232,7 +233,7 @@ void EmailMessage::getCalendarInvitation()
    }
 }
 
-typedef QPair<QSharedPointer<QMailMessage>, QMailCryptoFwd::SignatureResult> ThreadedSignedMessage;
+typedef QPair<QSharedPointer<QMailMessage>, QMailCrypto::SignatureResult> ThreadedSignedMessage;
 
 static ThreadedSignedMessage signatureHelper(QMailMessage *msg,
                                               const QString &engine,
@@ -368,9 +369,9 @@ void EmailMessage::sendBuiltMessage()
     emit sendEnqueued(stored);
 }
 
-void EmailMessage::onSignCompleted(QMailCryptoFwd::SignatureResult result)
+void EmailMessage::onSignCompleted(QMailCrypto::SignatureResult result)
 {
-    if (result != QMailCryptoFwd::SignatureValid) {
+    if (result != QMailCrypto::SignatureValid) {
         qCWarning(lcEmail) << "Error: cannot sign message, SignatureResult: " << result;
         setSignatureStatus(EmailMessage::SignedInvalid);
 
@@ -401,7 +402,7 @@ bool EmailMessage::sendReadReceipt(const QString &subjectPrefix, const QString &
     outgoingMessage.setStatus(QMailMessage::Read, true);
     outgoingMessage.setStatus((QMailMessage::Outbox | QMailMessage::Draft), true);
 
-    outgoingMessage.setParentFolderId(QMailFolder::LocalStorageFolderId);
+    outgoingMessage.setParentFolderId(QMailFolderId::LocalStorageFolderId);
 
     outgoingMessage.setSize(m_msg.indicativeSize() * 1024);
 
@@ -1228,7 +1229,7 @@ void EmailMessage::buildMessage(QMailMessage *msg)
     msg->setStatus(QMailMessage::Read, true);
     msg->setStatus((QMailMessage::Outbox | QMailMessage::Draft), true);
 
-    msg->setParentFolderId(QMailFolder::LocalStorageFolderId);
+    msg->setParentFolderId(QMailFolderId::LocalStorageFolderId);
 
     msg->setMessageType(QMailMessage::Email);
     msg->setSize(msg->indicativeSize() * 1024);
@@ -1464,27 +1465,27 @@ void EmailMessage::onAttachmentDownloadStatusChanged(const QString &attachmentLo
     }
 }
 
-static EmailMessage::SignatureStatus toSignatureStatus(QMailCryptoFwd::SignatureResult result)
+static EmailMessage::SignatureStatus toSignatureStatus(QMailCrypto::SignatureResult result)
 {
     switch (result) {
-    case QMailCryptoFwd::SignatureValid:
+    case QMailCrypto::SignatureValid:
         return EmailMessage::SignedValid;
-    case QMailCryptoFwd::SignatureExpired:
-    case QMailCryptoFwd::KeyExpired:
-    case QMailCryptoFwd::CertificateRevoked:
+    case QMailCrypto::SignatureExpired:
+    case QMailCrypto::KeyExpired:
+    case QMailCrypto::CertificateRevoked:
         return EmailMessage::SignedExpired;
-    case QMailCryptoFwd::BadSignature:
+    case QMailCrypto::BadSignature:
         return EmailMessage::SignedInvalid;
-    case QMailCryptoFwd::MissingKey:
+    case QMailCrypto::MissingKey:
         return EmailMessage::SignedMissing;
-    case QMailCryptoFwd::MissingSignature:
+    case QMailCrypto::MissingSignature:
         return EmailMessage::NoDigitalSignature;
     default:
         return EmailMessage::SignedFailure;
     }
 }
 
-void EmailMessage::onVerifyCompleted(QMailCryptoFwd::VerificationResult result)
+void EmailMessage::onVerifyCompleted(QMailCrypto::VerificationResult result)
 {
     m_cryptoResult = result;
 
@@ -1509,21 +1510,21 @@ void EmailMessage::onVerifyCompleted(QMailCryptoFwd::VerificationResult result)
 
 EmailMessage::SignatureStatus EmailMessage::getSignatureStatusForKey(const QString &keyIdentifier) const
 {
-    foreach (const QMailCryptoFwd::KeyResult &result, m_cryptoResult.keyResults) {
+    foreach (const QMailCrypto::KeyResult &result, m_cryptoResult.keyResults) {
         if (result.key == keyIdentifier)
             return toSignatureStatus(result.status);
     }
     return EmailMessage::SignedMissing;
 }
 
-static QMailCryptoFwd::VerificationResult verificationHelper(QMailMessage *message)
+static QMailCrypto::VerificationResult verificationHelper(QMailMessage *message)
 {
     QMailCryptographicServiceInterface *engine = 0;
     const QMailMessagePartContainer *cryptoContainer
         = QMailCryptographicService::findSignedContainer(message, &engine);
-    QMailCryptoFwd::VerificationResult result = (cryptoContainer && engine)
+    QMailCrypto::VerificationResult result = (cryptoContainer && engine)
         ? engine->verifySignature(*cryptoContainer)
-        : QMailCryptoFwd::VerificationResult(QMailCryptoFwd::MissingSignature);
+        : QMailCrypto::VerificationResult(QMailCrypto::MissingSignature);
     delete message;
     return result;
 }
@@ -1551,10 +1552,10 @@ void EmailMessage::verifySignature()
         setSignatureStatus(EmailMessage::SignatureChecking);
 
         // Execute verification in a thread, using a copy of the message.
-        QFutureWatcher<QMailCryptoFwd::VerificationResult> *verifyingWatcher
-          = new QFutureWatcher<QMailCryptoFwd::VerificationResult>(this);
+        QFutureWatcher<QMailCrypto::VerificationResult> *verifyingWatcher
+          = new QFutureWatcher<QMailCrypto::VerificationResult>(this);
         connect(verifyingWatcher,
-                &QFutureWatcher<QMailCryptoFwd::VerificationResult>::finished,
+                &QFutureWatcher<QMailCrypto::VerificationResult>::finished,
                 this,
                 [=] {
                     verifyingWatcher->deleteLater();
@@ -1562,7 +1563,7 @@ void EmailMessage::verifySignature()
                 });
         // Delegate the ownership to the thread later.
         QMailMessage *verificationCopy = new QMailMessage(m_msg.id());
-        QFuture<QMailCryptoFwd::VerificationResult> future =
+        QFuture<QMailCrypto::VerificationResult> future =
             QtConcurrent::run(verificationHelper, verificationCopy);
         verifyingWatcher->setFuture(future);
     } else {
@@ -1611,10 +1612,10 @@ EmailMessage::CryptoProtocol EmailMessage::cryptoProtocol() const
     return cryptoProtocolForKey(m_signingPlugin, m_signingKeys.value(0, QString()));
 }
 
-typedef QPair<QSharedPointer<QMailMessage>, QMailCryptoFwd::DecryptionResult> DecryptionMessage;
+typedef QPair<QSharedPointer<QMailMessage>, QMailCrypto::DecryptionResult> DecryptionMessage;
 static DecryptionMessage decryptionHelper(QMailMessage *message)
 {
-    const QMailCryptoFwd::DecryptionResult result =
+    const QMailCrypto::DecryptionResult result =
         QMailCryptographicService::decrypt(message);
     return DecryptionMessage(QSharedPointer<QMailMessage>(message), result);
 }
@@ -1646,7 +1647,7 @@ void EmailMessage::decrypt()
                 [=] {
                     decryptingWatcher->deleteLater();
                     DecryptionMessage result = decryptingWatcher->result();
-                    if (result.second.status == QMailCryptoFwd::Decrypted) {
+                    if (result.second.status == QMailCrypto::Decrypted) {
                         setEncryptionStatus(EmailMessage::NoDigitalEncryption);
                         m_msg = *result.first;
                         m_bodyText = EmailAgent::instance()->bodyPlainText(m_msg);

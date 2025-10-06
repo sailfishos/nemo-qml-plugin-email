@@ -29,7 +29,7 @@ int FolderUtils::folderUnreadCount(const QMailFolderId &folderId, EmailFolder::F
         // report actual unread count
         QMailMessageKey accountKey;
         // Local folders can have messages from several accounts.
-        if (folderId == QMailFolder::LocalStorageFolderId) {
+        if (folderId == QMailFolderId::LocalStorageFolderId) {
             accountKey = QMailMessageKey::parentAccountId(accountId);
         }
         QMailMessageKey parentFolderKey = accountKey & QMailMessageKey::parentFolderId(folderId);
@@ -42,7 +42,7 @@ int FolderUtils::folderUnreadCount(const QMailFolderId &folderId, EmailFolder::F
         // report all mails count, read and unread
         QMailMessageKey accountKey;
         // Local folders can have messages from several accounts.
-        if (folderId == QMailFolder::LocalStorageFolderId) {
+        if (folderId == QMailFolderId::LocalStorageFolderId) {
             accountKey = QMailMessageKey::parentAccountId(accountId);
         }
         QMailMessageKey parentFolderKey = accountKey & QMailMessageKey::parentFolderId(folderId);
@@ -63,7 +63,7 @@ EmailFolder::FolderType FolderUtils::folderTypeFromId(const QMailFolderId &id)
     }
 
     QMailFolder folder(id);
-    if (!folder.parentAccountId().isValid() || id == QMailFolder::LocalStorageFolderId) {
+    if (!folder.parentAccountId().isValid() || id == QMailFolderId::LocalStorageFolderId) {
         // Local folder
         return EmailFolder::NormalFolder;
     }
