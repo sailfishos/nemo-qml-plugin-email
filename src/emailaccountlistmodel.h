@@ -92,10 +92,9 @@ private slots:
     void onAccountsUpdated(const QMailAccountIdList& ids);
 
 protected:
-    virtual QHash<int, QByteArray> roleNames() const;
+    QHash<int, QByteArray> roleNames() const override;
 
 private:
-    QHash<int, QByteArray> roles;
     QHash<QMailAccountId, int> m_unreadCountCache;
     QDateTime m_lastUpdateTime;
     bool m_onlyTransmitAccounts;

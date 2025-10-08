@@ -44,8 +44,8 @@ public:
 
     EmailAccountSettingsModel(QObject *parent = 0);
     Q_INVOKABLE void reload();
-    Q_INVOKABLE int rowCount(const QModelIndex &parent = QModelIndex()) const;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+    Q_INVOKABLE int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
 
     // wrappers to allow data, setData to be called from QML
@@ -66,10 +66,9 @@ public slots:
     void deleteRow(int row);
 
 protected:
-    virtual QHash<int, QByteArray> roleNames() const;
+    QHash<int, QByteArray> roleNames() const override;
 
 private:
-    QHash<int,QByteArray> roles;
     QList<QMailAccount> mAccounts;
     QList<QMailAccountConfiguration> mAccountConfigs;
     int mUpdateInterval;

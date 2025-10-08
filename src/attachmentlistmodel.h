@@ -57,8 +57,8 @@ public:
         double progressInfo = 0.;
     };
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const;
-    QVariant data(const QModelIndex &index, int role) const;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex &index, int role) const override;
 
     Q_INVOKABLE QString displayName(int idx);
     Q_INVOKABLE bool isDownloaded(int idx);
@@ -72,7 +72,7 @@ public:
     int count() const;
 
 protected:
-    virtual QHash<int, QByteArray> roleNames() const;
+    QHash<int, QByteArray> roleNames() const override;
 
 signals:
     void countChanged();
@@ -85,7 +85,6 @@ private slots:
     void onDirectoryChanged(const QString &path);
 
 private:
-    QHash<int, QByteArray> roles;
     EmailMessage *m_message;
     QList<Attachment> m_attachmentsList;
     QFileSystemWatcher *m_attachmentFileWatcher;

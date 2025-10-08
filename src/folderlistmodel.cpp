@@ -126,20 +126,6 @@ FolderListModel::FolderListModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_accountId(QMailAccountId())
 {
-    roles.insert(FolderName, "folderName");
-    roles.insert(FolderId, "folderId");
-    roles.insert(FolderUnreadCount, "folderUnreadCount");
-    roles.insert(FolderServerCount, "folderServerCount");
-    roles.insert(FolderNestingLevel, "folderNestingLevel");
-    roles.insert(FolderType, "folderType");
-    roles.insert(FolderRenamePermitted, "canRename");
-    roles.insert(FolderDeletionPermitted, "canDelete");
-    roles.insert(FolderChildCreatePermitted, "canCreateChild");
-    roles.insert(FolderMovePermitted, "canMove");
-    roles.insert(FolderMessagesPermitted, "canHaveMessages");
-    roles.insert(FolderSyncEnabled, "syncEnabled");
-    roles.insert(FolderParentId, "parentFolderId");
-
     connect(QMailStore::instance(), &QMailStore::foldersAdded,
             this, &FolderListModel::onFoldersAdded);
     connect(QMailStore::instance(), &QMailStore::foldersRemoved,
@@ -158,6 +144,22 @@ FolderListModel::~FolderListModel()
 
 QHash<int, QByteArray> FolderListModel::roleNames() const
 {
+    static QHash<int, QByteArray> roles;
+    if (roles.isEmpty()) {
+        roles.insert(FolderName, "folderName");
+        roles.insert(FolderId, "folderId");
+        roles.insert(FolderUnreadCount, "folderUnreadCount");
+        roles.insert(FolderServerCount, "folderServerCount");
+        roles.insert(FolderNestingLevel, "folderNestingLevel");
+        roles.insert(FolderType, "folderType");
+        roles.insert(FolderRenamePermitted, "canRename");
+        roles.insert(FolderDeletionPermitted, "canDelete");
+        roles.insert(FolderChildCreatePermitted, "canCreateChild");
+        roles.insert(FolderMovePermitted, "canMove");
+        roles.insert(FolderMessagesPermitted, "canHaveMessages");
+        roles.insert(FolderSyncEnabled, "syncEnabled");
+        roles.insert(FolderParentId, "parentFolderId");
+    }
     return roles;
 }
 
