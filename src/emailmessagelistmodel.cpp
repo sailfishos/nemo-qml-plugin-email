@@ -34,43 +34,6 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
       m_searchCanceled(false),
       m_folderAccessor(new FolderAccessor(this))
 {
-    roles[QMailMessageModelBase::MessageAddressTextRole] = "sender";
-    roles[QMailMessageModelBase::MessageSubjectTextRole] = "subject";
-    roles[QMailMessageModelBase::MessageFilterTextRole] = "messageFilter";
-    roles[QMailMessageModelBase::MessageTimeStampTextRole] = "timeStamp";
-    roles[QMailMessageModelBase::MessageSizeTextRole] = "size";
-    roles[QMailMessageModelBase::MessageBodyTextRole] = "body";
-    roles[MessageAttachmentCountRole] = "numberOfAttachments";
-    roles[MessageAttachmentsRole] = "listOfAttachments";
-    roles[MessageRecipientsRole] = "recipients";
-    roles[MessageRecipientsDisplayNameRole] = "recipientsDisplayName";
-    roles[MessageReadStatusRole] = "readStatus";
-    roles[MessageQuotedBodyRole] = "quotedBody";
-    roles[MessageIdRole] = "messageId";
-    roles[MessageSenderDisplayNameRole] = "senderDisplayName";
-    roles[MessageSenderEmailAddressRole] = "senderEmailAddress";
-    roles[MessageToRole] = "to";
-    roles[MessageCcRole] = "cc";
-    roles[MessageBccRole] = "bcc";
-    roles[MessageTimeStampRole] = "qDateTime";
-    roles[MessageSelectModeRole] = "selected";
-    roles[MessagePreviewRole] = "preview";
-    roles[MessageTimeSectionRole] = "timeSection";
-    roles[MessagePriorityRole] = "priority";
-    roles[MessageAccountIdRole] = "accountId";
-    roles[MessageHasAttachmentsRole] = "hasAttachments";
-    roles[MessageHasCalendarInvitationRole] = "hasCalendarInvitation";
-    roles[MessageHasSignatureRole] = "hasSignature";
-    roles[MessageIsEncryptedRole] = "isEncrypted";
-    roles[MessageSizeSectionRole] = "sizeSection";
-    roles[MessageFolderIdRole] = "folderId";
-    roles[MessageParsedSubject] = "parsedSubject";
-    roles[MessageTrimmedSubject] = "trimmedSubject";
-    roles[MessageHasCalendarCancellationRole] = "hasCalendarCancellation";
-    roles[MessageRepliedRole] = "replied";
-    roles[MessageRepliedAllRole] = "repliedAll";
-    roles[MessageForwardedRole] = "forwarded";
-
     m_key = key();
     m_sortKey = QMailMessageSortKey::timeStamp(Qt::DescendingOrder);
     m_sortBy = Time;
@@ -106,6 +69,45 @@ EmailMessageListModel::~EmailMessageListModel()
 
 QHash<int, QByteArray> EmailMessageListModel::roleNames() const
 {
+    static QHash<int, QByteArray> roles;
+    if (roles.isEmpty()) {
+        roles[QMailMessageModelBase::MessageAddressTextRole] = "sender";
+        roles[QMailMessageModelBase::MessageSubjectTextRole] = "subject";
+        roles[QMailMessageModelBase::MessageFilterTextRole] = "messageFilter";
+        roles[QMailMessageModelBase::MessageTimeStampTextRole] = "timeStamp";
+        roles[QMailMessageModelBase::MessageSizeTextRole] = "size";
+        roles[QMailMessageModelBase::MessageBodyTextRole] = "body";
+        roles[MessageAttachmentCountRole] = "numberOfAttachments";
+        roles[MessageAttachmentsRole] = "listOfAttachments";
+        roles[MessageRecipientsRole] = "recipients";
+        roles[MessageRecipientsDisplayNameRole] = "recipientsDisplayName";
+        roles[MessageReadStatusRole] = "readStatus";
+        roles[MessageQuotedBodyRole] = "quotedBody";
+        roles[MessageIdRole] = "messageId";
+        roles[MessageSenderDisplayNameRole] = "senderDisplayName";
+        roles[MessageSenderEmailAddressRole] = "senderEmailAddress";
+        roles[MessageToRole] = "to";
+        roles[MessageCcRole] = "cc";
+        roles[MessageBccRole] = "bcc";
+        roles[MessageTimeStampRole] = "qDateTime";
+        roles[MessageSelectModeRole] = "selected";
+        roles[MessagePreviewRole] = "preview";
+        roles[MessageTimeSectionRole] = "timeSection";
+        roles[MessagePriorityRole] = "priority";
+        roles[MessageAccountIdRole] = "accountId";
+        roles[MessageHasAttachmentsRole] = "hasAttachments";
+        roles[MessageHasCalendarInvitationRole] = "hasCalendarInvitation";
+        roles[MessageHasSignatureRole] = "hasSignature";
+        roles[MessageIsEncryptedRole] = "isEncrypted";
+        roles[MessageSizeSectionRole] = "sizeSection";
+        roles[MessageFolderIdRole] = "folderId";
+        roles[MessageParsedSubject] = "parsedSubject";
+        roles[MessageTrimmedSubject] = "trimmedSubject";
+        roles[MessageHasCalendarCancellationRole] = "hasCalendarCancellation";
+        roles[MessageRepliedRole] = "replied";
+        roles[MessageRepliedAllRole] = "repliedAll";
+        roles[MessageForwardedRole] = "forwarded";
+    }
     return roles;
 }
 

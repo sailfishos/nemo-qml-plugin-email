@@ -101,7 +101,6 @@ private:
             , unreadCount(folderUnreadCount) {}
     };
 
-    QHash<int, QByteArray> roles;
     QMailAccountId m_accountId;
     QMailAccount m_account;
     QList<FolderItem*> m_folderList;

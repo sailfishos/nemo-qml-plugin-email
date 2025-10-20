@@ -25,26 +25,6 @@ public:
 EmailAccountSettingsModel::EmailAccountSettingsModel(QObject *parent)
     : QAbstractListModel(parent)
 {
-    roles[DescriptionRole] = "description";
-    roles[EnabledRole] = "enabled";
-    roles[NameRole] = "name";
-    roles[AddressRole] = "address";
-    roles[PasswordRole] = "password";
-
-    roles[RecvTypeRole] = "recvType";
-    roles[RecvServerRole] = "recvServer";
-    roles[RecvPortRole] = "recvPort";
-    roles[RecvSecurityRole] = "recvSecurity";
-    roles[RecvUsernameRole] = "recvUsername";
-    roles[RecvPasswordRole] = "recvPassword";
-
-    roles[SendServerRole] = "sendServer";
-    roles[SendPortRole] = "sendPort";
-    roles[SendAuthRole] = "sendAuth";
-    roles[SendSecurityRole] = "sendSecurity";
-    roles[SendUsernameRole] = "sendUsername";
-    roles[SendPasswordRole] = "sendPassword";
-
     init();
 }
 
@@ -90,6 +70,28 @@ void EmailAccountSettingsModel::reload()
 
 QHash<int, QByteArray> EmailAccountSettingsModel::roleNames() const
 {
+    static QHash<int,QByteArray> roles;
+    if (roles.isEmpty()) {
+        roles[DescriptionRole] = "description";
+        roles[EnabledRole] = "enabled";
+        roles[NameRole] = "name";
+        roles[AddressRole] = "address";
+        roles[PasswordRole] = "password";
+
+        roles[RecvTypeRole] = "recvType";
+        roles[RecvServerRole] = "recvServer";
+        roles[RecvPortRole] = "recvPort";
+        roles[RecvSecurityRole] = "recvSecurity";
+        roles[RecvUsernameRole] = "recvUsername";
+        roles[RecvPasswordRole] = "recvPassword";
+
+        roles[SendServerRole] = "sendServer";
+        roles[SendPortRole] = "sendPort";
+        roles[SendAuthRole] = "sendAuth";
+        roles[SendSecurityRole] = "sendSecurity";
+        roles[SendUsernameRole] = "sendUsername";
+        roles[SendPasswordRole] = "sendPassword";
+    }
     return roles;
 }
 

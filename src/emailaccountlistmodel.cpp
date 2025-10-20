@@ -19,21 +19,6 @@ EmailAccountListModel::EmailAccountListModel(QObject *parent)
     : QMailAccountListModel(parent)
     , m_persistentConnectionActive(false)
 {
-    roles.insert(DisplayName, "displayName");
-    roles.insert(EmailAddress, "emailAddress");
-    roles.insert(MailServer, "mailServer");
-    roles.insert(UnreadCount, "unreadCount");
-    roles.insert(MailAccountId, "mailAccountId");
-    roles.insert(LastSynchronized, "lastSynchronized");
-    roles.insert(StandardFoldersRetrieved, "standardFoldersRetrieved");
-    roles.insert(Signature, "signature");
-    roles.insert(AppendSignature, "appendSignature");
-    roles.insert(IconPath, "iconPath");
-    roles.insert(HasPersistentConnection, "hasPersistentConnection");
-    roles.insert(CryptoSignatureType, "cryptoSignatureType");
-    roles.insert(CryptoSignatureIds, "cryptoSignatureIds");
-    roles.insert(UseCryptoSignatureByDefault, "useCryptoSignatureByDefault");
-
     connect(this, SIGNAL(rowsInserted(QModelIndex,int,int)),
             this,SLOT(onAccountsAdded(QModelIndex,int,int)));
     connect(this, SIGNAL(rowsRemoved(QModelIndex,int,int)),
@@ -86,6 +71,23 @@ int EmailAccountListModel::accountUnreadCount(const QMailAccountId &accountId)
 
 QHash<int, QByteArray> EmailAccountListModel::roleNames() const
 {
+    static QHash<int, QByteArray> roles;
+    if (roles.isEmpty()) {
+        roles.insert(DisplayName, "displayName");
+        roles.insert(EmailAddress, "emailAddress");
+        roles.insert(MailServer, "mailServer");
+        roles.insert(UnreadCount, "unreadCount");
+        roles.insert(MailAccountId, "mailAccountId");
+        roles.insert(LastSynchronized, "lastSynchronized");
+        roles.insert(StandardFoldersRetrieved, "standardFoldersRetrieved");
+        roles.insert(Signature, "signature");
+        roles.insert(AppendSignature, "appendSignature");
+        roles.insert(IconPath, "iconPath");
+        roles.insert(HasPersistentConnection, "hasPersistentConnection");
+        roles.insert(CryptoSignatureType, "cryptoSignatureType");
+        roles.insert(CryptoSignatureIds, "cryptoSignatureIds");
+        roles.insert(UseCryptoSignatureByDefault, "useCryptoSignatureByDefault");
+    }
     return roles;
 }
 

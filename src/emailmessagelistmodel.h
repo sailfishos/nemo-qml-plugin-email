@@ -165,7 +165,6 @@ private:
     void checkFetchMoreChanged();
     void setSearchRemainingOnRemote(int count);
 
-    QHash<int, QByteArray> roles;
     bool m_combinedInbox;
     bool m_canFetchMore;
     int m_limit;

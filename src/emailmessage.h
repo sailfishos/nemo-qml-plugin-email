@@ -68,6 +68,7 @@ class Q_DECL_EXPORT EmailMessage : public QObject
     Q_PROPERTY(QString quotedBody READ quotedBody NOTIFY quotedBodyChanged)
     Q_PROPERTY(QStringList recipients READ recipients NOTIFY recipientsChanged)
     Q_PROPERTY(QStringList recipientsDisplayName READ recipientsDisplayName NOTIFY recipientsDisplayNameChanged)
+    Q_PROPERTY(QString recipientAddress READ recipientAddress NOTIFY recipientsChanged)
     Q_PROPERTY(bool read READ read WRITE setRead NOTIFY readChanged)
     Q_PROPERTY(QString replyTo READ replyTo WRITE setReplyTo NOTIFY replyToChanged)
     Q_PROPERTY(ResponseType responseType READ responseType WRITE setResponseType NOTIFY responseTypeChanged)
@@ -183,6 +184,7 @@ public:
     QString quotedBody();
     QStringList recipients() const;
     QStringList recipientsDisplayName() const;
+    QString recipientAddress() const;
     bool read() const;
     QString replyTo() const;
     ResponseType responseType() const;

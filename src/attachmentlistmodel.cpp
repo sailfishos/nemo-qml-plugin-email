@@ -22,17 +22,6 @@ AttachmentListModel::AttachmentListModel(EmailMessage *parent)
     , m_message(parent)
     , m_attachmentFileWatcher(new QFileSystemWatcher(this))
 {
-    roles.insert(ContentLocation, "contentLocation");
-    roles.insert(DisplayName, "displayName");
-    roles.insert(Downloaded, "downloaded");
-    roles.insert(MimeType, "mimeType");
-    roles.insert(Size, "size");
-    roles.insert(StatusInfo, "statusInfo");
-    roles.insert(Title, "title");
-    roles.insert(Type, "type");
-    roles.insert(Url, "url");
-    roles.insert(ProgressInfo, "progressInfo");
-
     resetModel();
 
     connect(parent, &EmailMessage::attachmentsChanged,
@@ -60,6 +49,19 @@ AttachmentListModel::~AttachmentListModel()
 
 QHash<int, QByteArray> AttachmentListModel::roleNames() const
 {
+    static QHash<int, QByteArray> roles;
+    if (roles.isEmpty()) {
+        roles.insert(ContentLocation, "contentLocation");
+        roles.insert(DisplayName, "displayName");
+        roles.insert(Downloaded, "downloaded");
+        roles.insert(MimeType, "mimeType");
+        roles.insert(Size, "size");
+        roles.insert(StatusInfo, "statusInfo");
+        roles.insert(Title, "title");
+        roles.insert(Type, "type");
+        roles.insert(Url, "url");
+        roles.insert(ProgressInfo, "progressInfo");
+    }
     return roles;
 }
 
