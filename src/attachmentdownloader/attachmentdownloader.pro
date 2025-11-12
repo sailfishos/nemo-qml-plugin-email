@@ -14,5 +14,5 @@ HEADERS += \
     attachmentdownloaderplugin.h \
     attachmentdownloader.h
 
-target.path = $$[QT_INSTALL_PLUGINS]/messageserverplugins
+target.path = $$[QT_INSTALL_PLUGINS]/messagingframework/messageserverplugins
 INSTALLS += target
