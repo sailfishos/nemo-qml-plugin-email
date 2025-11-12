@@ -73,7 +73,7 @@ touch %{buildroot}/usr/lib/nemo-email/force_offline
 %{_libdir}/qt5/qml/Nemo/Email/libnemoemail.so
 %{_libdir}/qt5/qml/Nemo/Email/plugins.qmltypes
 %{_libdir}/qt5/qml/Nemo/Email/qmldir
-%{_libdir}/qt5/plugins/messageserverplugins/libattachmentdownloader.so
+%{_libdir}/qt5/plugins/messagingframework/messageserverplugins/libattachmentdownloader.so
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/domainSettings.conf
 %{_sysconfdir}/xdg/nemo-qml-plugin-email/serviceSettings.conf
 
