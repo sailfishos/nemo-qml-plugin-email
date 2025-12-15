@@ -70,7 +70,6 @@ void tst_EmailMessage::initTestCase()
     m_message.setStatus(QMailMessage::Read, false);
     m_message.setServerUid("inboxMessage1");
     m_message.setSize(5 * 1024);
-    m_message.setContent(QMailMessage::PlainTextContent);
 
     QVERIFY(QMailStore::instance()->addMessage(&m_message));
 
@@ -87,7 +86,6 @@ void tst_EmailMessage::initTestCase()
     m_message2.setStatus(QMailMessage::Read, true);
     m_message2.setServerUid("inboxMessage2");
     m_message2.setSize(5 * 1024);
-    m_message2.setContent(QMailMessage::HtmlContent);
     m_message2.setInResponseTo(m_message.id());
     m_message2.setResponseType(QMailMessage::Reply);
 
