@@ -26,14 +26,18 @@ public:
         // Liberally inspired by https://wiki.mozilla.org/Thunderbird:Autoconfiguration
 
         // Try first the provider exposing its configuration.
-        urls << QString::fromLatin1("http://autoconfig.%1/mail/config-v1.1.xml").arg(provider);
-        urls << QString::fromLatin1("http://%1/.well-known/autoconfig/mail/config-v1.1.xml").arg(provider);
+        urls << QString::fromLatin1("https://autoconfig.%1/mail/config-v1.1.xml").arg(provider);
+        urls << QString::fromLatin1("https://%1/.well-known/autoconfig/mail/config-v1.1.xml").arg(provider);
 
         // Fallback to the Thunderbird database of providers. This depends
         // on Thunderbird database source layout and online service.
         // It may require to be updated when Thunderbird does some changes.
         urls << QString::fromLatin1("https://raw.githubusercontent.com/thunderbird/autoconfig/refs/heads/master/ispdb/%1.xml").arg(provider);
         urls << QString::fromLatin1("https://autoconfig.thunderbird.net/v1.1/%1").arg(provider);
+
+        // finally provider with plain http
+        urls << QString::fromLatin1("http://autoconfig.%1/mail/config-v1.1.xml").arg(provider);
+        urls << QString::fromLatin1("http://%1/.well-known/autoconfig/mail/config-v1.1.xml").arg(provider);
     }
 
     ~ProviderConfig() {}
@@ -43,9 +47,19 @@ public:
         connect(manager, &QNetworkAccessManager::finished,
                 this, [this] (QNetworkReply *reply) {
                           reply->deleteLater();
+
                           if (reply->error() == QNetworkReply::NoError) {
-                              emit fetched(reply->url(), reply);
-                          } else if (!urls.isEmpty()) {
+                              QString contentType = reply->header(QNetworkRequest::ContentTypeHeader).toString();
+                              if (contentType.startsWith(QLatin1String("text/xml"))
+                                      || contentType.startsWith(QLatin1String("text/plain"))) {
+                                  emit fetched(reply->url(), reply);
+                                  return;
+                              } else {
+                                  qCWarning(lcEmail) << "Autoconfig returned unexpected content type, ignoring -" << contentType;
+                              }
+                          }
+
+                          if (!urls.isEmpty()) {
                               reply->manager()->get(nextRequest());
                           } else {
                               emit fetched(QUrl(), nullptr);
