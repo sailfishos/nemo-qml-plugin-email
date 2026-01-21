@@ -47,9 +47,19 @@ public:
         connect(manager, &QNetworkAccessManager::finished,
                 this, [this] (QNetworkReply *reply) {
                           reply->deleteLater();
+
                           if (reply->error() == QNetworkReply::NoError) {
-                              emit fetched(reply->url(), reply);
-                          } else if (!urls.isEmpty()) {
+                              QString contentType = reply->header(QNetworkRequest::ContentTypeHeader).toString();
+                              if (contentType.startsWith(QLatin1String("text/xml"))
+                                      || contentType.startsWith(QLatin1String("text/plain"))) {
+                                  emit fetched(reply->url(), reply);
+                                  return;
+                              } else {
+                                  qCWarning(lcEmail) << "Autoconfig returned unexpected content type, ignoring -" << contentType;
+                              }
+                          }
+
+                          if (!urls.isEmpty()) {
                               reply->manager()->get(nextRequest());
                           } else {
                               emit fetched(QUrl(), nullptr);
