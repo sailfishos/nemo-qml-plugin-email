@@ -109,6 +109,10 @@ void tst_AutoConfig::provider_data()
         << (EmailAutoConfig::AuthList() << QMail::PlainMechanism)
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism);
 
+#if 0
+    // at the moment of writing this (2026-01-21), the proton server returns content with escaped
+    // quotations, line breaks as literal "\n" etc.
+
     // Another autoconfig provided by the mail server.
     QTest::newRow("protonmail.com")
         << "protonmail.com"
@@ -128,6 +132,7 @@ void tst_AutoConfig::provider_data()
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
         << (EmailAutoConfig::AuthList() << QMail::PlainMechanism);
+#endif
 
     // No autoconfig by service and provider not in Thunderbird databse,
     // fallback to local settings.
