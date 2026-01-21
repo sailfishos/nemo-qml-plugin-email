@@ -50,7 +50,7 @@ void tst_AutoConfig::provider_data()
     // Autoconfig case, provided by the mail sevice.
     QTest::newRow("mailbox.org")
         << "mailbox.org"
-        << QUrl("http://autoconfig.mailbox.org/mail/config-v1.1.xml")
+        << QUrl("https://autoconfig.mailbox.org/mail/config-v1.1.xml")
         << "imap.mailbox.org"
         << "pop3.mailbox.org"
         << "smtp.mailbox.org"
