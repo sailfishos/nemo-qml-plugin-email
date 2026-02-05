@@ -12,10 +12,12 @@
 
 #include <QAbstractListModel>
 #include <QFileSystemWatcher>
+
 #include <qmailmessage.h>
 #include "emailagent.h"
 
 class EmailMessage;
+
 class Q_DECL_EXPORT AttachmentListModel : public QAbstractListModel
 {
     Q_OBJECT

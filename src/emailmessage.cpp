@@ -34,7 +34,8 @@
 namespace {
 
 struct PartFinder {
-    PartFinder(const QByteArray &type, const QByteArray &subType, const QMailMessagePart *&part) : type(type), subType(subType), partFound(part) {}
+    PartFinder(const QByteArray &type, const QByteArray &subType, const QMailMessagePart *&part)
+        : type(type), subType(subType), partFound(part) {}
 
     QByteArray type;
     QByteArray subType;

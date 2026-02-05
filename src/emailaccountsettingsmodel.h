@@ -81,4 +81,3 @@ private:
 };
 
 #endif // EMAILACCOUNTSETTINGSMODEL_H
-
