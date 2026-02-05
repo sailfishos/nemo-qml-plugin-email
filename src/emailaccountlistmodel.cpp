@@ -267,12 +267,13 @@ void EmailAccountListModel::onAccountsUpdated(const QMailAccountIdList &ids)
     }
 
     // Global lastSyncTime and persistent connection(all accounts)
-    bool emitSignal = false;
+    bool lastUpdateChange = false;
     bool persistentConnectionActivePrevious = m_persistentConnectionActive;
     m_persistentConnectionActive = false;
+
     for (int row = 0; row < rowCount(); row++) {
         if ((data(index(row), EmailAccountListModel::LastSynchronized)).toDateTime() > m_lastUpdateTime) {
-            emitSignal = true;
+            lastUpdateChange = true;
             m_lastUpdateTime = (data(index(row), EmailAccountListModel::LastSynchronized)).toDateTime();
         }
 
@@ -287,7 +288,7 @@ void EmailAccountListModel::onAccountsUpdated(const QMailAccountIdList &ids)
         emit persistentConnectionActiveChanged();
     }
 
-    if (emitSignal) {
+    if (lastUpdateChange) {
         emit lastUpdateTimeChanged();
     }
 
