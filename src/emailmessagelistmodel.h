@@ -149,12 +149,12 @@ public:
     Q_INVOKABLE void markAllMessagesAsRead();
 
 private slots:
-    void messagesAdded(const QMailMessageIdList &ids);
-    void messagesRemoved(const QMailMessageIdList &ids);
+    void onMessagesAdded(const QMailMessageIdList &ids);
+    void onMessagesRemoved(const QMailMessageIdList &ids);
     void searchOnline();
     void onSearchCompleted(const QString &search, const QMailMessageIdList &matchedIds, bool isRemote,
                            int remainingMessagesOnRemote, EmailAgent::SearchStatus status);
-    void accountsChanged();
+    void onAccountsChanged();
 
 protected:
     QHash<int, QByteArray> roleNames() const override;
