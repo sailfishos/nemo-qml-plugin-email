@@ -47,13 +47,13 @@ EmailMessageListModel::EmailMessageListModel(QObject *parent)
             this, SIGNAL(countChanged()));
 
     connect(QMailStore::instance(), &QMailStore::messagesAdded,
-            this, &EmailMessageListModel::messagesAdded);
+            this, &EmailMessageListModel::onMessagesAdded);
 
     connect(QMailStore::instance(), &QMailStore::messagesRemoved,
-            this, &EmailMessageListModel::messagesRemoved);
+            this, &EmailMessageListModel::onMessagesRemoved);
 
     connect(QMailStore::instance(), &QMailStore::accountsUpdated,
-            this, &EmailMessageListModel::accountsChanged);
+            this, &EmailMessageListModel::onAccountsChanged);
 
     connect(EmailAgent::instance(), &EmailAgent::searchCompleted,
             this, &EmailMessageListModel::onSearchCompleted);
@@ -774,7 +774,7 @@ void EmailMessageListModel::checkFetchMoreChanged()
     }
 }
 
-void EmailMessageListModel::messagesAdded(const QMailMessageIdList &ids)
+void EmailMessageListModel::onMessagesAdded(const QMailMessageIdList &ids)
 {
     Q_UNUSED(ids);
 
@@ -783,7 +783,7 @@ void EmailMessageListModel::messagesAdded(const QMailMessageIdList &ids)
     }
 }
 
-void EmailMessageListModel::messagesRemoved(const QMailMessageIdList &ids)
+void EmailMessageListModel::onMessagesRemoved(const QMailMessageIdList &ids)
 {
     Q_UNUSED(ids);
 
@@ -843,7 +843,7 @@ void EmailMessageListModel::onSearchCompleted(const QString &search, const QMail
     }
 }
 
-void EmailMessageListModel::accountsChanged()
+void EmailMessageListModel::onAccountsChanged()
 {
     if (!m_combinedInbox) {
         return;

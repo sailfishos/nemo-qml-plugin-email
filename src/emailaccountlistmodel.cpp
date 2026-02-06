@@ -75,7 +75,6 @@ QHash<int, QByteArray> EmailAccountListModel::roleNames() const
     if (roles.isEmpty()) {
         roles.insert(DisplayName, "displayName");
         roles.insert(EmailAddress, "emailAddress");
-        roles.insert(MailServer, "mailServer");
         roles.insert(UnreadCount, "unreadCount");
         roles.insert(MailAccountId, "mailAccountId");
         roles.insert(LastSynchronized, "lastSynchronized");
@@ -131,19 +130,11 @@ QVariant EmailAccountListModel::data(const QModelIndex &index, int role) const
         return account.fromAddress().address();
     }
 
-    if (role == MailServer) {
-        QString address = account.fromAddress().address();
-        int index = address.indexOf("@");
-        QString server = address.right(address.size() - index - 1);
-        index = server.indexOf(".com", Qt::CaseInsensitive);
-        return server.left(index);
-    }
-
     if (role == LastSynchronized) {
         if (account.lastSynchronized().isValid()) {
             return account.lastSynchronized().toLocalTime();
         } else {
-            //Account was never synced, return zero
+            // Account was never synced, return zero
             return 0;
         }
     }
@@ -267,12 +258,13 @@ void EmailAccountListModel::onAccountsUpdated(const QMailAccountIdList &ids)
     }
 
     // Global lastSyncTime and persistent connection(all accounts)
-    bool emitSignal = false;
+    bool lastUpdateChange = false;
     bool persistentConnectionActivePrevious = m_persistentConnectionActive;
     m_persistentConnectionActive = false;
+
     for (int row = 0; row < rowCount(); row++) {
         if ((data(index(row), EmailAccountListModel::LastSynchronized)).toDateTime() > m_lastUpdateTime) {
-            emitSignal = true;
+            lastUpdateChange = true;
             m_lastUpdateTime = (data(index(row), EmailAccountListModel::LastSynchronized)).toDateTime();
         }
 
@@ -287,7 +279,7 @@ void EmailAccountListModel::onAccountsUpdated(const QMailAccountIdList &ids)
         emit persistentConnectionActiveChanged();
     }
 
-    if (emitSignal) {
+    if (lastUpdateChange) {
         emit lastUpdateTimeChanged();
     }
 

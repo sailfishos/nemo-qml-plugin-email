@@ -28,7 +28,6 @@ public:
     enum Role {
         DisplayName = Qt::UserRole + 4,
         EmailAddress,
-        MailServer,
         UnreadCount,
         MailAccountId,
         LastSynchronized,

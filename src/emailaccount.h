@@ -56,6 +56,23 @@ class Q_DECL_EXPORT EmailAccount : public QObject
     Q_PROPERTY(int errorCode READ errorCode NOTIFY testFailed)
 
 public:
+    enum Error {
+        ConnectionError = 0,
+        DiskFull,
+        ExternalComunicationError,
+        InvalidAccount,
+        InvalidConfiguration,
+        InternalError,
+        LoginFailed,
+        Timeout,
+        UntrustedCertificates
+    };
+
+    enum ServerType {
+        IncomingServer = 0,
+        OutgoingServer
+    };
+
     EmailAccount();
     EmailAccount(const QMailAccount &other);
     ~EmailAccount();
@@ -112,23 +129,6 @@ public:
     QString errorMessage() const;
     int errorCode() const;
 
-    enum Error {
-        ConnectionError = 0,
-        DiskFull,
-        ExternalComunicationError,
-        InvalidAccount,
-        InvalidConfiguration,
-        InternalError,
-        LoginFailed,
-        Timeout,
-        UntrustedCertificates
-    };
-
-    enum ServerType {
-        IncomingServer = 0,
-        OutgoingServer
-    };
-
 signals:
     void settingsRetrieved();
     void settingsRetrievalFailed();
@@ -159,6 +159,4 @@ private:
     void stopTimeout();
 };
 
-
 #endif // EMAILACCOUNT_H
-
