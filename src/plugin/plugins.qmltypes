@@ -754,6 +754,7 @@ Module {
         Property { name: "quotedBody"; type: "string"; isReadonly: true }
         Property { name: "recipients"; type: "QStringList"; isReadonly: true }
         Property { name: "recipientsDisplayName"; type: "QStringList"; isReadonly: true }
+        Property { name: "recipientAddress"; type: "string"; isReadonly: true }
         Property { name: "read"; type: "bool" }
         Property { name: "replyTo"; type: "string" }
         Property { name: "responseType"; type: "ResponseType" }
@@ -889,6 +890,23 @@ Module {
         Method { name: "markAsReadSelectedMessages" }
         Method { name: "markAsUnReadSelectedMessages" }
         Method { name: "markAllMessagesAsRead" }
+    }
+    Component {
+        name: "EmailTransmitAddressListModel"
+        prototype: "QAbstractListModel"
+        exports: ["Nemo.Email/EmailTransmitAddressListModel 0.1"]
+        exportMetaObjectRevisions: [0]
+        Property { name: "numberOfAddresses"; type: "int"; isReadonly: true }
+        Method {
+            name: "accountId"
+            type: "int"
+            Parameter { name: "idx"; type: "int" }
+        }
+        Method {
+            name: "indexFromAddress"
+            type: "int"
+            Parameter { name: "address"; type: "string" }
+        }
     }
     Component {
         name: "FolderAccessor"
