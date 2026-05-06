@@ -9,6 +9,7 @@
 #include <QNetworkConfigurationManager>
 #include <QTimer>
 #include <QSettings>
+#include <QRegularExpression>
 
 #include <qmailstore.h>
 #include <qmailmessage.h>
@@ -262,7 +263,7 @@ void EmailAccount::retrieveSettings(const QString &emailAdress)
                       }
                       autoConfig->deleteLater();
                   });
-    autoConfig->setProvider(QString(emailAdress).remove(QRegExp("^.*@")).toLower());
+    autoConfig->setProvider(QString(emailAdress).remove(QRegularExpression("^.*@")).toLower());
 }
 
 void EmailAccount::timeout()
@@ -378,13 +379,13 @@ void EmailAccount::setAddress(const QString &val)
 QString EmailAccount::username() const
 {
     // read-only property, returns username part of email address
-    return address().remove(QRegExp("@.*$"));
+    return address().remove(QRegularExpression("@.*$"));
 }
 
 QString EmailAccount::server() const
 {
     // read-only property, returns server part of email address
-    return address().remove(QRegExp("^.*@"));
+    return address().remove(QRegularExpression("^.*@"));
 }
 
 QString EmailAccount::password() const
