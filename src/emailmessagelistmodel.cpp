@@ -9,6 +9,7 @@
  */
 
 #include <QDateTime>
+#include <QRegularExpression>
 
 #include <qmailmessage.h>
 #include <qmailmessagekey.h>
@@ -243,12 +244,13 @@ QVariant EmailMessageListModel::data(const QModelIndex & index, int role) const
         // Filter <img> and <ahref> html tags to make the text suitable to be displayed in a qml
         // label using StyledText(allows only small subset of html)
         QString subject = QMailMessageListModel::data(index, QMailMessageModelBase::MessageSubjectTextRole).toString();
-        subject.replace(QRegExp("<\\s*img", Qt::CaseInsensitive), "<no-img");
-        subject.replace(QRegExp("<\\s*a", Qt::CaseInsensitive), "<no-a");
+        subject.replace(QRegularExpression("<\\s*img", QRegularExpression::CaseInsensitiveOption), "<no-img");
+        subject.replace(QRegularExpression("<\\s*a", QRegularExpression::CaseInsensitiveOption), "<no-a");
         return subject;
     } else if (role == MessageTrimmedSubject) {
         QString subject = QMailMessageListModel::data(index, QMailMessageModelBase::MessageSubjectTextRole).toString();
-        return subject.replace(QRegExp(QStringLiteral("^(re:|fw:|fwd:|\\s*)*"), Qt::CaseInsensitive), QString());
+        return subject.replace(QRegularExpression(QStringLiteral("^(re:|fw:|fwd:|\\s*)*"),
+                                                  QRegularExpression::CaseInsensitiveOption), QString());
     } else if (role == MessageHasCalendarCancellationRole) {
         return (messageMetaData.status() & QMailMessageMetaData::CalendarCancellation) != 0;
     } else if (role == MessageRepliedRole) {
@@ -815,6 +817,7 @@ void EmailMessageListModel::onSearchCompleted(const QString &search, const QMail
         qCDebug(lcEmail) << "Search terms are different, skipping. Received:" << search << "Have:" << m_search;
         return;
     }
+
     switch (status) {
     case EmailAgent::SearchDone:
         if (isRemote) {
@@ -835,9 +838,7 @@ void EmailMessageListModel::onSearchCompleted(const QString &search, const QMail
         }
         break;
     case EmailAgent::SearchCanceled:
-        break;
     case EmailAgent::SearchFailed:
-        break;
     default:
         break;
     }

@@ -50,7 +50,8 @@ public:
 
                           if (reply->error() == QNetworkReply::NoError) {
                               QString contentType = reply->header(QNetworkRequest::ContentTypeHeader).toString();
-                              if (contentType.startsWith(QLatin1String("text/xml"))
+                              if (contentType.startsWith(QLatin1String("application/xml"))
+                                      || contentType.startsWith(QLatin1String("text/xml"))
                                       || contentType.startsWith(QLatin1String("text/plain"))) {
                                   emit fetched(reply->url(), reply);
                                   return;
