@@ -1066,7 +1066,7 @@ void EmailAgent::synchronizeInbox(int accountId, uint minimum)
             enqueue(new TransmitMessages(m_transmitAction.data(), acctId));
         }
 
-    } else { //Account was never synced, retrieve list of folders and come back here.
+    } else { // Account was never synced, retrieve list of folders and come back here.
 
         connect(this, &EmailAgent::standardFoldersCreated,
                 this, [=](const QMailAccountId &acctId) {
@@ -1460,6 +1460,7 @@ bool EmailAgent::saveAttachmentToDownloads(QMailMessage *message, const QString 
         qCDebug(lcEmail) << "ERROR: Can't save attachment, location not found:" << attachmentLocation;
         return false;
     }
+
     QString checksum;
     QString filename = attachmentFilename(*message, attachmentLocation, &checksum);
     if (!matchesAttachment(filename, checksum)) {
@@ -1472,6 +1473,7 @@ bool EmailAgent::saveAttachmentToDownloads(QMailMessage *message, const QString 
         }
         setAttachmentFilename(message, attachmentLocation, filename);
     }
+
     emit attachmentPathChanged(attachmentLocation, filename);
     updateAttachmentDownloadStatus(attachmentLocation, Downloaded);
     return true;

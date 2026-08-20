@@ -28,9 +28,6 @@ QString idListToString(const QList<T> &ids)
     return idsList;
 }
 
-/*
-  EmailAction
-*/
 EmailAction::EmailAction(bool onlineAction)
     : _description(QString())
     , _type(Export)
@@ -367,7 +364,8 @@ QMailServiceAction* OnlineMoveMessages::serviceAction() const
 /*
   OnlineRenameFolder
 */
-OnlineRenameFolder::OnlineRenameFolder(QMailStorageAction* storageAction, const QMailFolderId &folderId, const QString &name)
+OnlineRenameFolder::OnlineRenameFolder(QMailStorageAction* storageAction, const QMailFolderId &folderId,
+                                       const QString &name)
     : EmailAction()
     , _storageAction(storageAction)
     , _folderId(folderId)
@@ -400,13 +398,15 @@ QMailAccountId OnlineRenameFolder::accountId() const
 /*
   OnlineMoveFolder
 */
-OnlineMoveFolder::OnlineMoveFolder(QMailStorageAction* storageAction, const QMailFolderId &folderId, const QMailFolderId &newParentId)
+OnlineMoveFolder::OnlineMoveFolder(QMailStorageAction* storageAction, const QMailFolderId &folderId,
+                                   const QMailFolderId &newParentId)
     : EmailAction()
     , _storageAction(storageAction)
     , _folderId(folderId)
     , _newParentId(newParentId)
 {
-    _description = QString("move-folder:folder-id=%1;new-parent=%2").arg(_folderId.toULongLong()).arg(_newParentId.toULongLong());
+    _description = QString("move-folder:folder-id=%1;new-parent=%2")
+                       .arg(_folderId.toULongLong()).arg(_newParentId.toULongLong());
     _type = EmailAction::OnlineMoveFolder;
 }
 
@@ -758,10 +758,10 @@ QString SearchMessages::searchText() const
   Synchronize
 */
 Synchronize::Synchronize(QMailRetrievalAction* retrievalAction, const QMailAccountId& id, uint minimum)
-        : EmailAction()
-        , _retrievalAction(retrievalAction)
-        , _accountId(id)
-        , _minimum(minimum)
+    : EmailAction()
+    , _retrievalAction(retrievalAction)
+    , _accountId(id)
+    , _minimum(minimum)
 {
     _description = QString("synchronize:account-id=%1").arg(_accountId.toULongLong());
     _type = EmailAction::Retrieve;

@@ -57,7 +57,7 @@ const QStringList supportedImageTypes = (QStringList()
 
 // Cache transient memory changes, like for encrypted messages.
 typedef QHash<QMailMessageId, QSharedPointer<QMailMessage>> MemoryMessageHash;
-Q_GLOBAL_STATIC(MemoryMessageHash, cachedMemoryMessages);
+Q_GLOBAL_STATIC(MemoryMessageHash, cachedMemoryMessages)
 }
 
 EmailMessage::EmailMessage(QObject *parent)

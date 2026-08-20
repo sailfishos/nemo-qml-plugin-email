@@ -454,6 +454,7 @@ bool FolderListModel::isFolderAncestorOf(int folderId, int ancestorFolderId)
         // Every folder has 'root' ancestor
         return true;
     }
+
     while (id.isValid()) {
         id = QMailFolder(id).parentFolderId();
         if (id == ancestorId) {
