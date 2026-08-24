@@ -141,25 +141,25 @@ EmailAgent::EmailAgent(QObject *parent)
     setupAccountFlags();
 
     connect(m_transmitAction.data(), &QMailTransmitAction::progressChanged,
-            this, &EmailAgent::progressChanged);
+            this, &EmailAgent::onProgressChanged);
 
     connect(m_retrievalAction.data(), &QMailRetrievalAction::activityChanged,
-            this, &EmailAgent::activityChanged);
+            this, &EmailAgent::onActivityChanged);
 
     connect(m_retrievalAction.data(), &QMailRetrievalAction::progressChanged,
-            this, &EmailAgent::progressChanged);
+            this, &EmailAgent::onProgressChanged);
 
     connect(m_storageAction.data(), &QMailStorageAction::activityChanged,
-            this, &EmailAgent::activityChanged);
+            this, &EmailAgent::onActivityChanged);
 
     connect(m_transmitAction.data(), &QMailTransmitAction::activityChanged,
-            this, &EmailAgent::activityChanged);
+            this, &EmailAgent::onActivityChanged);
 
     connect(m_searchAction.data(), &QMailSearchAction::activityChanged,
-            this, &EmailAgent::activityChanged);
+            this, &EmailAgent::onActivityChanged);
 
     connect(m_protocolAction.data(), &QMailProtocolAction::activityChanged,
-            this, &EmailAgent::activityChanged);
+            this, &EmailAgent::onActivityChanged);
 
     connect(m_searchAction.data(), &QMailSearchAction::messageIdsMatched,
             this, &EmailAgent::searchMessageIdsMatched);
@@ -410,7 +410,7 @@ void EmailAgent::setupAccountFlags()
 }
 
 // ############ Slots ###############
-void EmailAgent::activityChanged(QMailServiceAction::Activity activity)
+void EmailAgent::onActivityChanged(QMailServiceAction::Activity activity)
 {
     QMailServiceAction *action = static_cast<QMailServiceAction*>(sender());
     const QMailServiceAction::Status status(action->status());
@@ -609,7 +609,7 @@ void EmailAgent::onOnlineStateChanged(bool isOnline)
 
 // Note: values from here are not byte sizes, it's something like "indicative size" which
 // qmf defines internally as size in kilobytes
-void EmailAgent::progressChanged(uint value, uint total)
+void EmailAgent::onProgressChanged(uint value, uint total)
 {
     // Attachment download, do not spam the UI check should be done here
     if (value < total && m_currentAction->type() == EmailAction::RetrieveMessagePart) {
