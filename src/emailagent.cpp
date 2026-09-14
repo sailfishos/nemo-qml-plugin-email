@@ -827,12 +827,12 @@ bool EmailAgent::downloadAttachment(QMailMessage *message, const QString &attach
     QMailMessagePart::Location location(attachmentLocation);
 
     if (message && message->contains(location)) {
+        location.setContainingMessageId(message->id());
         const QMailMessagePart attachmentPart = message->partAt(location);
         if (attachmentPart.hasBody()) {
-            return saveAttachmentToDownloads(message, attachmentLocation);
+            return saveAttachmentToDownloads(message, location.toString(true));
         } else {
             qCDebug(lcEmail) << "Start Download for:" << attachmentLocation;
-            location.setContainingMessageId(message->id());
             enqueue(new RetrieveMessagePart(m_retrievalAction.data(), location, true));
         }
     } else {

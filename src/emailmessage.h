@@ -313,6 +313,7 @@ private:
     QString m_signatureLocation;
     QString m_cryptedDataLocation;
     EncryptionStatus m_encryptionStatus;
+    bool m_decryptedMessage = false;
     AttachmentListModel *m_attachmentModel = nullptr;
 };
 

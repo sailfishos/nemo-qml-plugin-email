@@ -30,6 +30,7 @@
 #include <QtConcurrent>
 #include <QFuture>
 #include <QFutureWatcher>
+#include <QGlobalStatic>
 
 namespace {
 
@@ -54,6 +55,9 @@ struct PartFinder {
 const QStringList supportedImageTypes = (QStringList()
                                          <<  "jpeg" << "jpg" << "png" << "gif" << "bmp" << "ico" << "webp");
 
+// Cache transient memory changes, like for encrypted messages.
+typedef QHash<QMailMessageId, QSharedPointer<QMailMessage>> MemoryMessageHash;
+Q_GLOBAL_STATIC(MemoryMessageHash, cachedMemoryMessages);
 }
 
 EmailMessage::EmailMessage(QObject *parent)
@@ -76,6 +80,13 @@ EmailMessage::EmailMessage(QObject *parent)
 
 EmailMessage::~EmailMessage()
 {
+    if (m_decryptedMessage) {
+        // Policy: the decrypted message is kept in cache as long
+        // as the message that triggered the decryption is alive.
+        // Like that, replying to or forwarding the message uses the
+        // decrypted version.
+        cachedMemoryMessages->remove(m_id);
+    }
 }
 
 // ############ Slots ###############
@@ -512,15 +523,22 @@ AttachmentListModel::Attachment EmailMessage::attachment(const QString &location
         attachment.location = location;
         attachment.displayName = attachmentName(part);
         attachment.downloaded = attachmentPartDownloaded(part);
-        attachment.status = EmailAgent::instance()->attachmentDownloadStatus(m_msg, location, &path);
         attachment.mimeType = QString::fromLatin1(part.contentType().content());
         attachment.size = attachmentSize(part);
         attachment.title = attachmentTitle(part);
         attachment.type = (isEmailPart(part)) ? AttachmentListModel::Email : AttachmentListModel::Other;
-        if (!path.isEmpty()) {
-            attachment.url = QUrl::fromLocalFile(path).toString();
+        if (!m_msg.id().isValid()) {
+            // Memory only message.
+            attachment.status = EmailAgent::Downloaded;
+            attachment.progressInfo = 1.;
+            attachment.url = QStringLiteral("message://%1/%2").arg(m_id.toULongLong()).arg(location);
+        } else {
+            attachment.status = EmailAgent::instance()->attachmentDownloadStatus(m_msg, location, &path);
+            if (!path.isEmpty()) {
+                attachment.url = QUrl::fromLocalFile(path).toString();
+            }
+            attachment.progressInfo = EmailAgent::instance()->attachmentDownloadProgress(location);
         }
-        attachment.progressInfo = EmailAgent::instance()->attachmentDownloadProgress(location);
     }
 
     return attachment;
@@ -1032,6 +1050,13 @@ void EmailMessage::setMessageId(int messageId)
         if (msgId.isValid()) {
             m_id = msgId;
             m_msg = QMailMessage(msgId);
+            if (m_msg.isEncrypted()) {
+                // Look if we have a decrypted version in cache.
+                QSharedPointer<QMailMessage> cached = cachedMemoryMessages->value(m_id);
+                if (cached) {
+                    m_msg = *cached;
+                }
+            }
         } else {
             m_id = QMailMessageId();
             m_msg = QMailMessage();
@@ -1231,6 +1256,7 @@ void EmailMessage::buildMessage(QMailMessage *msg)
         // Attachments by message part
         QList<QMailMessagePart> messageParts;
         QList<const QMailMessagePart *> messagePartPointers;
+        QList<QSharedPointer<QMailMessage>> memoryMessages;
 
         for (QString attachment : m_attachments) {
             // Attaching referenced emails
@@ -1259,10 +1285,27 @@ void EmailMessage::buildMessage(QMailMessage *msg)
                 messageParts.push_back(part);
                 messagePartPointers.push_back(&part);
 
-            // Attaching a file
             } else if (attachment.startsWith("file://")) {
+                // Attaching a file from a local URL.
                 attachments.append(QUrl(attachment).toLocalFile());
+            } else if (attachment.startsWith("message://")) {
+                // Attaching a part from a in-memory message.
+                const QString content = attachment.mid(10);
+                int sep = content.indexOf('/');
+                QMailMessageId msgId(content.left(sep).toULongLong());
+                QSharedPointer<QMailMessage> message
+                    = cachedMemoryMessages->value(msgId);
+                if (message) {
+                    const QMailMessagePart::Location location(content.mid(sep + 1));
+                    if (message->contains(location)) {
+                        // Ensure that the part pointer stays alive up to the setAttachments() call.
+                        memoryMessages.append(message);
+                        const QMailMessagePart *part = &message->partAt(location);
+                        messagePartPointers.append(part);
+                    }
+                }
             } else {
+                // Attaching a file from a path.
                 attachments.append(attachment);
             }
         }
@@ -1625,7 +1668,9 @@ void EmailMessage::verifySignature()
                     onVerifyCompleted(verifyingWatcher->result());
                 });
         // Delegate the ownership to the thread later.
-        QMailMessage *verificationCopy = new QMailMessage(m_msg.id());
+        // Reload the message, if not memory only.
+        QMailMessage *verificationCopy
+            = m_msg.id().isValid() ? new QMailMessage(m_msg.id()) : new QMailMessage(m_msg);
         QMailAccountConfiguration config(m_msg.parentAccountId());
         const QString pluginName = QMailCryptographicServiceConfiguration(&config).signatureType();
         QFuture<QMailCrypto::VerificationResult> future =
@@ -1705,6 +1750,8 @@ typedef QPair<QSharedPointer<QMailMessage>, QMailCrypto::DecryptionResult> Decry
 static DecryptionMessage decryptionHelper(QMailMessage *message, const QString &pluginName)
 {
     const QMailCrypto::DecryptionResult result = QMailCryptographicService::decrypt(message, pluginName);
+    // Decryption is for memory only, remove any link to the stored version.
+    message->setId(QMailMessageId());
     return DecryptionMessage(QSharedPointer<QMailMessage>(message), result);
 }
 
@@ -1737,6 +1784,8 @@ void EmailMessage::decrypt()
                     DecryptionMessage result = decryptingWatcher->result();
                     if (result.second.status == QMailCrypto::Decrypted) {
                         setEncryptionStatus(EmailMessage::NoDigitalEncryption);
+                        m_decryptedMessage = true;
+                        cachedMemoryMessages->insert(m_id, result.first);
                         m_msg = *result.first;
                         m_bodyText = EmailAgent::instance()->bodyPlainText(m_msg);
                         emitMessageReloadedSignals();
