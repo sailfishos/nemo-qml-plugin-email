@@ -56,7 +56,8 @@ public:
                     emit fetched(reply->url(), reply);
                     return;
                 } else {
-                    qCWarning(lcEmail) << "Autoconfig returned unexpected content type, ignoring -" << contentType;
+                    qCWarning(lcEmail) << "Autoconfig returned unexpected content type, ignoring -" << contentType
+                                       << "at" << reply->url().toString();
                 }
             }
 

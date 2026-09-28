@@ -85,7 +85,7 @@ public:
     Q_INVOKABLE void clear();
 
     int accountId() const;
-    void setAccountId(const int accId);
+    void setAccountId(int accId);
     QString description() const;
     void setDescription(const QString &val);
     bool enabled() const;

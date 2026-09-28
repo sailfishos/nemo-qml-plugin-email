@@ -180,10 +180,10 @@ signals:
     void onlineFolderActionCompleted(OnlineFolderAction action, bool success);
 
 private slots:
-    void activityChanged(QMailServiceAction::Activity activity);
+    void onActivityChanged(QMailServiceAction::Activity activity);
     void onIpcConnectionEstablished();
     void onOnlineStateChanged(bool isOnline);
-    void progressChanged(uint value, uint total);
+    void onProgressChanged(uint value, uint total);
 
 private:
     static EmailAgent *m_instance;

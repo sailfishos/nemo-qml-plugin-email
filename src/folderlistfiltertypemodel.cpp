@@ -64,6 +64,7 @@ void FolderListFilterTypeModel::updateData()
     if (updateSyncFolderListTimer != -1) {
         killTimer(updateSyncFolderListTimer);
     }
+
     // Avoid updating the sync folder list on every signal
     updateSyncFolderListTimer = startTimer(100);
 }

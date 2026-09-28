@@ -345,7 +345,7 @@ int EmailAccount::accountId() const
     return -1;
 }
 
-void EmailAccount::setAccountId(const int accId)
+void EmailAccount::setAccountId(int accId)
 {
     QMailAccountId accountId(accId);
     if (accountId.isValid()) {

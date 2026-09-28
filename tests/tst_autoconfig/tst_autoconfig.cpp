@@ -128,7 +128,8 @@ void tst_AutoConfig::provider_data()
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
         << (EmailAutoConfig::AuthList() << QMail::PlainMechanism);
 
-    // No autoconfig by service and provider not in Thunderbird databse,
+#if 0 // the service got renamed and does some redirects. passes but not the best test case.
+    // No autoconfig by service and provider not in Thunderbird database,
     // fallback to local settings.
     QTest::newRow("1and1.co.uk")
         << "1and1.co.uk"
@@ -148,6 +149,7 @@ void tst_AutoConfig::provider_data()
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
         << (EmailAutoConfig::AuthList() << QMail::PlainMechanism);
+#endif
 
     // No autoconfig by service, and not a provider on its own,
     // rely on Thunderbird service mapping the provider to config details.
@@ -169,7 +171,6 @@ void tst_AutoConfig::provider_data()
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism)
         << (EmailAutoConfig::AuthList() << QMail::XOAuth2Mechanism << QMail::PlainMechanism)
         << (EmailAutoConfig::AuthList() << QMail::NoMechanism);
-
 }
 
 void tst_AutoConfig::provider()
