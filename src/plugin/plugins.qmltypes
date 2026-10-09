@@ -737,6 +737,7 @@ Module {
         Property { name: "cryptoProtocol"; type: "CryptoProtocol"; isReadonly: true }
         Property { name: "signatureStatus"; type: "SignatureStatus"; isReadonly: true }
         Property { name: "encryptionStatus"; type: "EncryptionStatus"; isReadonly: true }
+        Property { name: "canDecrypt"; type: "bool"; isReadonly: true }
         Property { name: "date"; type: "QDateTime"; isReadonly: true }
         Property { name: "from"; type: "string" }
         Property { name: "fromAddress"; type: "string"; isReadonly: true }
