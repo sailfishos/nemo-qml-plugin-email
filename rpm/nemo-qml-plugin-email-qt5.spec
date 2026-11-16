@@ -1,6 +1,6 @@
 Name:       nemo-qml-plugin-email-qt5
 Summary:    Email plugin for Nemo Mobile
-Version:    0.6.36
+Version:    0.6.68
 Release:    1
 License:    ASL 2.0 and LGPLv2+ and BSD
 URL:        https://github.com/sailfishos/nemo-qml-plugin-email
