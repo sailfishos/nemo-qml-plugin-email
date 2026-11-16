@@ -128,7 +128,7 @@ void EmailTransmitAddressListModel::setAccount(const QMailAccount &account)
         emit dataChanged(index(from), index(current - 1), QVector<int>() << EmailAddress);
 
     if (current < to) {
-        // We're adding stricly less email addresses than
+        // We're adding strictly less email addresses than
         // previously exist for this account.
         beginRemoveRows(QModelIndex(), current, to - 1);
         for (int i = current; i < to; i++)
