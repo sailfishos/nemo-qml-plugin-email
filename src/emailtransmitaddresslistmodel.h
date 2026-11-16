@@ -23,7 +23,8 @@ class Q_DECL_EXPORT EmailTransmitAddressListModel : public QAbstractListModel
 public:
     enum Role {
         EmailAddress = Qt::UserRole,
-        MailAccountId
+        MailAccountId,
+        MessageSizeLimit
     };
 
     explicit EmailTransmitAddressListModel(QObject *parent = nullptr);
@@ -44,17 +45,21 @@ protected:
     QHash<int, QByteArray> roleNames() const override;
 
 private:
-    void setAccount(const QMailAccountId &id,
-                    const QMailAddress &fromAddress,
-                    const QMailAddress &fromAliases);
+    void setAccount(const QMailAccount &account);
     void removeAccount(const QMailAccountId &id);
 
     void onAccountsAdded(const QMailAccountIdList& ids);
     void onAccountsRemoved(const QMailAccountIdList& ids);
     void onAccountsUpdated(const QMailAccountIdList& ids);
 
+    struct TransmitData {
+        QMailAddress m_address;
+        QMailAccountId m_accountId;
+        int m_sizeLimit = 0;
+    };
+
     // List of (email, acccount) pairs
-    QList<QPair<QMailAddress, quint64>> m_addressList;
+    QList<TransmitData> m_addressList;
 };
 
 #endif

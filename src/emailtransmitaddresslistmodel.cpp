@@ -11,6 +11,7 @@
 #include <qmailstore.h>
 #include <qmailaccountkey.h>
 #include <qmailaccountsortkey.h>
+#include <qmailaccountconfiguration.h>
 
 #include "emailtransmitaddresslistmodel.h"
 #include "logging_p.h"
@@ -24,8 +25,7 @@ EmailTransmitAddressListModel::EmailTransmitAddressListModel(QObject *parent)
                                                 QMailAccountSortKey::id());
 
     for (const QMailAccountId &id : ids) {
-        const QMailAccount account(id);
-        setAccount(id, account.fromAddress(), account.fromAliases());
+        setAccount(QMailAccount(id));
     }
 
     connect(QMailStore::instance(), &QMailStore::accountsAdded,
@@ -46,6 +46,7 @@ QHash<int, QByteArray> EmailTransmitAddressListModel::roleNames() const
     if (roles.isEmpty()) {
         roles.insert(EmailAddress, "emailAddress");
         roles.insert(MailAccountId, "mailAccountId");
+        roles.insert(MessageSizeLimit, "messageSizeLimit");
     }
     return roles;
 }
@@ -59,14 +60,18 @@ QVariant EmailTransmitAddressListModel::data(const QModelIndex &index, int role)
     if (at >= m_addressList.count())
         return QVariant();
 
-    const QPair<QMailAddress, quint64> address = m_addressList[at];
+    const TransmitData &data = m_addressList[at];
 
     if (role == EmailAddress) {
-        return address.first.address();
+        return data.m_address.address();
     }
 
     if (role == MailAccountId) {
-        return address.second;
+        return data.m_accountId.toULongLong();
+    }
+
+    if (role == MessageSizeLimit) {
+        return data.m_sizeLimit;
     }
 
     return QVariant();
@@ -79,10 +84,10 @@ int EmailTransmitAddressListModel::rowCount(const QModelIndex &parent) const
     return m_addressList.count();
 }
 
-void EmailTransmitAddressListModel::setAccount(const QMailAccountId &id,
-                                               const QMailAddress &fromAddress,
-                                               const QMailAddress &fromAliases)
+void EmailTransmitAddressListModel::setAccount(const QMailAccount &account)
 {
+    const QMailAddress fromAddress = account.fromAddress();
+    const QMailAddress fromAliases = account.fromAliases();
     QList<QMailAddress> addresses;
     addresses << fromAddress;
     if (fromAliases.isGroup()) {
@@ -93,7 +98,7 @@ void EmailTransmitAddressListModel::setAccount(const QMailAccountId &id,
     
     int from = -1, to = -1;
     for (int index = 0; index < m_addressList.count(); index++) {
-        if (m_addressList[index].second == id.toULongLong()) {
+        if (m_addressList[index].m_accountId == account.id()) {
             if (from < 0)
                 from = index;
             to = index + 1;
@@ -104,9 +109,21 @@ void EmailTransmitAddressListModel::setAccount(const QMailAccountId &id,
 
     int current = from;
 
+    // Retrieve some data from the transmitting service.
+    int sizeLimit = 0;
+    const QMailAccountConfiguration config(account.id());
+    const QStringList sinks = account.messageSinks();
+    if (!sinks.isEmpty()) {
+        const QMailAccountConfiguration::ServiceConfiguration &sinkCfg
+            = config.serviceConfiguration(sinks.first());
+        // This value should be set by the sink plugins,
+        // see for instance in SMTP plugin in QMF, smtpclient.cpp
+        sizeLimit = sinkCfg.value("messageSizeLimit").toInt();
+    }
+
     // We update the existing addresses for this account.
     for (; current < to && !addresses.isEmpty(); current++)
-        m_addressList.insert(current, QPair<QMailAddress, quint64>(addresses.takeFirst(), id.toULongLong()));
+        m_addressList.insert(current, TransmitData{addresses.takeFirst(), account.id(), sizeLimit});
     if (current > from)
         emit dataChanged(index(from), index(current - 1), QVector<int>() << EmailAddress);
 
@@ -122,7 +139,7 @@ void EmailTransmitAddressListModel::setAccount(const QMailAccountId &id,
         // previously exist for this account.
         beginInsertRows(QModelIndex(), current, current + addresses.size() - 1);
         while (!addresses.isEmpty())
-            m_addressList.insert(current++, QPair<QMailAddress, quint64>(addresses.takeFirst(), id.toULongLong()));
+            m_addressList.insert(current++, TransmitData{addresses.takeFirst(), account.id(), sizeLimit});
         endInsertRows();
     }
 }
@@ -131,7 +148,7 @@ void EmailTransmitAddressListModel::removeAccount(const QMailAccountId &id)
 {
     int from = -1, to;
     for (int index = 0; index < m_addressList.count(); index++) {
-        if (m_addressList[index].second == id.toULongLong()) {
+        if (m_addressList[index].m_accountId == id) {
             if (from < 0)
                 from = index;
             to = index;
@@ -151,7 +168,7 @@ void EmailTransmitAddressListModel::onAccountsAdded(const QMailAccountIdList &id
     for (const QMailAccountId &id : ids) {
         const QMailAccount account(id);
         if (account.status() & (QMailAccount::CanTransmit | QMailAccount::Enabled)) {
-            setAccount(id, account.fromAddress(), account.fromAliases());
+            setAccount(account);
         }
     }
     if (m_addressList.count() != count)
@@ -174,7 +191,7 @@ void EmailTransmitAddressListModel::onAccountsUpdated(const QMailAccountIdList &
     for (const QMailAccountId &id : ids) {
         const QMailAccount account(id);
         if (account.status() & (QMailAccount::CanTransmit | QMailAccount::Enabled)) {
-            setAccount(id, account.fromAddress(), account.fromAliases());
+            setAccount(account);
         } else {
             removeAccount(id);
         }
@@ -196,7 +213,7 @@ int EmailTransmitAddressListModel::accountId(int idx) const
 int EmailTransmitAddressListModel::indexFromAddress(const QString &address) const
 {
     for (int index = 0; index < m_addressList.count(); index++) {
-        if (m_addressList[index].first.address() == address)
+        if (m_addressList[index].m_address.address() == address)
             return index;
     }
     return -1;
