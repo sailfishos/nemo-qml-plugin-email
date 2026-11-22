@@ -21,7 +21,12 @@
 
 #include <QObject>
 #include <QList>
+#include <QtGlobal>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QNetworkConfigurationManager>
+#else
+#include <QNetworkInformation>
+#endif
 
 #include <qmailmessageserverplugin.h>
 #include <qmailserviceaction.h>
@@ -44,7 +49,9 @@ private:
     QMailAccountId m_account;
     QMailRetrievalAction m_action;
     QList<QMailMessagePart::Location> m_locationQueue;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QNetworkConfigurationManager m_networkConfiguration;
+#endif
     QMailStoreAccountFilter m_store;
 
     void autoDownloadAttachments(const QMailMessageId &messageId);

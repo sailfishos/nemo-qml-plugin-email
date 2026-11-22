@@ -1,8 +1,12 @@
 TEMPLATE = lib
 QT += network dbus concurrent xml
 CONFIG += link_pkgconfig qt hide_symbols create_pc create_prl
-TARGET = nemoemail-qt5
-PKGCONFIG += QmfMessageServer QmfClient accounts-qt5
+TARGET = nemoemail-qt$${QT_MAJOR_VERSION}
+equals(QT_MAJOR_VERSION, 6) {
+    PKGCONFIG += QmfMessageServer-qt6 QmfClient-qt6 accounts-qt6
+} else {
+    PKGCONFIG += QmfMessageServer QmfClient accounts-qt5
+}
 
 SOURCES += \
     $$PWD/emailaccountlistmodel.cpp \
@@ -57,7 +61,7 @@ target.path = $$[QT_INSTALL_LIBS]
 pkgconfig.files = $$TARGET.pc
 pkgconfig.path = $$target.path/pkgconfig
 headers.files = $$PUBLIC_HEADERS
-headers.path = /usr/include/nemoemail-qt5
+headers.path = /usr/include/nemoemail-qt$${QT_MAJOR_VERSION}
 
 QMAKE_PKGCONFIG_NAME = lib$$TARGET
 QMAKE_PKGCONFIG_DESCRIPTION = Email plugin for Nemo Mobile

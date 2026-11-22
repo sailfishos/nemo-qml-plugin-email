@@ -9,7 +9,7 @@
 #ifndef EMAILUTILS_H
 #define EMAILUTILS_H
 
-#include <QMailMessagePart>
+#include <qmailmessage.h>
 #include <QFile>
 
 const static auto EML_EXTENSION = QStringLiteral(".eml");

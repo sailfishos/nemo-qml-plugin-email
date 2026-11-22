@@ -18,6 +18,7 @@ tests.depends = sub-src
 SUBDIRS = src plugins attachmentdownloader tests
 
 OTHER_FILES += rpm/nemo-qml-plugin-email-qt5.spec \
+              rpm/nemo-qml-plugin-email-qt6.spec \
               configurations/domainSettings.conf \
               configurations/serviceSettings.conf
 

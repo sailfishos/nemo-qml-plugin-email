@@ -77,7 +77,11 @@ private:
     QNetworkRequest nextRequest()
     {
         QNetworkRequest req = QNetworkRequest(QUrl(urls.takeFirst()));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+#else
         req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+#endif
         return req;
     }
 

@@ -63,8 +63,8 @@ void tst_EmailMessage::initTestCase()
     m_message.setCc(QList<QMailAddress>() << QMailAddress("account1@example.org") << QMailAddress("account3@example.org"));
     m_message.setBcc(QList<QMailAddress>() << QMailAddress("account1@example.org"));
     m_message.setSubject("inboxMessage1");
-    m_message.setDate(QMailTimeStamp(QDateTime(QDate::currentDate())));
-    m_message.setReceivedDate(QMailTimeStamp(QDateTime(QDate::currentDate())));
+    m_message.setDate(QMailTimeStamp(QDate::currentDate().startOfDay()));
+    m_message.setReceivedDate(QMailTimeStamp(QDate::currentDate().startOfDay()));
     m_message.setStatus(QMailMessage::Incoming, true);
     m_message.setStatus(QMailMessage::New, true);
     m_message.setStatus(QMailMessage::Read, false);
@@ -79,8 +79,8 @@ void tst_EmailMessage::initTestCase()
     m_message2.setFrom(QMailAddress("account2@example.org"));
     m_message2.setTo(QMailAddress("account1@example.org"));
     m_message2.setSubject("RE:inboxMessage1");
-    m_message2.setDate(QMailTimeStamp(QDateTime(QDate::currentDate())));
-    m_message2.setReceivedDate(QMailTimeStamp(QDateTime(QDate::currentDate())));
+    m_message2.setDate(QMailTimeStamp(QDate::currentDate().startOfDay()));
+    m_message2.setReceivedDate(QMailTimeStamp(QDate::currentDate().startOfDay()));
     m_message2.setStatus(QMailMessage::Incoming, true);
     m_message2.setStatus(QMailMessage::New, true);
     m_message2.setStatus(QMailMessage::Read, true);

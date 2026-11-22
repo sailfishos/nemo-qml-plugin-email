@@ -6,7 +6,10 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
+#include <QtGlobal>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QNetworkConfigurationManager>
+#endif
 #include <QTimer>
 #include <QSettings>
 #include <QRegularExpression>

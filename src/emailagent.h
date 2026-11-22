@@ -12,7 +12,12 @@
 #define EMAILAGENT_H
 
 #include <QSharedPointer>
+#include <QtGlobal>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QNetworkConfigurationManager>
+#else
+#include <QNetworkInformation>
+#endif
 
 #include <qmailaccount.h>
 #include <qmailstore.h>
@@ -205,7 +210,9 @@ private:
     QScopedPointer<QMailProtocolAction> const m_protocolAction;
     QMailRetrievalAction *m_attachmentRetrievalAction;
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QNetworkConfigurationManager *m_nmanager;
+#endif
 
     QList<QSharedPointer<EmailAction> > m_actionQueue;
     QSharedPointer<EmailAction> m_currentAction;

@@ -7,6 +7,10 @@ TEMPLATE = app
 CONFIG -= app_bundle
 
 CONFIG += testcase link_pkgconfig
-PKGCONFIG += QmfMessageServer QmfClient
+equals(QT_MAJOR_VERSION, 6) {
+    PKGCONFIG += QmfMessageServer-qt6 QmfClient-qt6
+} else {
+    PKGCONFIG += QmfMessageServer QmfClient
+}
 
-target.path = /opt/tests/nemo-qml-plugin-email-qt5
+target.path = /opt/tests/nemo-qml-plugin-email-qt$${QT_MAJOR_VERSION}

@@ -96,7 +96,13 @@ private:
     int smtpSSLPort() const {return smtpPort(QMailTransport::Encrypt_SSL);}
     int smtpTLSPort() const {return smtpPort(QMailTransport::Encrypt_TLS);}
 
-    bool isLocalOnly() const {return m_manager.networkAccessible() != QNetworkAccessManager::Accessible;}
+    bool isLocalOnly() const {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        return false;
+#else
+        return m_manager.networkAccessible() != QNetworkAccessManager::Accessible;
+#endif
+    }
 
     friend tst_AutoConfig;
 

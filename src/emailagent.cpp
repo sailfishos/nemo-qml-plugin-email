@@ -18,7 +18,11 @@
 #include <QMap>
 #include <QStandardPaths>
 #include <QTimer>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QNetworkConfigurationManager>
+#else
+#include <QNetworkInformation>
+#endif
 #include <QCryptographicHash>
 
 #include <qmailnamespace.h>
@@ -132,7 +136,9 @@ EmailAgent::EmailAgent(QObject *parent)
     , m_transmitAction(new QMailTransmitAction(this))
     , m_searchAction(new QMailSearchAction(this))
     , m_protocolAction(new QMailProtocolAction(this))
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     , m_nmanager(new QNetworkConfigurationManager(this))
+#endif
 {
     connect(QMailStore::instance(), &QMailStore::ipcConnectionEstablished,
             this, &EmailAgent::onIpcConnectionEstablished);
@@ -164,8 +170,18 @@ EmailAgent::EmailAgent(QObject *parent)
     connect(m_searchAction.data(), &QMailSearchAction::messageIdsMatched,
             this, &EmailAgent::searchMessageIdsMatched);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (!QNetworkInformation::instance())
+        QNetworkInformation::loadDefaultBackend();
+    if (auto *ni = QNetworkInformation::instance()) {
+        connect(ni, &QNetworkInformation::reachabilityChanged, this, [this](QNetworkInformation::Reachability reachability) {
+            onOnlineStateChanged(reachability != QNetworkInformation::Reachability::Disconnected);
+        });
+    }
+#else
     connect(m_nmanager, &QNetworkConfigurationManager::onlineStateChanged,
             this, &EmailAgent::onOnlineStateChanged);
+#endif
 
     m_waitForIpc = !QMailStore::instance()->isIpcConnectionEstablished();
     m_instance = this;
@@ -279,7 +295,11 @@ void EmailAgent::initMailServer()
     // We ignore the dependencies here because we want messageserver to start even if there are
     // no accounts in the system (e.g if this plugin is initiated to test account credentials during creation)
     QDBusPendingCall startUnit = systemd.asyncCall(QStringLiteral("StartUnit"),
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                                                   QStringLiteral("messageserver6.service"),
+#else
                                                    QStringLiteral("messageserver5.service"),
+#endif
                                                    QStringLiteral("ignore-dependencies"));
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(startUnit, this);
     QObject::connect(watcher, &QDBusPendingCallWatcher::finished,
@@ -309,7 +329,14 @@ bool EmailAgent::ipcConnected()
 
 bool EmailAgent::isOnline()
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    auto *ni = QNetworkInformation::instance();
+    if (!ni)
+        return true;
+    return ni->reachability() != QNetworkInformation::Reachability::Disconnected;
+#else
     return m_nmanager->isOnline();
+#endif
 }
 
 void EmailAgent::searchMessages(const QMailMessageKey &filter,
@@ -757,7 +784,9 @@ void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
         QMailMessageIdList idsToRemove(ids);
         if (!localOnlyIds.isEmpty()) {
             QMailStore::instance()->removeMessages(QMailMessageKey::id(localOnlyIds));
-            idsToRemove = (ids.toSet().subtract(localOnlyIds.toSet())).toList();
+            QSet<QMailMessageId> idsSet(ids.constBegin(), ids.constEnd());
+            idsSet.subtract(QSet<QMailMessageId>(localOnlyIds.constBegin(), localOnlyIds.constEnd()));
+            idsToRemove = idsSet.values();
         }
         if (!idsToRemove.isEmpty()) {
             m_enqueing = true;
@@ -788,7 +817,7 @@ void EmailAgent::deleteMessages(const QMailMessageIdList &ids)
     // Do online actions at the end
     if (exptUpdates) {
         // Export updates for all accounts that we deleted messages from
-        QMailAccountIdList accountList = accountMap.uniqueKeys();
+        QMailAccountIdList accountList = accountMap.keys();
         exportUpdates(accountList);
     }
 }

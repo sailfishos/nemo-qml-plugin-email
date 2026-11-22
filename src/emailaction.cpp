@@ -271,7 +271,7 @@ OnlineCreateFolder::OnlineCreateFolder(QMailStorageAction* storageAction, const 
 {
     QString pId;
     if (_parentId.isValid()) {
-        pId = _parentId.toULongLong();
+        pId = QString::number(_parentId.toULongLong());
     } else {
         pId = "NULL";
     }
@@ -443,7 +443,7 @@ RetrieveFolderList::RetrieveFolderList(QMailRetrievalAction* retrievalAction, co
 {
     QString fId;
     if (_folderId.isValid()) {
-        fId = _folderId.toULongLong();
+        fId = QString::number(_folderId.toULongLong());
     } else {
         fId = "NULL";
     }
