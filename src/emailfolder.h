@@ -14,6 +14,9 @@
 #include <qmailfolder.h>
 
 class FolderAccessor;
+Q_DECLARE_OPAQUE_POINTER(FolderAccessor*)
+
+class FolderAccessor;
 
 class Q_DECL_EXPORT EmailFolder : public QObject
 {

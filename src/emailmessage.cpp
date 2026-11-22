@@ -1261,7 +1261,7 @@ void EmailMessage::buildMessage(QMailMessage *msg)
         for (QString attachment : m_attachments) {
             // Attaching referenced emails
             if (attachment.startsWith("id://")) {
-                QMailMessageId msgId(attachment.midRef(5).toULongLong());
+                QMailMessageId msgId(attachment.mid(5).toULongLong());
                 if (!msgId.isValid()) {
                     qCWarning(lcEmail) << "Invalid message id on attachment:" << msgId << "Can not add attachment";
                     continue;

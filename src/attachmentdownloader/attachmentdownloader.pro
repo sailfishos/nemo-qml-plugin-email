@@ -3,7 +3,11 @@ TARGET = attachmentdownloader
 CONFIG += qt plugin hide_symbols link_pkgconfig
 QT -= gui
 
-PKGCONFIG += QmfMessageServer QmfClient
+equals(QT_MAJOR_VERSION, 6) {
+    PKGCONFIG += QmfMessageServer-qt6 QmfClient-qt6
+} else {
+    PKGCONFIG += QmfMessageServer QmfClient
+}
 
 INCLUDEPATH += ..
 SOURCES += \

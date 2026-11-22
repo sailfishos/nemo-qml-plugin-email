@@ -40,8 +40,18 @@ AttachmentDownloader::AttachmentDownloader(const QMailAccountId &account, QObjec
     connect(&m_store, &QMailStoreAccountFilter::messagesUpdated,
             this, &AttachmentDownloader::messagesUpdated);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (!QNetworkInformation::instance())
+        QNetworkInformation::loadDefaultBackend();
+    if (auto *ni = QNetworkInformation::instance()) {
+        connect(ni, &QNetworkInformation::reachabilityChanged, this, [this](QNetworkInformation::Reachability reachability) {
+            onlineStateChanged(reachability != QNetworkInformation::Reachability::Disconnected);
+        });
+    }
+#else
     connect(&m_networkConfiguration, &QNetworkConfigurationManager::onlineStateChanged,
             this, &AttachmentDownloader::onlineStateChanged);
+#endif
 
     connect(&m_action, &QMailRetrievalAction::activityChanged,
             this, &AttachmentDownloader::activityChanged);
@@ -79,7 +89,13 @@ void AttachmentDownloader::activityChanged(QMailServiceAction::Activity activity
         qCWarning(lcAD) << Q_FUNC_INFO << "Attachment download failed, account: " << m_account
                         << "error code:" << status.errorCode << "error text:" << status.text
                         << "account:" << status.accountId << "connection status:" << m_action.connectivity()
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                        << "online:" << (QNetworkInformation::instance()
+                                          ? QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Disconnected
+                                          : true);
+#else
                         << "online:" << m_networkConfiguration.isOnline();
+#endif
         // If failure was due to not being connected, requeue
         if (status.errorCode == QMailServiceAction::Status::ErrNoConnection
                 || status.errorCode == QMailServiceAction::Status::ErrConnectionNotReady)
@@ -132,7 +148,14 @@ bool AttachmentDownloader::enqueue(const QMailMessagePart::Location &location)
 
 void AttachmentDownloader::processNext()
 {
-    if (!m_locationQueue.isEmpty() && m_networkConfiguration.isOnline() && !m_action.isRunning()) {
+    bool online = true;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (auto *ni = QNetworkInformation::instance())
+        online = ni->reachability() != QNetworkInformation::Reachability::Disconnected;
+#else
+    online = m_networkConfiguration.isOnline();
+#endif
+    if (!m_locationQueue.isEmpty() && online && !m_action.isRunning()) {
         Q_ASSERT(m_action.activity() == QMailServiceAction::Pending);
         qCDebug(lcAD) << Q_FUNC_INFO << "Executing next attachment download action for account" << m_account;
         m_action.retrieveMessagePart(m_locationQueue.constFirst());
